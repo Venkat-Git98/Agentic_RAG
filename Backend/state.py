@@ -21,6 +21,19 @@ class ExecutionLog(TypedDict):
     success: bool
     error_message: Optional[str]
 
+class RetrievedContext(TypedDict):
+    """
+    A unified structure for holding retrieved context from any source.
+    This structure is designed to be compatible with both vector search
+    results and deep graph retrieval results.
+    """
+    source: str          # e.g., 'vector_search', 'deep_graph_retrieval', 'web_search'
+    query: str           # The sub-query that prompted this retrieval
+    uid: str             # A unique identifier for the retrieved item (e.g., chunk ID, URL)
+    title: Optional[str] # The title of the document or section
+    text: str            # The main content of the retrieved chunk
+    metadata: Dict[str, Any] # Any other relevant metadata
+
 class QualityMetrics(TypedDict):
     """Quality assessment metrics for responses"""
     context_sufficiency_score: float

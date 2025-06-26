@@ -13,7 +13,7 @@ from react_agent.base_tool import BaseTool
 from config import EMBEDDING_MODEL, TIER_2_MODEL_NAME
 from tools.neo4j_connector import Neo4jConnector
 from tools.reranker import Reranker
-from graph.state import RetrievedContext
+from state import RetrievedContext
 from prompts import SUB_ANSWER_PROMPT, QUALITY_CHECK_PROMPT, SUBSECTION_EXTRACTION_PROMPT
 from neo4j.graph import Node
 import json
