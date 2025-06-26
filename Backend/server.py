@@ -79,19 +79,15 @@ app = FastAPI(
 # --- CORS Configuration ---
 # This is necessary to allow the frontend (running on a different port)
 # to communicate with the backend.
-origins = [
-    "http://localhost:5173",  # Your frontend's address
-    "http://127.0.0.1:5173",
-]
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods, including OPTIONS
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
 )
-
 
 # --- Streaming Logic ---
 
