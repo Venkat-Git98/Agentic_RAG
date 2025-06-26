@@ -49,11 +49,18 @@ else:
 # --- Google Gemini API Configuration ---
 # Your API key for accessing Google's generative models.
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
-
 if not GOOGLE_API_KEY:
-    logging.error("FATAL: GOOGLE_API_KEY not found in environment variables.")
-else:
-    logging.info("GOOGLE_API_KEY loaded successfully.")
+    raise ValueError("FATAL: GOOGLE_API_KEY not found in environment variables.")
+
+# --- Cohere API Key ---
+COHERE_API_KEY = os.environ.get("COHERE_API_KEY") or os.environ.get("COHERE_API")
+if not COHERE_API_KEY:
+    raise ValueError("FATAL: COHERE_API_KEY or COHERE_API not found in environment variables.")
+
+# --- Tavily API Key ---
+TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY") or os.environ.get("TAVILY_API")
+if not TAVILY_API_KEY:
+    raise ValueError("FATAL: TAVILY_API_KEY or TAVILY_API not found in environment variables.")
 
 # --- Neo4j Database Configuration ---
 # Connection details for your Neo4j graph database.
@@ -62,9 +69,7 @@ NEO4J_USERNAME = os.environ.get("NEO4J_USERNAME")
 NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD")
 
 if not all([NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD]):
-    logging.error("FATAL: Neo4j credentials (URI, USERNAME, PASSWORD) not fully found in environment variables.")
-else:
-    logging.info("Neo4j credentials loaded successfully.")
+    raise ValueError("FATAL: Neo4j credentials (NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD) not fully set in environment variables.")
 
 # --- Model Tiering Configuration ---
 # Define which models to use for different tasks to balance cost and performance.
@@ -95,19 +100,21 @@ CONVERSATION_STATE_FILE = "data/conversation_state.json"
 # --- Redis Configuration ---
 # Your connection URL for the Redis instance on Railway.
 REDIS_URL = os.environ.get("REDIS_URL")
-redis_client = None
-if REDIS_URL:
-    try:
-        # Use decode_responses=True to get strings back from Redis
-        redis_client = redis.from_url(REDIS_URL, decode_responses=True)
-        # Check if the connection is alive
-        redis_client.ping()
-        logging.info("Redis connection successful.")
-    except redis.exceptions.ConnectionError as e:
-        logging.error(f"FATAL: Could not connect to Redis at {REDIS_URL}. Error: {e}")
-        redis_client = None
-else:
-    logging.warning("REDIS_URL not found in environment variables. State management will not be persistent.")
+
+if not REDIS_URL:
+    raise ValueError("FATAL: REDIS_URL environment variable not set. Please provide a valid Redis connection URL.")
+
+try:
+    # Use decode_responses=True to get strings back from Redis
+    redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+    # Check if the connection is alive
+    redis_client.ping()
+    logging.info("Successfully connected to Redis.")
+except redis.exceptions.ConnectionError as e:
+    logging.error(f"FATAL: Could not connect to Redis at the provided URL. Please check the REDIS_URL. Error: {e}")
+    # Re-raise the exception to prevent the application from starting
+    # with a non-functional Redis connection.
+    raise ValueError(f"Failed to connect to Redis: {e}") from e
 
 logging.info(f"Model configuration: T1='{TIER_1_MODEL_NAME}', T2='{TIER_2_MODEL_NAME}', Memory='{MEMORY_ANALYSIS_MODEL}'")
 logging.info(f"Research configuration: USE_RERANKER={USE_RERANKER}")

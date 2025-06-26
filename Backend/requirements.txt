@@ -13,6 +13,8 @@ sentence-transformers
 scikit-learn
 numpy
 thefuzz[speedup]
-asyncio
 pydantic
-google-generativeai 
+google-generativeai
+cohere
+langchain_cohere
+tavily-python 
