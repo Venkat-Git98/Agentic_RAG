@@ -14,4 +14,5 @@ scikit-learn
 numpy
 thefuzz[speedup]
 asyncio
-pydantic 
+pydantic
+google-generativeai 
