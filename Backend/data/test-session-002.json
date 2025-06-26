@@ -1,0 +1,21 @@
+{
+  "conversation_id": "test-session-002",
+  "full_history": [
+    {
+      "role": "user",
+      "content": "What are the requirements for residential stairs?"
+    },
+    {
+      "role": "assistant",
+      "content": "**Compliance Requirements:**\n\n# Residential Stair Requirements: A Comprehensive Overview\n\nThis document outlines the key requirements for residential stairs based on the provided information, primarily referencing the International Residential Code (IRC). While this overview covers essential aspects, it's crucial to consult the full code and relevant local amendments for complete compliance.\n\n## Key Dimensional Requirements\n\n* **Minimum Width:**  Stairways must maintain a clear width of at least 36 inches (914 mm) throughout their length. This measurement is taken above the permitted handrail height and below the required headroom height. Any obstructions, including handrails, cannot infringe upon this minimum clear width. [Source: 2021 International Residential Code (IRC) - R311.7 Stairways; Building Codes for Stairs and Stairways - Amstep Products; Stairway Code Requirements - An Overview]\n\n* **Handrail Projection:** Handrails, while essential for safety, must not excessively reduce the stairway's usable width.  They can project a maximum of 4.5 inches into the required minimum width on each side.  This means a stairway with handrails on both sides can maintain the 36-inch minimum. With a handrail on only one side, the minimum clear width becomes 31.5 inches (36 inches - 4.5 inches). [Source: Building Codes for Stairs and Stairways - Amstep Products; Stairway Code Requirements - An Overview]\n\n\n* **Maximum Vertical Rise per Flight:**  A single flight of stairs is limited to a maximum vertical rise of 12 feet 7 inches between floor levels or landings under the IRC (R311.7.3).  The International Building Code (IBC) specifies a slightly lower maximum rise of 12 feet (1011.8), although the specific IBC section referencing residential stairs within this context wasn't provided. [Source: Stairway Code Requirements - An Overview]\n\n* **Tread Width:** Although not explicitly detailed in the provided sources, tread width is an important consideration.  The space between stringers must not exceed the tread width to meet code requirements. This ensures adequate tread support and stability.  [Source: Stairway Code Requirements - An Overview]\n\n\n## Additional Considerations and Code References\n\nWhile not fully detailed in the provided information, the following aspects require further investigation for comprehensive compliance:\n\n* **Riser Height and Tread Depth:**  These dimensions are crucial for comfortable and safe stair usage.  Consult the relevant building codes for specific requirements.\n* **Headroom Clearance:** Adequate headroom is essential to prevent head injuries. Specific minimum heights are defined within building codes.\n* **Handrail Construction and Placement:**  Beyond projection limits, codes specify requirements for handrail materials, dimensions, and attachment methods.\n* **Open Stairways:**  The provided information references the need for sprinkler protection (NFPA 13) and draft curtains (IBC 1019.3.4) for open stairways but lacks specific details. Further research is necessary.\n\n\n## Important Note:\n\nThis synthesis is based on the information provided and should not be considered exhaustive. Always consult the latest edition of the applicable building codes, including local amendments, and engage with qualified professionals for complete and accurate guidance on residential stair construction.  This information is for educational purposes only and does not constitute professional advice.\n\n*Note: Compliance must be verified with local building officials and current code editions.*"
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

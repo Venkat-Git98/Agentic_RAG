@@ -1,0 +1,44 @@
+graph TB
+    subgraph "AI Agent System"
+        A["TRIAGE AGENT<br/>Query Classification"]
+        B["PLANNING AGENT<br/>Research Strategy"]
+        C["RESEARCH AGENT<br/>Parallel Search"]
+        D["SYNTHESIS AGENT<br/>Answer Generation"]
+        E["MEMORY AGENT<br/>Context Management"]
+        F["ERROR HANDLER<br/>Failure Recovery"]
+    end
+    
+    subgraph "Data Flow"
+        G["User Query"] --> A
+        A --> H{Simple or Complex?}
+        H -->|Simple| I["Direct Answer"]
+        H -->|Complex| B
+        B --> J["Research Plan"]
+        J --> C
+        C --> K["Search Results"]
+        K --> D
+        D --> L["Final Answer"]
+        L --> E
+        E --> M["Response + Memory"]
+    end
+    
+    subgraph "Error Recovery"
+        F -.-> A
+        F -.-> B
+        F -.-> C
+        F -.-> D
+        F -.-> E
+    end
+    
+    A -.-> H
+    I --> M
+    
+    classDef agent fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef data fill:#f1f8e9,stroke:#388e3c,stroke-width:2px
+    classDef decision fill:#fff8e1,stroke:#f57c00,stroke-width:2px
+    classDef error fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    
+    class A,B,C,D,E agent
+    class G,I,J,K,L,M data
+    class H decision
+    class F error 

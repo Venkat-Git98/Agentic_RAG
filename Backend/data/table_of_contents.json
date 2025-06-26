@@ -1,0 +1,94 @@
+[
+  {
+    "id": "16",
+    "title": "STRUCTURAL DESIGN",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "1614",
+        "title": "ATMOSPHERIC ICE LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1603",
+        "title": "CONSTRUCTION DOCUMENTS",
+        "level": "section"
+      },
+      {
+        "id": "1606",
+        "title": "DEAD LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1613",
+        "title": "EARTHQUAKE LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1612",
+        "title": "FLOOD LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1601",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1601",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1604",
+        "title": "GENERAL DESIGN REQUIREMENTS",
+        "level": "section"
+      },
+      {
+        "id": "1607",
+        "title": "LIVE LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1605",
+        "title": "LOAD COMBINATIONS",
+        "level": "section"
+      },
+      {
+        "id": "1602",
+        "title": "NOTATIONS",
+        "level": "section"
+      },
+      {
+        "id": "1611",
+        "title": "RAIN LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1608",
+        "title": "SNOW LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1610",
+        "title": "SOIL LOADS AND HYDROSTATIC PRESSURE",
+        "level": "section"
+      },
+      {
+        "id": "1616",
+        "title": "STRUCTURAL INTEGRITY",
+        "level": "section"
+      },
+      {
+        "id": "1615",
+        "title": "TSUNAMI LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1609",
+        "title": "WIND LOADS",
+        "level": "section"
+      }
+    ]
+  }
+]

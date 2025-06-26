@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+langgraph
+langchain
+langchain-core
+langchain-openai
+python-dotenv
+redis
+docker
+neo4j
+tiktoken
+sentence-transformers
+scikit-learn
+numpy
+thefuzz[speedup]
+asyncio
+pydantic 
