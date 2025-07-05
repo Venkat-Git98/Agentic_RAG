@@ -1,0 +1,59 @@
+graph TD
+    subgraph "Main Workflow"
+        direction LR
+        A[Start] --> B(Triage Agent);
+        B --> C{Route after Triage};
+        C -- General Query --> D[Planning Agent];
+        C -- Simple Query/Reject --> E[END];
+        C -- Error --> ErrorHandler;
+
+        D --> F{Route after Planning};
+        F -- Research Needed --> G[Research Orchestrator];
+        F -- No Research Needed --> E;
+        F -- Error --> ErrorHandler;
+
+        G --> H{Route after Research};
+        H -- Success --> I(Validation Agent);
+        H -- Error --> ErrorHandler;
+
+        subgraph "Thinking Sub-Process"
+            direction TB
+            I --> J{Route after Validation};
+            J -- Needs Calculation --> K[Calculation Executor];
+            J -- Needs Placeholder --> L[Placeholder Handler];
+            J -- Ready for Synthesis --> M[Synthesis Agent];
+            J -- Error --> ErrorHandler;
+
+            K --> N{Route after Calculation};
+            N -- Success --> M;
+            N -- Error --> ErrorHandler;
+
+            L --> O{Route after Placeholder};
+            O -- Success --> M;
+            O -- Error --> ErrorHandler;
+        end
+
+        M --> P{Route after Synthesis};
+        P -- Success --> Q[Memory Agent];
+        P -- Error --> ErrorHandler;
+
+        Q --> R{Route after Memory};
+        R -- Success --> E;
+        R -- Error --> ErrorHandler;
+    end
+
+    subgraph "Error Handling"
+        direction LR
+        ErrorHandler[Error Handler] --> ErrorRouter{Route after Error};
+        ErrorRouter -- Retry Triage --> B;
+        ErrorRouter -- Retry Planning --> D;
+        ErrorRouter -- Retry Research --> G;
+        ErrorRouter -- Retry Validation --> I;
+        ErrorRouter -- Retry Calculation --> K;
+        ErrorRouter -- Retry Placeholder --> L;
+        ErrorRouter -- Retry Synthesis --> M;
+        ErrorRouter -- Abort --> E;
+    end
+
+    style ErrorHandler fill:#ffcccc,stroke:#333,stroke-width:2px
+    style E fill:#ccffcc,stroke:#333,stroke-width:2px 

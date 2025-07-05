@@ -1,44 +1,28 @@
-graph TB
-    subgraph "AI Agent System"
-        A["TRIAGE AGENT<br/>Query Classification"]
-        B["PLANNING AGENT<br/>Research Strategy"]
-        C["RESEARCH AGENT<br/>Parallel Search"]
-        D["SYNTHESIS AGENT<br/>Answer Generation"]
-        E["MEMORY AGENT<br/>Context Management"]
-        F["ERROR HANDLER<br/>Failure Recovery"]
+graph TD;
+    A["Start<br/>User Query"] --> B["Triage<br/>Classifies the user's request"];
+    B -- "Simple or Rejected" --> Z["End<br/>Provide direct answer"];
+    B -- "Complex Query" --> C["Planning<br/>Create a step-by-step plan"];
+    
+    C --> D["Research<br/>Gather information using multiple tools"];
+    
+    subgraph "Thinking & Synthesis"
+        direction TB
+        D --> E["Validation<br/>Check if gathered data is sufficient"];
+        E -- "Needs Calculation" --> F["Calculation<br/>Perform mathematical operations"];
+        E -- "Needs Placeholder" --> G["Placeholder<br/>Handle missing information"];
+        E -- "Ready to Synthesize" --> H["Synthesis<br/>Generate the final answer"];
+        F --> H;
+        G --> H;
     end
     
-    subgraph "Data Flow"
-        G["User Query"] --> A
-        A --> H{Simple or Complex?}
-        H -->|Simple| I["Direct Answer"]
-        H -->|Complex| B
-        B --> J["Research Plan"]
-        J --> C
-        C --> K["Search Results"]
-        K --> D
-        D --> L["Final Answer"]
-        L --> E
-        E --> M["Response + Memory"]
-    end
+    H --> I["Memory Update<br/>Save key context for future turns"];
+    I --> Z;
     
-    subgraph "Error Recovery"
-        F -.-> A
-        F -.-> B
-        F -.-> C
-        F -.-> D
-        F -.-> E
-    end
-    
-    A -.-> H
-    I --> M
-    
-    classDef agent fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    classDef data fill:#f1f8e9,stroke:#388e3c,stroke-width:2px
-    classDef decision fill:#fff8e1,stroke:#f57c00,stroke-width:2px
-    classDef error fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    
-    class A,B,C,D,E agent
-    class G,I,J,K,L,M data
-    class H decision
-    class F error 
+    classDef process fill:#f9f9f9,stroke:#333,stroke-width:2px,color:#000;
+    classDef decision fill:#fff,stroke:#333,stroke-width:4px;
+    classDef startend fill:#ccffcc,stroke:#333,stroke-width:2px;
+
+    class A,Z startend;
+    class B,C,D,E,F,G,H,I process;
+
+    linkStyle default interpolate basis; 

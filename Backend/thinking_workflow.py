@@ -513,49 +513,11 @@ class ThinkingAgenticWorkflow:
     
     async def run(self, user_query: str, context_payload: str = "", conversation_manager=None, thread_id: str = None) -> Dict[str, Any]:
         """
-        Runs the thinking-enhanced workflow with a main query cache.
+        Executes the thinking-enhanced agentic workflow for a given query.
         """
-        # --- Main Query Cache Check ---
-        if redis_client:
-            try:
-                query_hash = hashlib.sha256(user_query.encode()).hexdigest()
-                cache_key = f"main_cache:{query_hash}"
-                cached_result = redis_client.get(cache_key)
-
-                if cached_result:
-                    self.logger.info(f"--- [MAIN QUERY CACHE HIT] for query: {user_query[:100]}... ---")
-                    cached_data = json.loads(cached_result)
-                    cached_state = cached_data.get("workflow_state")
-
-                    if cached_state:
-                        # --- Primary Validation: Check if a final answer already exists ---
-                        if cached_state.get("final_answer"):
-                            self.logger.info("--- [CACHE VALIDATION PASSED] Final answer found in cached state. Using result directly. ---")
-                            return cached_data
-
-                        # --- Secondary Validation: If no final answer, ask the validation agent ---
-                        self.logger.info("--- No final answer in cache. Validating research sufficiency before proceeding... ---")
-                        validation_result_state = await self.validation_agent(cached_state)
-                        is_sufficient = validation_result_state.get("research_validation_results", {}).get("is_sufficient", False)
-
-                        if is_sufficient:
-                            self.logger.info("--- [CACHE VALIDATION PASSED] Using cached result. ---")
-                            return cached_data
-                        else:
-                            self.logger.warning("--- [CACHE VALIDATION FAILED] Cached data is not sufficient. Deleting cache and re-running. ---")
-                            redis_client.delete(cache_key)
-                            # Fall through to execute the full workflow
-                    else:
-                        self.logger.warning("--- Cached data is invalid or in an old format. Deleting and re-running. ---")
-                        redis_client.delete(cache_key)
-
-            except Exception as e:
-                self.logger.error(f"Error during main query cache validation: {e}")
-
-        # If cache miss or validation failed, proceed with the normal workflow execution
         if self.thinking_mode and self.workflow_thinking:
-            with self.workflow_thinking.thinking_block("Workflow Execution"):
-                self.workflow_thinking.craft(f"Starting thinking-enhanced workflow for: {user_query[:100]}...")
+            with self.workflow_thinking.thinking_block(f"Executing query: '{user_query}'"):
+                self.workflow_thinking.craft("Starting thinking-enhanced workflow...")
         
         # Store conversation manager
         self.conversation_manager = conversation_manager
@@ -595,17 +557,6 @@ class ThinkingAgenticWorkflow:
                 "execution_summary": self._create_execution_summary(final_state),
                 "success": True
             }
-
-            # --- Save to Main Query Cache ---
-            if redis_client:
-                try:
-                    query_hash = hashlib.sha256(user_query.encode()).hexdigest()
-                    cache_key = f"main_cache:{query_hash}"
-                    # Serialize the entire result object for caching
-                    redis_client.set(cache_key, json.dumps(result_to_cache, default=str))
-                    self.logger.info(f"--- [SAVED TO MAIN CACHE] for query: {user_query[:100]}... ---")
-                except Exception as e:
-                    self.logger.error(f"Error saving to main query cache: {e}")
 
             if self.thinking_mode and self.workflow_thinking:
                 self.workflow_thinking.success("✅ Workflow completed successfully.")

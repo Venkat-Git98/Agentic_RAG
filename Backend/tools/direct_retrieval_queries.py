@@ -59,7 +59,12 @@ RETURN s.title AS section_title, s.number AS section_number,
 # Using CONTAINS for a more robust match against potential whitespace issues.
 GET_TABLE_BY_COMMON_ID = """
 MATCH (t:Table) WHERE t.table_id CONTAINS $uid
-RETURN t
+CALL {
+    WITH t
+    MATCH (t)-[:HAS_CHUNK|CONTAINS*0..]->(descendant)
+    RETURN COLLECT(DISTINCT descendant) AS all_nodes
+}
+RETURN t as parent, all_nodes as child_nodes
 """
 
 GET_FULL_SUBSECTION_HIERARCHY = """

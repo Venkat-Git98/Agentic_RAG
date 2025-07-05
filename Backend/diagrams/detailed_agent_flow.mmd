@@ -1,0 +1,35 @@
+graph TD
+    subgraph "Agentic Workflow"
+        direction TB
+        A[Start] --> B(Triage Agent);
+        B --> C{Triage Decision};
+        C -- "Clarify or Reject" --> Z[End];
+        C -- "Proceed to Planning" --> D[Planning Agent];
+        
+        D --> E{Planning Decision};
+        E -- "Finish" --> Z;
+        E -- "Proceed to Research" --> F[Research Orchestrator];
+        
+        F --> G(Validation Agent);
+        
+        subgraph "Thinking Sub-Process"
+            direction TB
+            G --> H{Validation Decision};
+            H -- "Needs Calculation" --> I[Calculation Executor];
+            H -- "Needs Placeholder" --> J[Placeholder Handler];
+            H -- "Ready for Synthesis" --> K[Synthesis Agent];
+            I --> K;
+            J --> K;
+        end
+        
+        K --> L[Memory Agent];
+        L --> Z;
+    end
+
+    classDef agent fill:#e6f7ff,stroke:#0050b3,stroke-width:2px;
+    classDef decision fill:#fffbe6,stroke:#d46b08,stroke-width:2px;
+    classDef startend fill:#f6ffed,stroke:#237804,stroke-width:2px;
+
+    class A,Z startend;
+    class C,E,H decision;
+    class B,D,F,G,I,J,K,L agent; 

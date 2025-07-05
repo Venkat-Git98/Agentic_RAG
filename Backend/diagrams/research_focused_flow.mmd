@@ -1,0 +1,35 @@
+graph TD
+    subgraph "Main Workflow"
+        A[Start] --> B(Triage Agent);
+        B --> C{Triage Decision};
+        C -- "Complex Query" --> D[Planning Agent];
+        C -- "Simple/Rejected" --> Z[End];
+        
+        D --> E[Research Orchestrator];
+
+        subgraph "Detailed Research & Retrieval"
+            direction TB
+            E -- "Decomposes into Sub-Queries" --> F(Generate Hypothetical Documents / HyDE);
+            F --> G(Parallel Search Execution);
+            G --> H{Attempt Vector Search};
+            H -- "Results Found" --> I(Rank & Consolidate Vector Results);
+            H -- "No/Low Quality Results" --> J(Keyword & Targeted Retrieval);
+            J --> K(Rank & Consolidate Keyword Results);
+            I --> L(Final Synthesis Preparation);
+            K --> L;
+        end
+
+        L --> M[Validation & Synthesis];
+        M --> N[Memory Update];
+        N --> Z;
+    end
+
+    classDef agent fill:#e6f7ff,stroke:#0050b3,stroke-width:2px;
+    classDef process fill:#fafafa,stroke:#595959,stroke-width:1px;
+    classDef decision fill:#fffbe6,stroke:#d46b08,stroke-width:2px;
+    classDef startend fill:#f6ffed,stroke:#237804,stroke-width:2px;
+
+    class A,Z startend;
+    class H decision;
+    class B,D,E,M,N agent;
+    class F,G,I,J,K,L process; 

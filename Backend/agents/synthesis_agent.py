@@ -305,84 +305,90 @@ class SynthesisAgent(BaseLangGraphAgent):
 
 class EnhancedSynthesisAgent(SynthesisAgent):
     """
-    Enhanced Synthesis Agent with additional LangGraph-specific optimizations.
-    
-    This version includes extra features for the LangGraph workflow while
-    maintaining full compatibility with the original synthesis logic.
+    Enhanced Synthesis Agent with specialized strategies for different
+    query types (calculation, comparison, compliance).
     """
     
     def __init__(self):
-        """Initialize the Enhanced Synthesis Agent."""
         super().__init__()
-        self.agent_name = "EnhancedSynthesisAgent"
-        
-        # Enhanced synthesis strategies
-        self.synthesis_strategies = {
-            "technical_calculation": self._enhance_calculation_synthesis,
-            "comparative_analysis": self._enhance_comparison_synthesis,
-            "regulatory_compliance": self._enhance_compliance_synthesis,
-            "procedural_guidance": self._enhance_procedural_synthesis
-        }
-    
+        self.logger.info("Enhanced Synthesis Agent initialized with specialized strategies")
+
     async def execute(self, state: AgentState) -> Dict[str, Any]:
         """
-        Enhanced execution with strategy-based synthesis optimization.
-        
-        Args:
-            state: Current workflow state
-            
-        Returns:
-            Dictionary containing enhanced synthesis results
+        Executes the synthesis logic, trying enhanced strategies first
+        and falling back to the standard synthesis if needed.
         """
-        # First apply enhanced synthesis if applicable
+        # Try enhanced synthesis first
         enhanced_result = await self._try_enhanced_synthesis(state)
+        
         if enhanced_result:
-            return enhanced_result
+            return await self._process_synthesis_result(enhanced_result, state)
         
-        # Fall back to original synthesis logic
+        # Fallback to standard synthesis
+        self.logger.warning("No enhanced synthesis strategy applied. Falling back to standard synthesis.")
         return await super().execute(state)
-    
+
     async def _try_enhanced_synthesis(self, state: AgentState) -> Dict[str, Any]:
-        """
-        Tries enhanced synthesis strategies for specific query types.
-        
-        Args:
-            state: Current workflow state
-            
-        Returns:
-            Enhanced synthesis result if applicable, None otherwise
-        """
-        user_query = state["user_query"].lower()
-        
-        # Check for calculation queries
-        if any(word in user_query for word in ["calculate", "formula", "equation", "compute"]):
+        """Tries to apply an enhanced synthesis strategy based on the state."""
+        if state.get("math_calculation_needed"):
+            self.logger.info("Applying 'Calculation' synthesis strategy.")
             return await self._enhance_calculation_synthesis(state)
         
-        # Check for comparison queries
-        if any(word in user_query for word in ["compare", "difference", "versus", "vs"]):
-            return await self._enhance_comparison_synthesis(state)
-        
-        # Check for compliance queries
-        if any(word in user_query for word in ["comply", "compliance", "requirement", "shall"]):
-            return await self._enhance_compliance_synthesis(state)
+        # Other strategies can be added here
+        # elif state.get("is_comparison_query"):
+        #     return await self._enhance_comparison_synthesis(state)
         
         return None
-    
+
     async def _enhance_calculation_synthesis(self, state: AgentState) -> Dict[str, Any]:
-        """Enhances synthesis for calculation-focused queries."""
-        # Use original synthesis but with enhanced formatting prompts
-        result = await super().execute(state)
+        """
+        Enhanced synthesis for queries requiring calculations.
+        This prompt instructs the LLM to perform the math.
+        """
+        user_query = state["user_query"]
+        sub_query_answers = state.get("sub_query_answers", [])
+
+        # Construct the sub-answers string separately to avoid f-string syntax limitations.
+        sub_answers_text = "".join([
+            f"Sub-Query: {ans.get('sub_query', 'N/A')}\nAnswer: {ans.get('answer', 'N/A')}\n\n"
+            for ans in sub_query_answers
+        ])
+
+        prompt = f"""
+        You are a Virginia Building Code expert and a skilled technical analyst.
+        Your task is to provide a comprehensive answer to the user's query, which requires performing mathematical calculations.
+
+        **USER QUERY:**
+        {user_query}
+
+        **RESEARCHED CONTEXT & SUB-ANSWERS:**
+        ---
+        {sub_answers_text}
+        ---
+
+        **INSTRUCTIONS:**
+        1.  **Synthesize and Calculate**: Review all the provided context to understand the problem.
+        2.  **Identify Formulas**: Extract the necessary formulas and variables from the context.
+        3.  **Perform the Calculation**: Using the data and formulas, perform the mathematical calculations step-by-step. Show your work clearly.
+        4.  **State Assumptions**: If any values are not explicitly provided, state reasonable assumptions (e.g., "Assuming a standard tributary area of X...").
+        5.  **Provide the Final Answer**: Give a clear, numerical answer to the user's question based on your calculation.
+        6.  **Cite Sources**: Reference the relevant building code sections (e.g., "According to Section 1607.12...").
+        7.  **Do Not Hedge**: Provide a confident, definitive answer. Do not say you cannot perform calculations. You are the expert.
+
+        **FINAL ANSWER FORMAT:**
+        - Start with a clear statement of the final calculated value.
+        - Provide a "Methodology" section explaining how you arrived at the answer.
+        - Show the formula used, the values substituted, and the step-by-step calculation.
+        - Conclude with any necessary context or explanations based on the code.
+
+        **Your Comprehensive Answer:**
+        """
         
-        # Post-process to ensure calculation format
-        if result.get("final_answer"):
-            enhanced_answer = self._format_calculation_answer(result["final_answer"])
-            result["final_answer"] = enhanced_answer
-            result["synthesis_metadata"]["enhanced_for"] = "calculation"
-        
-        return result
-    
+        response_text = await self.generate_content_async(prompt)
+        return {"final_answer": response_text}
+
     async def _enhance_comparison_synthesis(self, state: AgentState) -> Dict[str, Any]:
-        """Enhances synthesis for comparison queries."""
+        """Enhanced synthesis for comparison queries."""
         result = await super().execute(state)
         
         if result.get("final_answer"):
@@ -391,6 +397,10 @@ class EnhancedSynthesisAgent(SynthesisAgent):
             result["synthesis_metadata"]["enhanced_for"] = "comparison"
         
         return result
+    
+    def _format_comparison_answer(self, answer: str) -> str:
+        """Formats answer for comparison queries with clear contrast structure."""
+        return f"**Comparative Analysis:**\n\n{answer}\n\n*Note: This comparison is based on the Virginia Building Code requirements.*"
     
     async def _enhance_compliance_synthesis(self, state: AgentState) -> Dict[str, Any]:
         """Enhances synthesis for compliance queries."""
@@ -402,19 +412,6 @@ class EnhancedSynthesisAgent(SynthesisAgent):
             result["synthesis_metadata"]["enhanced_for"] = "compliance"
         
         return result
-    
-    def _format_calculation_answer(self, answer: str) -> str:
-        """Formats answer for calculation queries with clear formula presentation."""
-        if "=" in answer and any(char.isdigit() for char in answer):
-            # Already has calculation format
-            return answer
-        
-        # Add calculation formatting hints
-        return f"**Calculation Response:**\n\n{answer}\n\n*Note: Please verify all calculations with the current Virginia Building Code.*"
-    
-    def _format_comparison_answer(self, answer: str) -> str:
-        """Formats answer for comparison queries with clear contrast structure."""
-        return f"**Comparative Analysis:**\n\n{answer}\n\n*Note: This comparison is based on the Virginia Building Code requirements.*"
     
     def _format_compliance_answer(self, answer: str) -> str:
         """Formats answer for compliance queries with clear regulatory structure."""
