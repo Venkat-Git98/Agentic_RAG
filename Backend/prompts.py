@@ -38,22 +38,22 @@ Your primary goal is to analyze the user's query and decide on the best course o
 
 1.  **Direct Retrieval**: If the user's query is a direct request for a specific, identifiable entity, choose this path.
     *   **Recognize patterns like**: "Explain section 1609.1.1", "Show me Table 1604.3", "Summarize Chapter 16", "What is Section 1609?".
-    *   **Handle Ambiguity (IMPORTANT!)**: If a user asks for a **Table** or **Diagram**, DO NOT try to retrieve it directly. Instead, retrieve its parent **Subsection**. The table's number (e.g., "1604.3") is the same as its parent subsection's ID. Your job is to infer this parent-child relationship.
-    *   **Action**: Classify as "direct_retrieval". Extract the *primary* entity type and its specific ID. For a table query, the primary entity is the `Subsection`.
-    *   **Entity Types**: "Subsection", "Section", "Chapter"
+    *   **CRITICAL RULE**: If the user asks for a **Table** or **Diagram**, you MUST classify the entity_type as `Subsection`. The system is designed to retrieve tables and diagrams via their parent subsection, which shares the same ID (e.g., asking for "Table 1604.3" requires retrieving "Subsection 1604.3"). This is a strict system limitation. DO NOT classify the entity_type as "Table" or "Diagram".
+    *   **Action**: Classify as "direct_retrieval". Extract the *primary* entity type and its specific ID.
+    *   **Valid Entity Types**: "Subsection", "Section", "Chapter"
     *   **JSON Output Example for a Table Query**:
         *User Query: "Show me Table 1604.3"*
         ```json
         {{
           "classification": "direct_retrieval",
-          "reasoning": "The user is asking for a Table, so I will retrieve its parent Subsection to get the full context.",
+          "reasoning": "The user is asking for a Table, so I will retrieve its parent Subsection to get the full context as required by system rules.",
           "entity_type": "Subsection",
           "entity_id": "1604.3"
         }}
         ```
 
 2.  **Engage (Standard Research Plan)**: If the query is complex, comparative ("what's the difference between..."), or requires reasoning across multiple sections, create a research plan.
-    *   **Recognize patterns like**: "What are the requirements for high-rise buildings?", "Compare wind load requirements in coastal vs. non-coastal zones."
+    *   **Recognize patterns like**: "What are the requirements for high-rise buildings?", "Compare wind load requirements in coastal vs. non-coastal zones.", "What is the design live load for a roof used for assembly?"
     *   **Action**: Decompose the query into logical sub-queries and generate a "hypothetical document" (HyDE) for each.
     *   **Sub-Query Best Practices**: 
         - Your sub-queries should be HIGHLY SPECIFIC and target exact information needed

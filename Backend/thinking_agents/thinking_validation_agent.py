@@ -201,204 +201,113 @@ class ThinkingValidationAgent(BaseLangGraphAgent, ThinkingMixin):
         }
     
     async def _validate_research_with_thinking(self, user_query: str, research_results: List[Dict]) -> Dict[str, Any]:
-        """Validate research sufficiency with detailed thinking."""
-        
-        with self.thinking_logger.thinking_block("Examining Research Quality"):
-            self.thinking_logger.initial_impression("Let me see what the research team found...")
-            
-            # Quick assessment first
+        """
+        Validate research sufficiency by checking for explicit failure signals,
+        rather than re-evaluating the quality.
+        """
+        with self.thinking_logger.analysis_block("Verifying Research Integrity"):
+            self.thinking_logger.think("Checking research results for any errors or explicit placeholders...")
+
             if not research_results:
-                self.thinking_logger.problem("No research results to validate")
+                self.thinking_logger.problem("No research results were provided to validate.")
                 return self._create_fallback_validation_result()
-            
-            # Show human-like curiosity about each result
-            result_assessments = []
+
+            has_placeholders = False
+            has_errors = False
             for i, result in enumerate(research_results, 1):
-                self.thinking_logger.deeper_look(f"Examining research result {i}")
-                
-                # Extract key info
-                answer = result.get("answer", "")
-                sub_query = result.get("sub_query", "")
-                
-                # Show natural assessment process
-                self.thinking_logger.thinking_out_loud(f"This searched for: '{sub_query}'")
-                
-                # Assess quality with human-like observations
-                quality_score = self._assess_result_quality(answer, user_query)
-                has_formulas = bool(re.search(r'[=+\-*/]', answer))
-                has_numbers = bool(re.search(r'\d+', answer))
-                has_units = bool(re.search(r'(ft|in|psf|psi|mph)', answer, re.IGNORECASE))
-                
-                # Natural commentary on what we found
-                if len(answer) > 1000:
-                    self.thinking_logger.note(f"Result {i}: Comprehensive answer ({len(answer)} chars)")
-                elif len(answer) > 300:
-                    self.thinking_logger.note(f"Result {i}: Detailed response ({len(answer)} chars)")
-                else:
-                    self.thinking_logger.having_second_thoughts(f"Result {i}: Brief answer ({len(answer)} chars) - might be incomplete")
-                
-                if has_formulas:
-                    self.thinking_logger.connecting_dots(f"Result {i} includes formulas - good for calculations")
-                if has_numbers and has_units:
-                    self.thinking_logger.connecting_dots(f"Result {i} has specific numbers with units - very practical")
-                
-                result_assessments.append({
-                    "result_index": i,
-                    "sub_query": sub_query,
-                    "quality_score": quality_score,
-                    "length": len(answer),
-                    "has_formulas": has_formulas,
-                    "has_numbers": has_numbers
-                })
+                answer = result.get("answer", "").upper()
+                if "PLACEHOLDER" in answer or "INSUFFICIENT" in answer:
+                    has_placeholders = True
+                    self.thinking_logger.warning(f"Detected placeholder or insufficiency text in research result {i}.")
+                if result.get("error"):
+                    has_errors = True
+                    self.thinking_logger.error(f"Detected an error in research result {i}: {result['error']}")
+
+            # If we find explicit failures, the research is not sufficient.
+            if has_placeholders or has_errors:
+                self.thinking_logger.concluding_decision("Research integrity check failed. Explicit errors or placeholders were found.")
+                return {
+                    "is_sufficient": False,
+                    "sufficiency_score": 0.1,
+                    "validation_reasoning": "The research results contained explicit placeholders or error messages, indicating a failure in the retrieval process."
+                }
+
+            # If no explicit failures, we trust the upstream assessment.
+            self.thinking_logger.success("No explicit errors or placeholders found. Research integrity is confirmed.")
+            return {
+                "is_sufficient": True,
+                "sufficiency_score": 0.9,
+                "validation_reasoning": "Research results appear complete and do not contain any explicit failure signals."
+            }
+
+    async def _detect_math_with_thinking(self, user_query: str, research_results: List[Dict]) -> Dict[str, Any]:
+        """Detect math requirements with a more robust and cautious approach."""
         
-        # Overall assessment with human-like reasoning
-        with self.thinking_logger.thinking_block("Getting the Big Picture"):
-            self.thinking_logger.working_through_problem("Now let me see if all this research actually answers the question...")
+        with self.thinking_logger.analysis_block("Checking for Mathematical Requirements"):
+            self.thinking_logger.think("Analyzing query and research for any math, assuming 'yes' on ambiguity.")
             
-            # Show thinking about the overall coverage
-            avg_quality = sum(r["quality_score"] for r in result_assessments) / len(result_assessments)
-            total_content = sum(r["length"] for r in result_assessments)
-            
-            self.thinking_logger.piecing_together(f"Average quality score: {avg_quality:.2f}, Total content: {total_content} chars")
-            
-            if avg_quality > 0.7 and total_content > 1000:
-                self.thinking_logger.building_on_thought("This looks promising - good quality and comprehensive")
-            elif avg_quality > 0.5:
-                self.thinking_logger.thinking_out_loud("Decent quality, but let me double-check with the AI")
-            else:
-                self.thinking_logger.having_second_thoughts("Quality seems low - definitely need AI review")
-            
-            # Use LLM for final assessment
-            self.thinking_logger.decide("Let me get a second opinion from the AI system...")
-            
-            validation_prompt = f"""
-            As a Virginia Building Code expert, evaluate if the research results comprehensively answer the user's question.
+            math_score = self._calculate_math_score_with_thinking(user_query, research_results)
+            self.thinking_logger.note(f"Initial math score (keyword-based): {math_score:.2f}")
 
-            USER QUESTION: {user_query}
+            math_content = []
+            for result in research_results:
+                answer = result.get("answer", "")
+                if any(re.search(pattern, answer, re.IGNORECASE) for pattern in self.building_math_patterns):
+                    math_content.append(result.get("sub_query"))
 
-            RESEARCH RESULTS:
+            if math_content:
+                self.thinking_logger.discovering(f"Found math-related content for sub-queries: {', '.join(math_content)}")
+
+            prompt = f"""
+            You are a specialized math detection agent for building code analysis.
+            Your task is to determine if a user query requires mathematical calculations.
+            Your default assumption should be YES if there is any ambiguity.
+
+            USER QUERY: {user_query}
+
+            RESEARCH CONTEXT:
             {self._format_research_for_validation(research_results)}
 
-            Respond with JSON only:
+            **Analysis Guidelines & Rules:**
+            1.  **Err on the side of caution**: If you see formulas, keywords like "calculate," "determine," "what is the load," or numerical data in the context, you MUST default to `true`.
+            2.  **Explicit Intent**: If the user asks to "calculate," "compute," etc., it is ALWAYS `true`.
+            3.  **Implicit Need**: If the query asks for a design value (e.g., "what is the required live load?"), it is ALWAYS `true` because finding the final value may require reduction calculations.
+            4.  **Formulas are a hard rule**: If the research context contains ANY mathematical formulas or equations (e.g., `L = L₀(...)`, `Pressure = 0.00256 * V^2`), it is ALWAYS `true`.
+
+            **Your Final Decision (JSON only):**
+            Provide a JSON object with your determination.
             {{
-                "is_sufficient": true/false,
-                "sufficiency_score": 0.0-1.0,
-                "missing_aspects": ["aspect1", "aspect2"],
-                "validation_reasoning": "Detailed explanation of why sufficient/insufficient",
-                "key_information_found": ["info1", "info2"],
-                "critical_gaps": ["gap1", "gap2"]
+                "requires_math_calculations": boolean,
+                "math_confidence_score": float (0.0 to 1.0),
+                "math_complexity": "low|medium|high",
+                "calculation_type": "general_calculation|load_calculation|pressure_calculation|area_calculation|deflection_calculation|other",
+                "reasoning": "Brief explanation of why you made this decision. Be specific."
             }}
             """
             
             try:
-                response = await self.generate_content_async(validation_prompt)
-                parsed_result = self._parse_json_response(response)
+                response = await self.generate_content_async(prompt)
+                parsed_response = self._parse_json_response(response)
                 
-                # Show natural reaction to AI assessment
-                is_sufficient = parsed_result.get('is_sufficient', False)
-                score = parsed_result.get('sufficiency_score', 0.0)
-                
-                if is_sufficient:
-                    if score > 0.8:
-                        self.thinking_logger.sudden_realization(f"Excellent! AI confirms research is comprehensive (score: {score:.2f})")
-                    else:
-                        self.thinking_logger.getting_clearer_picture(f"AI says it's sufficient but with some reservations (score: {score:.2f})")
+                if parsed_response and 'requires_math_calculations' in parsed_response:
+                    # --- CONFIDENCE OVERRIDE LOGIC ---
+                    math_needed = parsed_response.get("requires_math_calculations", False)
+                    confidence = parsed_response.get("math_confidence_score", 1.0)
+
+                    # If the model says NO, but is not confident, override to YES.
+                    if not math_needed and confidence < 0.8:
+                        self.thinking_logger.reconsidering(f"LLM was not confident in its 'no math' assessment (confidence: {confidence:.2f}). Overriding to YES to be safe.")
+                        parsed_response["requires_math_calculations"] = True
+                        parsed_response["reasoning"] += " | [Auto-Correction]: Overridden to 'true' due to low confidence."
+                    
+                    self.thinking_logger.concluding_decision(f"Math assessment: {'Yes' if parsed_response['requires_math_calculations'] else 'No'} (confidence: {parsed_response.get('math_confidence_score', 0.0):.2f})")
+                    return parsed_response
                 else:
-                    self.thinking_logger.stepping_back(f"AI confirms my concerns - research insufficient (score: {score:.2f})")
-                
-                missing_aspects = parsed_result.get('missing_aspects', [])
-                if missing_aspects:
-                    self.thinking_logger.connecting_dots(f"Key gaps identified: {', '.join(missing_aspects[:3])}")
-                
-                critical_gaps = parsed_result.get('critical_gaps', [])
-                if critical_gaps:
-                    self.thinking_logger.having_second_thoughts(f"Critical issues: {', '.join(critical_gaps[:2])}")
-                
-                return parsed_result
-                
+                    self.thinking_logger.problem("Failed to get a valid math assessment from LLM, defaulting to True based on keyword score.")
+                    return {"requires_math_calculations": math_score > 0.3, "math_confidence_score": 0.4}
             except Exception as e:
-                self.thinking_logger.problem(f"AI validation failed: {str(e)}")
-                self.thinking_logger.reconsidering("Falling back to my own assessment...")
-                return self._create_fallback_validation_with_thinking(result_assessments)
-    
-    async def _detect_math_with_thinking(self, user_query: str, research_results: List[Dict]) -> Dict[str, Any]:
-        """Detect math calculation needs with human-like reasoning."""
-        
-        with self.thinking_logger.thinking_block("Checking for Mathematical Requirements"):
-            self.thinking_logger.initial_impression("Let me see if this involves any calculations...")
-            
-            # Check query for math keywords with natural observation
-            query_math_signals = []
-            for keyword in self.math_keywords:
-                if keyword.lower() in user_query.lower():
-                    query_math_signals.append(keyword)
-            
-            if query_math_signals:
-                self.thinking_logger.connecting_dots(f"The question uses math words: {', '.join(query_math_signals)}")
-                self.thinking_logger.thinking_out_loud("That's a strong hint that calculations are needed")
-            else:
-                self.thinking_logger.note("No obvious calculation keywords in the question")
-            
-            # Check for numerical patterns with curiosity
-            pattern_matches = []
-            for pattern in self.building_math_patterns:
-                matches = re.findall(pattern, user_query, re.IGNORECASE)
-                if matches:
-                    pattern_matches.extend(matches)
-            
-            if pattern_matches:
-                self.thinking_logger.discovering(f"Found numerical patterns: {pattern_matches[:3]}")
-                self.thinking_logger.building_on_thought("Numbers with units usually mean calculations")
-            
-            # Examine research results for math content
-            math_content_found = []
-            for i, result in enumerate(research_results, 1):
-                answer = result.get("answer", "")
-                
-                # Look for formulas and equations
-                if re.search(r'[=+\-*/]', answer):
-                    self.thinking_logger.connecting_dots(f"Result {i} contains mathematical symbols")
-                    math_content_found.append(f"formulas_in_result_{i}")
-                
-                # Look for calculation-related terms
-                calc_terms = ["formula", "equation", "calculate", "compute", "="]
-                found_terms = [term for term in calc_terms if term.lower() in answer.lower()]
-                if found_terms:
-                    self.thinking_logger.note(f"Result {i} mentions: {', '.join(found_terms)}")
-                    math_content_found.append(f"calc_terms_in_result_{i}")
-            
-            # Make human-like assessment
-            self.thinking_logger.working_through_problem("Putting it all together...")
-            
-            # Calculate math score with reasoning
-            math_score = self._calculate_math_score_with_thinking(user_query, research_results)
-            
-            if math_score > 0.7:
-                self.thinking_logger.sudden_realization("This definitely requires mathematical calculations")
-                requires_math = True
-                confidence = 0.9
-            elif math_score > 0.4:
-                self.thinking_logger.getting_clearer_picture("Probably needs some calculations")
-                requires_math = True
-                confidence = 0.7
-            elif math_score > 0.2:
-                self.thinking_logger.having_second_thoughts("Might need calculations, but not certain")
-                requires_math = False
-                confidence = 0.4
-            else:
-                self.thinking_logger.decide("No significant mathematical requirements")
-                requires_math = False
-                confidence = 0.8
-            
-            self.thinking_logger.concluding_answer(f"Math assessment: {'Yes' if requires_math else 'No'} (confidence: {confidence:.1f})")
-            
-            return {
-                "requires_math_calculations": requires_math,
-                "math_confidence_score": confidence,
-                "math_indicators_found": query_math_signals + pattern_matches + math_content_found,
-                "calculation_type": self._determine_calculation_type(user_query, math_content_found),
-                "math_complexity": "high" if math_score > 0.7 else "medium" if math_score > 0.4 else "low"
-            }
+                self.thinking_logger.problem(f"Error during math detection: {e}, defaulting to True based on keyword score.")
+                return {"requires_math_calculations": math_score > 0.3, "math_confidence_score": 0.4}
     
     def _calculate_math_score_with_thinking(self, user_query: str, research_results: List[Dict]) -> float:
         """Calculate math probability with detailed reasoning."""

@@ -9,8 +9,19 @@ from react_agent.base_tool import BaseTool
 from config import TIER_2_MODEL_NAME, TIER_1_MODEL_NAME
 from prompts import PLANNER_PROMPT
 import re
+import copy
+from typing import Any
 
 from tools.neo4j_connector import Neo4jConnector
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+# Tier 1 model for high-stakes planning
+TIER_1_MODEL_NAME = "gemini-1.5-pro-latest"
+
+# Custom prompts for the planner
+from prompts import PLANNER_PROMPT
 
 class PlanningTool(BaseTool):
     """
@@ -33,6 +44,25 @@ class PlanningTool(BaseTool):
             "This should be the first tool called for any new user query. "
             "Input: {'query': 'The user's question.', 'context_payload': 'The conversation history.'}"
         )
+
+    def __init__(self):
+        """Initializes the PlanningTool."""
+        self.logger = logging.getLogger(self.__class__.__name__)
+        # Further initialization if needed
+
+    def _sanitize_for_logging(self, data: Any) -> Any:
+        """Recursively removes 'embedding' keys from a dictionary or list of dictionaries for cleaner logging."""
+        if isinstance(data, dict):
+            # Use copy to avoid modifying the original dictionary in place
+            clean_data = {}
+            for key, value in data.items():
+                if key != 'embedding':
+                    clean_data[key] = self._sanitize_for_logging(value)
+            return clean_data
+        elif isinstance(data, list):
+            return [self._sanitize_for_logging(item) for item in data]
+        else:
+            return data
 
     def __call__(self, query: str, context_payload: str) -> dict:
         """
@@ -147,58 +177,67 @@ For "engage" classification, your plan must be a list of objects with EXACTLY th
                 entity_type = plan_result.get("entity_type")
                 entity_id = plan_result.get("entity_id")
                 
-                # --- START DEBUG LOGGING ---
-                logging.info(f"DEBUG: Extracted Entity Type: {entity_type} (Type: {type(entity_type)})")
-                logging.info(f"DEBUG: Extracted Entity ID: {entity_id} (Type: {type(entity_id)})")
-                # --- END DEBUG LOGGING ---
+                # --- AUTO-CORRECTION GUARDRAIL ---
+                # Enforce the system rule: Tables and Diagrams must be retrieved via their parent Subsection.
+                if entity_type in ["Table", "Diagram"]:
+                    self.logger.warning(f"Correcting entity_type from '{entity_type}' to 'Subsection' to enforce system rule.")
+                    entity_type = "Subsection"
+                    # Add a note to the reasoning for traceability
+                    if "reasoning" in plan_result:
+                        plan_result["reasoning"] += " | [Auto-Correction]: The entity type was corrected to 'Subsection' as the system retrieves tables and diagrams via their parent section."
 
-                if not entity_type or not entity_id:
-                    logging.warning("Direct retrieval classified, but missing entity type/id.")
-                    # Fallback to standard research plan
-                    return {"classification": "engage", "reasoning": "Fallback from failed direct retrieval.", "plan": []}
+                self.logger.info(f"Performing direct lookup for {entity_type} with ID '{entity_id}'")
+                try:
+                    # === DB Call: Fetch the specific entity ===
+                    retrieved_data = Neo4jConnector.direct_lookup(entity_type, entity_id)
 
-                # === DB Call: Fetch the specific entity ===
-                retrieved_data = Neo4jConnector.direct_lookup(entity_type, entity_id)
+                    # --- START DEBUG LOGGING ---
+                    sanitized_data = self._sanitize_for_logging(retrieved_data)
+                    logging.info(f"DEBUG: Raw data from direct_lookup: {json.dumps(sanitized_data, indent=2)}")
+                    # --- END DEBUG LOGGING ---
 
-                # --- START DEBUG LOGGING ---
-                logging.info(f"DEBUG: Raw data from direct_lookup: {retrieved_data}")
-                # --- END DEBUG LOGGING ---
+                    if not retrieved_data or retrieved_data.get("error"):
+                        logging.error(f"Failed to retrieve data for {entity_type} {entity_id}.")
+                        # Return a user-facing error message
+                        return {
+                            "classification": "simple_answer",
+                            "direct_answer": f"I could not find the specific {entity_type.lower()} with ID '{entity_id}' in the knowledge base."
+                        }
 
-                if not retrieved_data or retrieved_data.get("error"):
-                    logging.error(f"Failed to retrieve data for {entity_type} {entity_id}.")
-                    # Return a user-facing error message
+                    # === LLM Call 2: Summarize the retrieved data ===
+                    # This gives a much more natural answer than just dumping the raw data.
+                    logging.info(f"Summarizing retrieved data for {entity_type} {entity_id}...")
+                    summarizer_model = genai.GenerativeModel(TIER_1_MODEL_NAME) # Use a powerful model for good summarization
+                    
+                    # Create a simple, readable format for the summarizer prompt
+                    context_str = json.dumps(retrieved_data, indent=2, default=str)
+                    
+                    # Add special instructions for ambiguous queries
+                    summarizer_reasoning = plan_result.get("reasoning", "")
+                    
+                    summarizer_prompt = (
+                        "You are a seasoned Virginia Building Code expert and a helpful AI assistant. "
+                        "Your goal is not just to give a correct answer, but to provide a comprehensive, easy-to-understand, and practical explanation based ONLY on the provided data.\n\n"
+                        f"The user's query is: '{query}'.\n"
+                        f"The planner's reasoning for this direct retrieval is: '{summarizer_reasoning}'.\n\n"
+                        f"I have retrieved the following data from the knowledge base, which may include a code section and its associated tables:\n"
+                        f"--- DATA ---\n{context_str}\n--- END DATA ---\n\n"
+                        "**CRITICAL INSTRUCTIONS:**\n"
+                        "1. **Provide a Structured Answer**: Start with a clear, direct answer to the user's question. Then, provide a 'Detailed Explanation' section. Finally, add a 'Practical Considerations' section.\n"
+                        "2. **Synthesize, Don't Dump**: NEVER output raw data, JSON, or Markdown tables. Extract the key values from the data and present them in well-written sentences. Explain *what* the answer is and *where* it comes from (e.g., 'According to Table 1607.1...').\n"
+                        "3. **Add Value and Context**: In the 'Detailed Explanation', explain the significance of the information. Why does this rule exist?\n"
+                        "4. **Anticipate Next Steps**: In the 'Practical Considerations', think about what the user might need to know next. Mention any common exceptions, related code sections, or practical advice a real expert would provide. If a calculation could be relevant (like load reduction), mention it as a possibility and what would be needed to perform it."
+                    )
+                    
+                    summary_response = summarizer_model.generate_content(summarizer_prompt)
+                    
                     return {
                         "classification": "simple_answer",
-                        "direct_answer": f"I could not find the specific {entity_type.lower()} with ID '{entity_id}' in the knowledge base."
+                        "direct_answer": summary_response.text.strip()
                     }
-
-                # === LLM Call 2: Summarize the retrieved data ===
-                # This gives a much more natural answer than just dumping the raw data.
-                logging.info(f"Summarizing retrieved data for {entity_type} {entity_id}...")
-                summarizer_model = genai.GenerativeModel(TIER_1_MODEL_NAME) # Use a powerful model for good summarization
-                
-                # Create a simple, readable format for the summarizer prompt
-                context_str = json.dumps(retrieved_data, indent=2, default=str)
-                
-                # Add special instructions for ambiguous queries
-                summarizer_reasoning = plan_result.get("reasoning", "")
-                
-                summarizer_prompt = (
-                    f"The user asked the following query: '{query}'.\n"
-                    f"The master planner provided this reasoning for the direct retrieval: '{summarizer_reasoning}'\n\n"
-                    f"I have retrieved the following data from the knowledge base:\n"
-                    f"--- DATA ---\n{context_str}\n--- END DATA ---\n\n"
-                    "Please synthesize this data into a clear and direct answer to the user's query. "
-                    "Use the planner's reasoning to focus on the most important part of the data for the user. "
-                    "If the user's query was about a specific Table or Diagram, find that element in the 'child_nodes' or 'supplementary_content' of the data and feature it prominently in your answer, then provide the rest of the section as context."
-                )
-                
-                summary_response = summarizer_model.generate_content(summarizer_prompt)
-                
-                return {
-                    "classification": "simple_answer",
-                    "direct_answer": summary_response.text.strip()
-                }
+                except Exception as e:
+                    logging.error(f"Error in direct retrieval: {e}")
+                    return {"classification": "error", "reasoning": str(e), "plan": []}
 
             # If not direct retrieval, return the original plan
             logging.info(f"Proceeding with standard research plan. Classification: {classification}")

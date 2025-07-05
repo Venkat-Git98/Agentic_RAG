@@ -340,4 +340,45 @@ class EnhancedPlanningAgent(PlanningAgent):
             ],
             "current_step": "research",
             "workflow_status": "running"
-        } 
+        }
+
+        # If the classification is direct_retrieval, perform the lookup
+        if classification == "direct_retrieval":
+            entity_type = llm_response.get("entity_type")
+            entity_id = llm_response.get("entity_id")
+
+            # --- AUTO-CORRECTION GUARDRAIL ---
+            # Enforce the system rule: Tables and Diagrams must be retrieved via their parent Subsection.
+            if entity_type in ["Table", "Diagram"]:
+                self.logger.warning(f"Correcting entity_type from '{entity_type}' to 'Subsection' to enforce system rule.")
+                entity_type = "Subsection"
+                # Add a note to the reasoning for traceability
+                if "reasoning" in llm_response:
+                    llm_response["reasoning"] += " | [Auto-Correction]: The entity type was corrected to 'Subsection' as the system retrieves tables and diagrams via their parent section."
+
+            self.logger.info(f"Performing direct lookup for {entity_type} with ID '{entity_id}'")
+            try:
+                # Call the original planning tool
+                planning_result = self.planning_tool(
+                    query=f"{entity_type} with ID '{entity_id}'",
+                    context_payload=f"Retrieve {entity_type} with ID '{entity_id}'"
+                )
+                
+                self.logger.info(f"Planning tool result: {planning_result.get('classification', 'unknown')}")
+                
+                # Process the planning result based on classification
+                return await self._process_planning_result(planning_result, state)
+            
+            except Exception as e:
+                self.logger.error(f"Error in planning tool execution: {e}")
+                # Fallback to basic engage classification
+                return {
+                    "planning_classification": "engage",
+                    "planning_reasoning": f"Planning tool error: {str(e)}, falling back to engage",
+                    "research_plan": [{
+                        "sub_query": f"{entity_type} with ID '{entity_id}'",
+                        "hyde_document": f"Fallback research for: {entity_type} with ID '{entity_id}'"
+                    }],
+                    "current_step": "research",
+                    "workflow_status": "running"
+                } 
