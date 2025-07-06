@@ -6,8 +6,10 @@ all agents in the LangGraph workflow, maintaining compatibility with
 the existing sophisticated memory management and tool systems.
 """
 
+from __future__ import annotations
 from typing import List, Dict, Any, Literal, Optional, Union
 from typing_extensions import TypedDict
+from pydantic import Field
 from datetime import datetime
 import json
 
@@ -70,13 +72,19 @@ class AgentState(TypedDict):
     # === Planning Agent Results ===
     planning_classification: Optional[Literal["engage", "direct_retrieval", "clarify", "reject"]]
     planning_reasoning: Optional[str]
-    research_plan: Optional[List[Dict[str, str]]]  # List of {sub_query, hyde_document}
+    research_plan: Optional[List[Dict[str, str]]] = Field(
+        default_factory=list, 
+        description="A list of sub-queries to research."
+    )
     direct_answer: Optional[str]
     direct_retrieval_entity: Optional[Dict[str, str]]  # {entity_type, entity_id}
     
     # === Research Agent Results ===
     research_results: Optional[Dict[str, List[Dict[str, Any]]]]  # Maps sub_query to results
-    sub_query_answers: Optional[List[Dict[str, Any]]]  # Individual sub-query responses
+    sub_query_answers: Optional[List[Dict[str, str]]] = Field(
+        default_factory=list,
+        description="A list of answers to the sub-queries."
+    )
     research_metadata: Optional[Dict[str, Any]]
     parallel_execution_log: Optional[List[Dict[str, Any]]]
     retrieval_quality_scores: Optional[Dict[str, float]]
@@ -125,6 +133,11 @@ class AgentState(TypedDict):
     debug_mode: bool
     intermediate_outputs: Optional[Dict[str, Any]]
     performance_metrics: Optional[Dict[str, Any]]
+
+    retrieved_diagrams: Optional[List[Dict[str, Any]]] = Field(
+        default_factory=list,
+        description="A list of retrieved diagrams, including their processed image data and metadata."
+    )
 
 def create_initial_state(
     user_query: str, 

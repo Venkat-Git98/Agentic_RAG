@@ -20,7 +20,7 @@ from langgraph.checkpoint.memory import MemorySaver
 # Local imports
 from state import AgentState, create_initial_state, is_workflow_complete, should_retry
 from agents import (
-    TriageAgent, PlanningAgent, ResearchOrchestrator, 
+    RouterAgent, PlanningAgent, ResearchOrchestrator, 
     SynthesisAgent, MemoryAgent, ErrorHandler
 )
 
@@ -56,7 +56,7 @@ class AgenticWorkflow:
         # Compile the workflow
         self.app = self._compile_workflow()
         
-        self.logger.info(f"Agentic workflow initialized (debug={debug_mode})")
+        self.logger.info(f"Agentic workflow initialized (debug={self.debug_mode})")
     
     def _initialize_agents(self):
         """Initialize all agents for the workflow."""
@@ -73,7 +73,7 @@ class AgenticWorkflow:
         from .thinking_logger import ThinkingMode
         
         # Initialize all agents with Enhanced versions
-        self.triage_agent = TriageAgent()
+        self.router_agent = RouterAgent()
         self.planning_agent = EnhancedPlanningAgent()
         self.research_agent = EnhancedResearchOrchestrator()
         self.synthesis_agent = EnhancedSynthesisAgent()
@@ -96,7 +96,7 @@ class AgenticWorkflow:
         workflow = StateGraph(AgentState)
         
         # Add all agent nodes
-        workflow.add_node("triage", self.triage_agent)
+        workflow.add_node("router", self.router_agent)
         workflow.add_node("planning", self.planning_agent)
         workflow.add_node("research", self.research_agent)
         
@@ -110,12 +110,12 @@ class AgenticWorkflow:
         workflow.add_node("error_handler", self.error_handler)
         
         # Set entry point
-        workflow.set_entry_point("triage")
+        workflow.set_entry_point("router")
         
         # Add conditional edges based on workflow logic
         workflow.add_conditional_edges(
-            "triage",
-            self._route_after_triage,
+            "router",
+            self._route_after_router,
             {
                 "planning": "planning",
                 "finish": END,
@@ -128,6 +128,7 @@ class AgenticWorkflow:
             self._route_after_planning,
             {
                 "research": "research",
+                "synthesis": "synthesis",  # Route for direct retrieval
                 "finish": END,
                 "error": "error_handler"
             }
@@ -229,31 +230,41 @@ class AgenticWorkflow:
     
     # Routing functions for conditional edges
     
-    def _route_after_triage(self, state: AgentState) -> Literal["planning", "finish", "error"]:
-        """Routes workflow after triage step."""
+    def _route_after_router(self, state: AgentState) -> Literal["planning", "finish", "error"]:
+        """Routes workflow after the router step."""
         if state.get("error_state"):
             return "error"
         
-        triage_classification = state.get("triage_classification")
+        classification = state.get("routing_classification")
         
-        if triage_classification in ["clarify", "reject"]:
-            return "finish"  # Direct answer provided
-        else:
-            return "planning"  # Continue to planning
+        if classification == "clarification":
+            # TODO: Add logic to actually ask the user the clarifying question
+            return "finish"
+        elif classification == "direct_retrieval":
+            # The planning agent will handle the direct retrieval
+            return "planning"
+        else: # research
+            return "planning"
     
-    def _route_after_planning(self, state: AgentState) -> Literal["research", "finish", "error"]:
+    def _route_after_planning(self, state: AgentState) -> Literal["research", "synthesis", "finish", "error"]:
         """Routes workflow after planning step."""
         if state.get("error_state"):
             return "error"
         
         planning_classification = state.get("planning_classification")
         
-        if planning_classification in ["simple_answer", "direct_retrieval"]:
-            return "finish"  # Direct answer provided
+        if planning_classification == "direct_retrieval":
+            # If context was retrieved directly, go to synthesis
+            if state.get("retrieved_context"):
+                return "synthesis"
+            else:
+                # This case should ideally not happen if retrieval is successful
+                return "finish" 
         elif planning_classification == "engage":
-            return "research"  # Continue to research
+            return "research"
         else:
-            return "finish"  # Default to finish
+            # For "clarify" or other unhandled cases
+            return "finish"
     
     def _route_after_research(self, state: AgentState) -> Literal["validation", "error"]:
         """Routes workflow after research step."""
@@ -269,38 +280,18 @@ class AgenticWorkflow:
         if state.get("error_state"):
             return "error"
         
-        # Check validation results from ValidationAgent
-        validation_results = state.get("research_validation_results", {})
-        research_sufficient = validation_results.get("is_sufficient", False)
-        math_calculation_needed = state.get("math_calculation_needed", False)
+        validation_result = state.get("validation_result", "synthesis") # Default to synthesis
         
-        # Additional debugging information
-        routing_decision = state.get("routing_decision", {})
-        next_step_suggested = routing_decision.get("next_step", "synthesis")
-        math_types = state.get("math_calculation_types", [])
-        
-        self.logger.info(f"Validation routing - research_sufficient={research_sufficient}, math_needed={math_calculation_needed}")
-        self.logger.info(f"Suggested next_step={next_step_suggested}, math_types={math_types}")
-        
-        # ABSOLUTE PRIORITY: Math calculations ALWAYS go to CalculationExecutor
-        # This overrides all other considerations including research sufficiency
-        if math_calculation_needed:
-            self.logger.info("🔢 MATH DETECTED - Routing to CalculationExecutor (ABSOLUTE PRIORITY)")
+        if validation_result == "calculation_needed":
             return "calculation"
-        
-        # If ValidationAgent specifically suggests calculation
-        if next_step_suggested == "calculation":
-            self.logger.info("🧮 ValidationAgent recommends calculation - Routing to CalculationExecutor")
-            return "calculation"
-        
-        # Only use PlaceholderHandler when NO math is needed AND research is insufficient
-        if not research_sufficient:
-            self.logger.info("📝 No math needed, insufficient research - Routing to PlaceholderHandler")
+        elif validation_result == "placeholder_needed":
             return "placeholder"
-        
-        # Default: sufficient research, no math needed
-        self.logger.info("✅ Sufficient research, no math - Routing to SynthesisAgent")
-        return "synthesis"
+        elif validation_result == "synthesis":
+            return "synthesis"
+        else:
+            # Fallback in case of unexpected validation result
+            self.logger.warning(f"Unexpected validation result '{validation_result}', routing to synthesis.")
+            return "synthesis"
     
     def _route_after_calculation(self, state: AgentState) -> Literal["synthesis", "error"]:
         """Routes workflow after calculation step."""
@@ -332,23 +323,14 @@ class AgenticWorkflow:
     
     def _route_after_error(self, state: AgentState) -> Literal["triage", "planning", "research", "validation", "calculation", "placeholder", "synthesis", "finish"]:
         """Routes workflow after error handling."""
-        recovery_action = state.get("recovery_action")
-        retry_step = state.get("retry_step")
-        
-        if recovery_action == "retry" and retry_step:
-            return retry_step
-        elif recovery_action in ["planning_fallback"]:
-            return "research"
-        elif recovery_action in ["research_fallback"]:
-            return "validation"  # NEW: Route to validation after research fallback
-        elif recovery_action in ["validation_fallback"]:
-            return "synthesis"  # NEW: Skip calculation/placeholder on validation failure
-        elif recovery_action in ["calculation_fallback"]:
-            return "synthesis"  # NEW: Proceed to synthesis without calculations
-        elif recovery_action in ["synthesis_fallback"]:
-            return "memory_update"
-        else:
-            return "finish"  # Graceful degradation or unrecoverable error
+        if not state.get("error_state") or not state["error_state"].get("is_recoverable"):
+            return "finish"
+            
+        # Retry the failed step
+        failed_step = state["error_state"].get("failed_agent")
+        if failed_step in ["triage", "planning", "research", "validation", "calculation", "placeholder", "synthesis"]:
+            return failed_step
+        return "finish" # Default to finish if failed step is unknown
     
     async def run(
         self, 

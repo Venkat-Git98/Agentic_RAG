@@ -10,17 +10,18 @@ import time
 
 import google.generativeai as genai
 from react_agent.base_tool import BaseTool
-from config import EMBEDDING_MODEL, TIER_2_MODEL_NAME
+from config import EMBEDDING_MODEL, TIER_2_MODEL_NAME, TIER_1_MODEL_NAME
 from tools.neo4j_connector import Neo4jConnector
 from tools.reranker import Reranker
 from state import RetrievedContext
-from prompts import SUB_ANSWER_PROMPT, QUALITY_CHECK_PROMPT, SUBSECTION_EXTRACTION_PROMPT
+from prompts import SUB_ANSWER_PROMPT, QUALITY_CHECK_PROMPT, SUBSECTION_EXTRACTION_PROMPT, RE_PLANNING_PROMPT
 from neo4j.graph import Node
 import json
 from datetime import datetime
 # --- Import the new tools ---
 from tools.web_search_tool import TavilySearchTool
 from tools.keyword_retrieval_tool import KeywordRetrievalTool
+from .image_utils import process_image_for_llm
 
 # --- Evaluation Logger Setup ---
 # Create a dedicated logger for evaluation data
@@ -1320,9 +1321,65 @@ class ParallelResearchTool(BaseTool):
             'processing_time': duration
         }
 
+    async def _handle_insufficient_context(self, sub_query: str, original_query: str) -> Dict[str, Any]:
+        """
+        Handles cases where initial context is insufficient by re-planning.
+        """
+        self.logger.warning(f"Initial context for sub-query '{sub_query[:100]}...' was insufficient. Initiating re-planning.")
+        
+        prompt = RE_PLANNING_PROMPT.format(sub_query=sub_query, original_query=original_query)
+        
+        try:
+            # Use a powerful model for this critical reasoning step
+            model = genai.GenerativeModel(TIER_1_MODEL_NAME)
+            response = await model.generate_content_async(prompt)
+            response_text = response.text.strip()
+            
+            # More robust JSON parsing
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if not json_match:
+                raise ValueError("No JSON object found in re-planning response.")
+                
+            re_plan_data = json.loads(json_match.group(0))
+
+            tool_to_use = re_plan_data.get("tool_to_use")
+            search_query = re_plan_data.get("search_query")
+            
+            self.logger.info(f"Re-planning decided to use '{tool_to_use}' with query: '{search_query}'")
+            
+            result = {}
+            if tool_to_use == "keyword_retrieval":
+                # Keyword tool returns a list of context blocks
+                context_blocks = KeywordRetrievalTool().run(query=search_query)
+                # We need to synthesize an answer from these blocks
+                context_str = self._format_context_for_prompt(context_blocks)
+                answer = self._generate_sub_answer(original_query, search_query, context_str)
+                result = {"answer": answer, "source": "keyword_retrieval", "tool_used": "keyword_retrieval"}
+
+            elif tool_to_use == "deep_graph_retrieval":
+                # Placeholder for deep graph retrieval logic
+                self.logger.warning("Deep graph retrieval is not fully implemented yet.")
+                result = {"answer": "Deep graph retrieval not implemented.", "source": "deep_graph_retrieval", "tool_used": "deep_graph_retrieval"}
+
+            elif tool_to_use == "web_search":
+                # Tavily tool returns a single string answer
+                answer = TavilySearchTool().run(query=search_query)
+                result = {"answer": answer, "source": "web_search", "tool_used": "web_search"}
+            else:
+                self.logger.error(f"Unknown tool recommended by re-planning: {tool_to_use}")
+                result = {"answer": "Re-planning failed to select a valid tool.", "source": "re-planning_error", "tool_used": "unknown"}
+            
+            return result
+                
+        except Exception as e:
+            self.logger.error(f"Error during re-planning: {e}", exc_info=True)
+            # As a final fallback, use web search on the original sub-query
+            answer = TavilySearchTool().run(query=sub_query)
+            return {"answer": answer, "source": "web_search_fallback", "tool_used": "web_search"}
+
     async def _run_async_logic(self, plan: List[Dict[str, str]], original_query: str) -> Dict[str, List[Dict[str, Any]]]:
         """
-        The private async runner for the tool's logic.
+        Processes the sub-queries in the research plan in parallel.
         """
         logging.info(f"Executing async logic for {len(plan)} sub-queries.")
         tasks = [self._process_one_sub_query(p, original_query) for p in plan]
@@ -1500,6 +1557,46 @@ class ParallelResearchTool(BaseTool):
             logging.error(f"Context-aware table detection failed: {e}")
             return context_blocks  # Return original on any error 
 
+    def _detect_and_retrieve_missing_diagrams(self, context_blocks: List[Dict[str, Any]], sub_query: str) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """
+        Scans retrieved text for references to diagrams (e.g., "Diagram 1611.1")
+        and fetches their full node data from the database, including processing the image.
+        """
+        all_text = " ".join([str(block.get('text', '')) for block in context_blocks])
+        
+        # Regex to find references like "Diagram 1611.1" or "Fig. 16-2"
+        diagram_refs = re.findall(r'(?:Diagram|Figure|Fig\.)\s*([\d\w\.-]+)', all_text, re.IGNORECASE)
+        
+        if not diagram_refs:
+            return context_blocks, []
+
+        self.logger.info(f"Context-aware diagram detection found: {diagram_refs}")
+        
+        processed_diagrams = []
+        for ref in set(diagram_refs):
+            # We construct a UID pattern that the diagram would likely have.
+            # Example: "Diagram-1611.1-..."
+            diagram_uid_pattern = f"Diagram-{ref}"
+            
+            # Fetch the diagram node from Neo4j
+            diagram_node = Neo4jConnector.get_node_by_uid_pattern(diagram_uid_pattern)
+
+            if diagram_node:
+                self.logger.info(f"Retrieving missing diagram: {diagram_uid_pattern}")
+                
+                # Process the image using our utility
+                processed_image_data = process_image_for_llm(diagram_node.get("path"))
+                
+                if processed_image_data:
+                    # Append all necessary data for the synthesis agent
+                    processed_diagrams.append({
+                        "uid": diagram_node.get("uid"),
+                        "description": diagram_node.get("description"),
+                        "image_data": processed_image_data
+                    })
+        
+        return context_blocks, processed_diagrams
+
     async def _optimize_query_for_web_search(self, sub_query: str, original_query: str, context_str: str) -> str:
         """
         Optimizes a web search query using LLM for better Tavily results.
@@ -1523,9 +1620,6 @@ class ParallelResearchTool(BaseTool):
         fallback_query = sub_query[:397] + "..." if len(sub_query) > 400 else sub_query
         
         try:
-            import google.generativeai as genai
-            from config import TIER_2_MODEL_NAME
-            
             optimization_prompt = f"""Generate an optimized web search query for the Tavily API.
 
 CONSTRAINTS:

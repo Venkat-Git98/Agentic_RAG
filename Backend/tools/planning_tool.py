@@ -10,9 +10,10 @@ from config import TIER_2_MODEL_NAME, TIER_1_MODEL_NAME
 from prompts import PLANNER_PROMPT
 import re
 import copy
-from typing import Any
+from typing import Any, Dict
 
 from tools.neo4j_connector import Neo4jConnector
+from .image_utils import process_image_for_llm
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -174,79 +175,98 @@ For "engage" classification, your plan must be a list of objects with EXACTLY th
 
             # === Direct Retrieval Logic ===
             if classification == "direct_retrieval":
-                entity_type = plan_result.get("entity_type")
-                entity_id = plan_result.get("entity_id")
-                
-                # --- AUTO-CORRECTION GUARDRAIL ---
-                # Enforce the system rule: Tables and Diagrams must be retrieved via their parent Subsection.
-                if entity_type in ["Table", "Diagram"]:
-                    self.logger.warning(f"Correcting entity_type from '{entity_type}' to 'Subsection' to enforce system rule.")
-                    entity_type = "Subsection"
-                    # Add a note to the reasoning for traceability
-                    if "reasoning" in plan_result:
-                        plan_result["reasoning"] += " | [Auto-Correction]: The entity type was corrected to 'Subsection' as the system retrieves tables and diagrams via their parent section."
+                return self._retrieve_direct_entity(plan_result)
 
-                self.logger.info(f"Performing direct lookup for {entity_type} with ID '{entity_id}'")
-                try:
-                    # === DB Call: Fetch the specific entity ===
-                    retrieved_data = Neo4jConnector.direct_lookup(entity_type, entity_id)
+            # === Research Plan Logic (for 'engage') ===
+            if classification == "engage":
+                # The plan is already in the right format, so just return it
+                return plan_result
 
-                    # --- START DEBUG LOGGING ---
-                    sanitized_data = self._sanitize_for_logging(retrieved_data)
-                    logging.info(f"DEBUG: Raw data from direct_lookup: {json.dumps(sanitized_data, indent=2)}")
-                    # --- END DEBUG LOGGING ---
-
-                    if not retrieved_data or retrieved_data.get("error"):
-                        logging.error(f"Failed to retrieve data for {entity_type} {entity_id}.")
-                        # Return a user-facing error message
-                        return {
-                            "classification": "simple_answer",
-                            "direct_answer": f"I could not find the specific {entity_type.lower()} with ID '{entity_id}' in the knowledge base."
-                        }
-
-                    # === LLM Call 2: Summarize the retrieved data ===
-                    # This gives a much more natural answer than just dumping the raw data.
-                    logging.info(f"Summarizing retrieved data for {entity_type} {entity_id}...")
-                    summarizer_model = genai.GenerativeModel(TIER_1_MODEL_NAME) # Use a powerful model for good summarization
-                    
-                    # Create a simple, readable format for the summarizer prompt
-                    context_str = json.dumps(retrieved_data, indent=2, default=str)
-                    
-                    # Add special instructions for ambiguous queries
-                    summarizer_reasoning = plan_result.get("reasoning", "")
-                    
-                    summarizer_prompt = (
-                        "You are a seasoned Virginia Building Code expert and a helpful AI assistant. "
-                        "Your goal is not just to give a correct answer, but to provide a comprehensive, easy-to-understand, and practical explanation based ONLY on the provided data.\n\n"
-                        f"The user's query is: '{query}'.\n"
-                        f"The planner's reasoning for this direct retrieval is: '{summarizer_reasoning}'.\n\n"
-                        f"I have retrieved the following data from the knowledge base, which may include a code section and its associated tables:\n"
-                        f"--- DATA ---\n{context_str}\n--- END DATA ---\n\n"
-                        "**CRITICAL INSTRUCTIONS:**\n"
-                        "1. **Provide a Structured Answer**: Start with a clear, direct answer to the user's question. Then, provide a 'Detailed Explanation' section. Finally, add a 'Practical Considerations' section.\n"
-                        "2. **Synthesize, Don't Dump**: NEVER output raw data, JSON, or Markdown tables. Extract the key values from the data and present them in well-written sentences. Explain *what* the answer is and *where* it comes from (e.g., 'According to Table 1607.1...').\n"
-                        "3. **Add Value and Context**: In the 'Detailed Explanation', explain the significance of the information. Why does this rule exist?\n"
-                        "4. **Anticipate Next Steps**: In the 'Practical Considerations', think about what the user might need to know next. Mention any common exceptions, related code sections, or practical advice a real expert would provide. If a calculation could be relevant (like load reduction), mention it as a possibility and what would be needed to perform it."
-                    )
-                    
-                    summary_response = summarizer_model.generate_content(summarizer_prompt)
-                    
-                    return {
-                        "classification": "simple_answer",
-                        "direct_answer": summary_response.text.strip()
-                    }
-                except Exception as e:
-                    logging.error(f"Error in direct retrieval: {e}")
-                    return {"classification": "error", "reasoning": str(e), "plan": []}
-
-            # If not direct retrieval, return the original plan
-            logging.info(f"Proceeding with standard research plan. Classification: {classification}")
-            return plan_result
+            # If we fall through, something went wrong
+            raise ValueError(f"Unhandled classification type: {classification}")
 
         except Exception as e:
-            logging.error(f"Error in PlanningTool: {e}")
+            logging.error(f"Error during planning tool execution: {e}", exc_info=True)
             if response_text:
-                logging.error(f"Raw response from LLM was: {response_text}")
+                logging.error(f"Response text that caused error: {response_text}")
             else:
                 logging.error("No response text available")
-            return {"classification": "error", "reasoning": str(e), "plan": []} 
+            # Fallback to a safe engage plan
+            return {
+                "classification": "engage",
+                "reasoning": f"An error occurred during planning: {e}",
+                "plan": [{
+                    "sub_query": query,
+                    "hyde_document": f"An error occurred during planning. Fallback research for: {query}"
+                }]
+            }
+
+    def _retrieve_direct_entity(self, plan: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Handles the direct retrieval of an entity from Neo4j.
+        This function is now called by the guardrail as well.
+        """
+        entity_type = plan.get("entity_type")
+        entity_id = plan.get("entity_id")
+
+        # --- AUTO-CORRECTION GUARDRAIL ---
+        if entity_type in ["Table", "Diagram"]:
+            self.logger.warning(f"Correcting entity_type from '{entity_type}' to 'Subsection' to enforce system rule.")
+            entity_type = "Subsection"
+            plan["reasoning"] += " | [Auto-Correction]: The entity type was corrected to 'Subsection' as the system retrieves tables and diagrams via their parent section."
+
+        self.logger.info(f"Performing direct lookup for {entity_type} with ID '{entity_id}'")
+        try:
+            # Get the singleton Neo4j connector instance
+            # The get_driver() method returns the driver, not the connector class itself.
+            # We need to call the static method on the class.
+            
+            # Use the connector to get the full text of the section and raw diagram data
+            lookup_result = Neo4jConnector.direct_lookup(entity_type, entity_id)
+            context = lookup_result.get("context")
+            raw_diagrams = lookup_result.get("raw_diagrams", [])
+
+            if not context:
+                self.logger.warning(f"Direct retrieval for {entity_type} {entity_id} found no content.")
+                return {
+                    "classification": "engage", # Fallback to research if not found
+                    "reasoning": f"Direct retrieval failed for {entity_type} {entity_id}. Falling back to research.",
+                    "plan": [{
+                        "sub_query": f"Find information about {entity_type} {entity_id}",
+                        "hyde_document": f"Could not directly retrieve {entity_type} {entity_id}. Researching to find relevant information."
+                    }]
+                }
+            
+            self.logger.info(f"Successfully retrieved content for {entity_type} {entity_id}.")
+            
+            processed_diagrams = []
+            if raw_diagrams:
+                self.logger.info(f"Found {len(raw_diagrams)} associated diagrams. Processing them now...")
+                for diagram_data in raw_diagrams:
+                    # The 'path' key holds the full path to the image
+                    image_path = diagram_data.get("path")
+                    if image_path:
+                        processed_image_data = process_image_for_llm(image_path)
+                        if processed_image_data:
+                            processed_diagrams.append({
+                                "uid": diagram_data.get("uid"),
+                                "description": diagram_data.get("description"),
+                                "image_data": processed_image_data
+                            })
+
+            return {
+                "classification": "direct_retrieval",
+                "retrieved_context": context,
+                "retrieved_diagrams": processed_diagrams # Return the processed data
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error during direct entity retrieval for {entity_type} {entity_id}: {e}", exc_info=True)
+            return {
+                "classification": "engage",
+                "reasoning": f"An error occurred during direct retrieval for {entity_type} {entity_id}: {e}",
+                "plan": [{
+                    "sub_query": f"Find information about {entity_type} {entity_id}",
+                    "hyde_document": f"An error occurred trying to retrieve {entity_type} {entity_id}. Researching as a fallback."
+                }]
+            } 

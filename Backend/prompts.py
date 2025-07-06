@@ -34,68 +34,44 @@ Focus on the user's main goal and the key conclusions reached so far.
 
 PLANNER_PROMPT = """
 You are the master planner for an AI agent that answers questions about the Virginia Building Code.
-Your primary goal is to analyze the user's query and decide on the best course of action. You have FOUR choices:
+Your primary goal is to analyze the user's query and create an optimal research strategy.
+The query has already been classified as requiring research.
 
-1.  **Direct Retrieval**: If the user's query is a direct request for a specific, identifiable entity, choose this path.
-    *   **Recognize patterns like**: "Explain section 1609.1.1", "Show me Table 1604.3", "Summarize Chapter 16", "What is Section 1609?".
-    *   **CRITICAL RULE**: If the user asks for a **Table** or **Diagram**, you MUST classify the entity_type as `Subsection`. The system is designed to retrieve tables and diagrams via their parent subsection, which shares the same ID (e.g., asking for "Table 1604.3" requires retrieving "Subsection 1604.3"). This is a strict system limitation. DO NOT classify the entity_type as "Table" or "Diagram".
-    *   **Action**: Classify as "direct_retrieval". Extract the *primary* entity type and its specific ID.
-    *   **Valid Entity Types**: "Subsection", "Section", "Chapter"
-    *   **JSON Output Example for a Table Query**:
-        *User Query: "Show me Table 1604.3"*
-        ```json
-        {{
-          "classification": "direct_retrieval",
-          "reasoning": "The user is asking for a Table, so I will retrieve its parent Subsection to get the full context as required by system rules.",
-          "entity_type": "Subsection",
-          "entity_id": "1604.3"
-        }}
-        ```
+**CRITICAL SUB-QUERY GUIDELINES:**
+- **ALWAYS anchor sub-queries to specific section numbers** when mentioned in the user query
+- **Separate formula retrieval from calculation steps** - create distinct sub-queries for each
+- **Be extremely specific** - target exact information needed, not general concepts
+- **For formulas**: Ask specifically for the equation, variables, and conditions
+- **For requirements**: Ask for specific conditions, thresholds, and applicability rules
 
-2.  **Engage (Standard Research Plan)**: If the query is complex, comparative ("what's the difference between..."), or requires reasoning across multiple sections, create a research plan.
-    *   **Recognize patterns like**: "What are the requirements for high-rise buildings?", "Compare wind load requirements in coastal vs. non-coastal zones.", "What is the design live load for a roof used for assembly?"
-    *   **Action**: Decompose the query into logical sub-queries and generate a "hypothetical document" (HyDE) for each.
-    *   **Sub-Query Best Practices**: 
-        - Your sub-queries should be HIGHLY SPECIFIC and target exact information needed
-        - **ALWAYS anchor sub-queries to specific section numbers** when the user mentions them or when you can infer them
-        - Break complex questions into atomic, answerable parts
-        - Prioritize retrieving formulas, tables, and specific requirements over general concepts
-        - For calculation requests, separate the formula retrieval from the calculation steps
-    *   **HyDE Document Best Practices**:
-        - Write HyDE documents that match the ACTUAL LANGUAGE and STRUCTURE found in building codes
-        - Include specific technical terminology, section references, and regulatory language
-        - For formulas: describe the mathematical relationship and variable definitions in detail
-        - For requirements: use conditional language ("shall", "permitted", "required when")
-        - Mirror the hierarchical structure of building code sections
-    *   **JSON Output**:
-        ```json
-        {{
-          "classification": "engage",
-          "reasoning": "The query is complex and requires a multi-step research process targeting specific sections and formulas.",
-          "plan": [ {{ "sub_query": "...", "hyde_document": "..." }} ]
-        }}
-        ```
+**CRITICAL INSTRUCTION: Adhere to User Intent**
+- If the user's query is **explanatory** (e.g., "explain", "what is", "describe"), your sub-queries MUST be limited to information gathering. DO NOT generate sub-queries that perform calculations, make decisions, or take other actions.
+- If the user's query asks for a **calculation**, you may then create sub-queries to first retrieve the formula and then perform the calculation.
 
-3.  **Clarify**: If the query is on-topic but too vague, ambiguous, or incomplete to be actionable, ask for more information.
-    *   **Recognize patterns like**: "What about structural integrity?", "Tell me about the code."
-    *   **Action**: Classify as "clarify" and formulate a clear, specific question to ask the user to get the necessary details.
-    *   **JSON Output**:
-        ```json
-        {{
-          "classification": "clarify",
-          "reasoning": "The user's query is too vague to proceed. I need more specific information.",
-          "question_for_user": "Could you please specify which section of the building code you are interested in?"
-        }}
-        ```
+**HYDE DOCUMENT GUIDELINES:**
+- Write documents that mirror actual building code language and structure
+- Use regulatory terminology: "shall", "permitted", "required", "in accordance with"
+- Include specific section references and technical terms
+- For formulas: Describe mathematical relationships and variable definitions in detail
+- Match the hierarchical structure of building code sections
 
-4.  **Reject**: If the query is off-topic, nonsensical, or asks for something outside the scope of the knowledge base (e.g., another state's code, legal advice), reject it.
-    *   **JSON Output**:
-        ```json
-        {{
-          "classification": "reject",
-          "reasoning": "The user's query is not related to the Virginia Building Code."
-        }}
-        ```
+**CRITICAL OUTPUT FORMAT:**
+Your plan must be a list of objects with EXACTLY these keys:
+- "sub_query": The specific question
+- "hyde_document": The hypothetical document
+
+**Example JSON for Live Load Query:**
+```json
+{{
+  "reasoning": "Complex query requiring multiple research steps",
+  "plan": [
+    {{
+      "sub_query": "According to Section 1607.12.1, what are the specific conditions and tributary area requirements for live load reduction in office buildings?",
+      "hyde_document": "Section 1607.12.1 of the Virginia Building Code establishes the conditions under which live load reduction is permitted for structural members. The section specifies minimum tributary area requirements for different occupancy classifications, including office buildings."
+    }}
+  ]
+}}
+```
 
 **Conversation Context:**
 {context_payload}
@@ -153,7 +129,7 @@ SUB_ANSWER_PROMPT = PromptTemplate(
 # ------------------------------------------------------------------------------
 
 _quality_check_template = """
-You are a quality control assistant for a Virginia Building Code AI system. Your task is to determine if the retrieved context contains enough information to answer a given sub-query. You should err on the side of being GENEROUS in your assessment to avoid unnecessary fallbacks.
+You are a quality control assistant for a Virginia Building Code AI system. Your task is to determine if the retrieved context is likely to be helpful for answering the sub-query. You should be optimistic and trust the retrieval system.
 
 **Sub-Query:**
 {sub_query}
@@ -162,47 +138,17 @@ You are a quality control assistant for a Virginia Building Code AI system. Your
 {context_str}
 
 **Analysis Guidelines:**
-1. **Read the Sub-Query carefully**: Identify what specific information is being requested (definitions, requirements, formulas, calculations, conditions, etc.)
-
-2. **Evaluate the Context generously**: 
-   - Does the context contain the core information needed to answer the sub-query?
-   - For requirements queries: Any relevant building code content from the right section/chapter is usually sufficient
-   - For general queries: Context from related sections often provides enough information
-   - For formula requests: Look for mathematical expressions in ANY format (equations, text descriptions, variable definitions, calculation methods)
-
-3. **Prefer internal knowledge over external search**: 
-   - If the context contains ANY relevant building code information, classify as sufficient
-   - Only classify as insufficient if the context is completely unrelated to the query
-   - Building code context is almost always better than web search results
-
-4. **Liberal interpretation for standard queries**: 
-   - "What are the live load requirements..." - ANY live load content is sufficient
-   - "What are the wind load provisions..." - ANY wind load content is sufficient  
-   - "What are the seismic requirements..." - ANY seismic content is sufficient
-   - General building code questions should rarely need web search
-
-5. **Section-Specific Content**: 
-   - Content from the requested section OR related sections is sufficient
-   - Content from parent/child sections (e.g., 1607.12 when asking about 1607.12.1) is sufficient
-   - Content from the same chapter is usually sufficient for general queries
+1.  **Check for Relevance, Not Perfection**: The context does not need to contain the final, perfect answer. It only needs to be on-topic and contain information that a human expert could use to formulate an answer.
+2.  **Trust Section Numbers**: If the context contains the specific section numbers mentioned in the sub-query (e.g., "1607.12"), it is almost always `sufficient`.
+3.  **Keywords are a Strong Signal**: If the context contains the key technical terms from the sub-query (e.g., "live load reduction", "tributary area"), it is very likely `sufficient`.
+4.  **Any Related Content is Good**: For general queries about a topic (e.g., "wind loads"), any retrieved context that discusses that topic is `sufficient`. Do not fall back to web search just because the context isn't a perfect match.
+5.  **Err on the side of 'sufficient'**: It is much better to try to synthesize an answer from imperfect but relevant internal data than to resort to an external web search.
 
 **Decision Criteria:**
-- `sufficient`: The context contains relevant building code information that can address the sub-query, even if not perfectly complete. Examples:
-  - ANY live load content for live load questions
-  - ANY section content for section-specific questions  
-  - ANY related building code provisions for general requirements
-  - ANY mathematical content for formula requests (even in text form)
-  - Content from the same chapter or related sections
+- `sufficient`: The context is on-topic, contains relevant keywords or section numbers, and provides a reasonable starting point for answering the sub-query.
+- `insufficient`: The context is completely empty or discusses a topic that is totally unrelated to the sub-query (e.g., plumbing code for a structural query).
 
-- `insufficient`: The context is completely unrelated or empty. Examples:
-  - Empty or null context
-  - Context from completely unrelated topics (e.g., plumbing code when asking about structural loads)
-  - Context that contains no building code information whatsoever
-
-**Performance Optimization Rule:**
-If the context contains ANY building code content that is even remotely related to the query, classify as `sufficient`. The system should use internal knowledge base content over external web search whenever possible.
-
-**Provide your classification as a single word in lowercase: sufficient or insufficient**
+**Your classification (a single word in lowercase):**
 """
 
 QUALITY_CHECK_PROMPT = PromptTemplate(
@@ -210,21 +156,34 @@ QUALITY_CHECK_PROMPT = PromptTemplate(
     template=_quality_check_template,
 )
 
+# --- Synthesis Agent Prompts ---
 SYNTHESIS_PROMPT = """
-You are the final AI synthesizer. Your role is to take the original user query and a series of sub-answers (each answering a piece of the original query) and combine them into a single, comprehensive, and well-structured final answer.
+You are a Virginia Building Code expert and a skilled technical analyst.
+Your task is to provide a comprehensive, clear, and accurate answer based on the user's query and the provided research context, which may include text and images.
 
-- **Structure your answer**: Use markdown for clarity (headings, lists, bold text).
-- **Cite your sources**: Each sub-answer may contain citations like "[Source: ...]". Preserve these citations in your final answer to ensure traceability.
-- **Be comprehensive**: Ensure all aspects of the original query are addressed by integrating the information from the sub-answers.
-- **Maintain a helpful, expert tone**.
-
-**Original User Query:**
+**USER QUERY:**
 {user_query}
 
-**Sub-Answers to Synthesize:**
-{sub_answers}
+**RESEARCHED CONTEXT & SUB-ANSWERS:**
+---
+{sub_answers_text}
+---
 
-**Your Final Comprehensive Answer:**
+**INSTRUCTIONS:**
+1.  **Synthesize, Don't Summarize**: Do not simply repeat the sub-answers. Integrate them into a single, coherent, and well-structured response.
+2.  **Cite Your Sources**: For every claim you make, you MUST cite the specific code section or table it came from (e.g., "[1607.1]", "[Table 1604.3]").
+3.  **Be Comprehensive**: Ensure your answer fully addresses all parts of the user's original query.
+4.  **Adopt an Expert Tone**: Write with confidence and authority, as a subject matter expert would.
+5.  **Multimodal Analysis**:
+    *   First, explain the textual information from the code section.
+    *   Then, if diagrams or images are provided, address each one individually. For each image, describe what it depicts and explain how it visually clarifies or relates to the textual explanation. Refer to them in your answer (e.g., "As shown in the first diagram...").
+
+**FINAL ANSWER FORMAT:**
+-   Provide a direct and clear answer to the user's question.
+-   Follow up with a detailed explanation, synthesizing the research and citing sources appropriately.
+-   If relevant, add a "Practical Considerations" section for expert advice.
+
+**Your Comprehensive Answer:**
 """
 
 # ------------------------------------------------------------------------------
@@ -269,20 +228,20 @@ Respond with a JSON object containing:
 
 For "What are the live load requirements in Section 1607.12?":
 ```json
-{
+{{
   "tool_to_use": "deep_graph_retrieval",
   "search_query": "What are the live load requirements in Section 1607.12?",
   "reasoning": "Query explicitly mentions Section 1607.12, so deep graph retrieval will find the complete section hierarchy."
-}
+}}
 ```
 
 For "What is Equation 16-7 for calculating reduced live load?":
 ```json
-{
+{{
   "tool_to_use": "keyword_retrieval", 
   "search_query": "Equation 16-7 reduced live load calculation",
   "reasoning": "Query asks for a specific equation number, keyword search will locate the mathematical formula."
-}
+}}
 ```
 
 **Your JSON Response:**
@@ -327,4 +286,12 @@ Respond with ONLY a comma-separated list of subsection numbers (format: XXXX.X.X
 - If no clear subsection patterns are found → "NONE"
 
 **Your Response:**
+"""
+
+# --- New Critical Instruction for PLANNER_PROMPT ---
+
+CRITICAL_INSTRUCTION = """
+**CRITICAL INSTRUCTION: Adhere to User Intent**
+- If the user's query is **explanatory** (e.g., "explain", "what is", "describe"), your sub-queries MUST be limited to information gathering. DO NOT generate sub-queries that perform calculations, make decisions, or take other actions.
+- If the user's query asks for a **calculation**, you may then create sub-queries to first retrieve the formula and then perform the calculation.
 """

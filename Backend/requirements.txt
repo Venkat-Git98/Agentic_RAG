@@ -17,4 +17,5 @@ pydantic
 google-generativeai
 cohere
 langchain_cohere
-tavily-python 
+tavily-python
+pandas 

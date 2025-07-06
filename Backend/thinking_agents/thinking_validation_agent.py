@@ -263,10 +263,15 @@ class ThinkingValidationAgent(BaseLangGraphAgent, ThinkingMixin):
             Your task is to determine if a user query requires mathematical calculations.
             Your default assumption should be YES if there is any ambiguity.
 
-            USER QUERY: {user_query}
+            **USER QUERY:** {user_query}
 
-            RESEARCH CONTEXT:
+            **RESEARCH CONTEXT:**
             {self._format_research_for_validation(research_results)}
+
+            **CRITICAL INSTRUCTION: Adhere to User Intent**
+            - You MUST determine if the user's **original query** is asking for a *calculation* vs. an *explanation*.
+            - If the original query is explanatory (e.g., "explain," "what is," "describe"), you MUST return `"requires_math_calculations": false`, even if the research context contains formulas. The user only wants to understand the topic, not to perform a calculation.
+            - If the original query explicitly asks to "calculate," "compute," or find a specific numerical value (e.g., "what is the design live load?"), then and ONLY then should you return `"requires_math_calculations": true`.
 
             **Analysis Guidelines & Rules:**
             1.  **Err on the side of caution**: If you see formulas, keywords like "calculate," "determine," "what is the load," or numerical data in the context, you MUST default to `true`.

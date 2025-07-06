@@ -133,17 +133,13 @@ class PlanningAgent(BaseLangGraphAgent):
             }
         
         elif classification == "direct_retrieval":
-            # Direct entity lookup (handled by planning tool's internal logic)
+            # Direct entity lookup - pass context to synthesis
             return {
                 "planning_classification": "direct_retrieval", 
                 "planning_reasoning": planning_result.get("reasoning", "Direct entity retrieval"),
-                "direct_answer": planning_result.get("direct_answer", "Entity retrieved successfully."),
-                "direct_retrieval_entity": {
-                    "entity_type": planning_result.get("entity_type", "unknown"),
-                    "entity_id": planning_result.get("entity_id", "unknown")
-                },
-                "current_step": "finish",
-                "workflow_status": "completed"
+                "retrieved_context": planning_result.get("retrieved_context"),
+                "retrieved_diagrams": planning_result.get("retrieved_diagrams"),
+                "current_step": "synthesis"
             }
         
         else:
@@ -229,49 +225,16 @@ class EnhancedPlanningAgent(PlanningAgent):
     async def execute(self, state: AgentState) -> Dict[str, Any]:
         """
         Enhanced execution with strategy-based planning.
-        
-        Args:
-            state: Current workflow state
-            
-        Returns:
-            Dictionary containing enhanced planning results
         """
-        # First try the enhanced strategies
-        enhanced_result = await self._try_enhanced_strategies(state)
-        if enhanced_result:
-            return enhanced_result
-        
         # Fall back to original planning logic
         return await super().execute(state)
-    
+
     async def _try_enhanced_strategies(self, state: AgentState) -> Dict[str, Any]:
         """
         Tries enhanced planning strategies for specific query types.
-        
-        Args:
-            state: Current workflow state
-            
-        Returns:
-            Enhanced planning result if applicable, None otherwise
         """
-        user_query = state["user_query"].lower()
-        
-        # Check for calculation queries
-        if any(word in user_query for word in ["calculate", "formula", "equation", "compute"]):
-            return await self._handle_calculation_query(state)
-        
-        # Check for comparison queries
-        if any(word in user_query for word in ["compare", "difference", "versus", "vs"]):
-            return await self._handle_comparison_query(state)
-        
-        # Check for requirement queries
-        if any(word in user_query for word in ["requirements", "required", "must", "shall"]):
-            return await self._handle_requirement_query(state)
-        
-        # Check for compliance queries
-        if any(word in user_query for word in ["comply", "compliance", "meets", "satisfies"]):
-            return await self._handle_compliance_query(state)
-        
+        # This is where enhanced strategies would be tried first.
+        # For now, we fall back to the base implementation.
         return None
     
     async def _handle_calculation_query(self, state: AgentState) -> Dict[str, Any]:
@@ -342,43 +305,47 @@ class EnhancedPlanningAgent(PlanningAgent):
             "workflow_status": "running"
         }
 
-        # If the classification is direct_retrieval, perform the lookup
-        if classification == "direct_retrieval":
-            entity_type = llm_response.get("entity_type")
-            entity_id = llm_response.get("entity_id")
-
-            # --- AUTO-CORRECTION GUARDRAIL ---
-            # Enforce the system rule: Tables and Diagrams must be retrieved via their parent Subsection.
-            if entity_type in ["Table", "Diagram"]:
-                self.logger.warning(f"Correcting entity_type from '{entity_type}' to 'Subsection' to enforce system rule.")
-                entity_type = "Subsection"
-                # Add a note to the reasoning for traceability
-                if "reasoning" in llm_response:
-                    llm_response["reasoning"] += " | [Auto-Correction]: The entity type was corrected to 'Subsection' as the system retrieves tables and diagrams via their parent section."
-
-            self.logger.info(f"Performing direct lookup for {entity_type} with ID '{entity_id}'")
-            try:
-                # Call the original planning tool
-                planning_result = self.planning_tool(
-                    query=f"{entity_type} with ID '{entity_id}'",
-                    context_payload=f"Retrieve {entity_type} with ID '{entity_id}'"
-                )
-                
-                self.logger.info(f"Planning tool result: {planning_result.get('classification', 'unknown')}")
-                
-                # Process the planning result based on classification
-                return await self._process_planning_result(planning_result, state)
+    def _validate_agent_specific_state(self, state: AgentState) -> None:
+        """
+        Validates planning agent specific state requirements.
+        
+        Args:
+            state: State to validate
             
-            except Exception as e:
-                self.logger.error(f"Error in planning tool execution: {e}")
-                # Fallback to basic engage classification
-                return {
-                    "planning_classification": "engage",
-                    "planning_reasoning": f"Planning tool error: {str(e)}, falling back to engage",
-                    "research_plan": [{
-                        "sub_query": f"{entity_type} with ID '{entity_id}'",
-                        "hyde_document": f"Fallback research for: {entity_type} with ID '{entity_id}'"
-                    }],
-                    "current_step": "research",
-                    "workflow_status": "running"
-                } 
+        Raises:
+            ValueError: If required fields are missing
+        """
+        if not state.get("user_query"):
+            raise ValueError("user_query is required for planning")
+        
+        # Check that we're in the right step
+        if state.get("current_step") not in ["planning", "triage"]:
+            self.logger.warning(f"Unexpected current_step '{state.get('current_step')}' for planning agent")
+    
+    def _apply_agent_specific_updates(self, state: AgentState, output_data: Dict[str, Any]) -> AgentState:
+        """
+        Applies planning-specific state updates.
+        
+        Args:
+            state: Current state
+            output_data: Planning output data
+            
+        Returns:
+            Updated state
+        """
+        updated_state = state.copy()
+        
+        # Store planning metadata for debugging
+        if updated_state.get("intermediate_outputs") is not None:
+            updated_state["intermediate_outputs"]["planning_details"] = {
+                "classification": output_data.get("planning_classification"),
+                "reasoning": output_data.get("planning_reasoning"),
+                "plan_size": len(output_data.get("research_plan", [])),
+                "has_direct_answer": output_data.get("direct_answer") is not None
+            }
+        
+        # Set quality metrics if we have a direct answer
+        if output_data.get("direct_answer"):
+            updated_state["confidence_score"] = 0.85  # High confidence for direct answers
+        
+        return updated_state 

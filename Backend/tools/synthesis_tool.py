@@ -50,7 +50,7 @@ class SynthesisTool(BaseTool):
             # Use a helper to format the sub-answers to be more readable for the LLM
             sub_answers_str = self._format_sub_answers_for_prompt(sub_answers)
 
-            prompt = SYNTHESIS_PROMPT.format(user_query=query, sub_answers=sub_answers_str)
+            prompt = SYNTHESIS_PROMPT.format(user_query=query, sub_answers_text=sub_answers_str)
             
             response = model.generate_content(prompt)
             final_answer = response.text.strip()

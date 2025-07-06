@@ -1,0 +1,558 @@
+[
+  {
+    "test_id": "TC-001-ROUTING-EASY-DIRECT",
+    "description": "Tests the RouterAgent's ability to correctly identify a simple, direct retrieval query.",
+    "query": "Show me Section 101.1 of the Virginia Building Code.",
+    "difficulty": "Easy",
+    "tags": ["routing", "direct_retrieval"],
+    "expected_outcome": {
+      "routing_decision": "direct_retrieval",
+      "research_plan_summary": null,
+      "key_information_to_find": ["Section 101.1 Title and Text"],
+      "final_answer_summary": "Should provide the title and full text of Section 101.1.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-002-ROUTING-EASY-CLARIFY",
+    "description": "Tests the RouterAgent's ability to correctly identify a vague query that requires clarification.",
+    "query": "Tell me about the building code.",
+    "difficulty": "Easy",
+    "tags": ["routing", "clarification"],
+    "expected_outcome": {
+      "routing_decision": "clarification",
+      "research_plan_summary": null,
+      "key_information_to_find": [],
+      "final_answer_summary": "Should ask the user for more specific information about what part of the code they are interested in.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-003-ROUTING-EASY-RESEARCH",
+    "description": "Tests the RouterAgent's ability to correctly identify a simple but non-specific query that requires research.",
+    "query": "What are the general requirements for building permits?",
+    "difficulty": "Easy",
+    "tags": ["routing", "research"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to search for sections related to 'building permits' and 'permit application'.",
+      "key_information_to_find": ["Section 105.1", "Section 105.2"],
+      "final_answer_summary": "Should summarize the general requirements for obtaining a building permit.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-004-PLANNING-MEDIUM-COMPARE",
+    "description": "Tests the PlanningAgent's ability to create a research plan for a comparative query.",
+    "query": "What is the difference between the live load requirements for a residential balcony and a commercial parking garage?",
+    "difficulty": "Medium",
+    "tags": ["planning", "research", "comparison"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan with at least two sub-queries: one for residential balcony live loads and one for commercial parking garage live loads.",
+      "key_information_to_find": ["Table 1607.1 (Balconies, Decks)", "Table 1607.1 (Garages)"],
+      "final_answer_summary": "Should compare the two live load values and explain the difference.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-005-VALIDATION-MEDIUM-CALC-INTENT",
+    "description": "Tests the ValidationAgent's ability to correctly identify a query that asks for an explanation of a calculation, not the calculation itself.",
+    "query": "Explain the methodology for calculating wind load pressure on the wall of a simple diaphragm building.",
+    "difficulty": "Medium",
+    "tags": ["validation", "calculation_intent", "wind_load"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "validation_decision": "synthesis",
+      "key_information_to_find": ["Section 1609.6.1", "Equation 16-32"],
+      "final_answer_summary": "Should explain the formula and the process for calculating wind load pressure, but should not perform a numerical calculation.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-006-RESEARCH-MEDIUM-RESILIENCE",
+    "description": "Tests the ResearchOrchestrator's ability to use its fallback mechanisms to find a specific, non-standard term.",
+    "query": "What are the requirements for 'impact-resistant coverings' near hurricane-prone regions?",
+    "difficulty": "Medium",
+    "tags": ["research", "fallback", "keyword_search"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to search for 'impact-resistant coverings'.",
+      "key_information_to_find": ["Section 1609.2"],
+      "final_answer_summary": "Should define 'impact-resistant coverings' and explain the requirements for their use in hurricane-prone regions.",
+      "expected_fallbacks": true
+    }
+  },
+  {
+    "test_id": "TC-007-CALCULATION-HARD-MULTI-STEP",
+    "description": "Tests the agent's ability to perform a complex, multi-step calculation involving multiple lookups and a formula.",
+    "query": "A 10-story office building has a tributary area of 400 sq ft on the 5th floor. What is the reduced live load for a structural member supporting this area?",
+    "difficulty": "Hard",
+    "tags": ["calculation", "multi-step", "live_load_reduction"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "validation_decision": "calculation",
+      "key_information_to_find": ["Table 1607.1 (Office live load)", "Section 1607.12.1 (Live load reduction formula)", "K_LL for office buildings"],
+      "final_answer_summary": "Should correctly identify the unreduced live load (50 psf), the K_LL factor (4), plug them into the reduction formula, and calculate the final reduced live load.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-008-REASONING-HARD-MULTI-HOP",
+    "description": "Tests the agent's ability to follow a chain of references across multiple sections to arrive at a correct answer.",
+    "query": "I am building a wood-frame wall that is part of a required fire-resistance-rated assembly. What are the specific requirements for the materials and construction of this wall?",
+    "difficulty": "Hard",
+    "tags": ["reasoning", "multi-hop", "fire-resistance"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to first find the general requirements for fire-resistance-rated assemblies, then find the specific requirements for wood-frame construction within those assemblies.",
+      "key_information_to_find": ["Section 703", "Section 704", "Chapter 23"],
+      "final_answer_summary": "Should synthesize information from the general fire-resistance chapter and the specific wood construction chapter to provide a comprehensive answer.",
+      "expected_fallbacks": true
+    }
+  },
+  {
+    "test_id": "TC-009-MULTIMODAL-HARD-ANALYSIS",
+    "description": "Tests the agent's ability to use information from a diagram to answer a question.",
+    "query": "Using the diagram in Section 1609.6.2.1, what is the effective wind area for a component with a length of 20 feet and a width of 10 feet?",
+    "difficulty": "Hard",
+    "tags": ["multimodal", "diagram_analysis", "wind_load"],
+    "expected_outcome": {
+      "routing_decision": "direct_retrieval",
+      "key_information_to_find": ["Diagram in Section 1609.6.2.1"],
+      "final_answer_summary": "Should analyze the diagram, understand the formula or graphical method for calculating effective wind area, and apply it to the given dimensions to arrive at the correct answer.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-010-ROUTING-EASY-TABLE",
+    "description": "Tests direct retrieval of a table.",
+    "query": "Show me Table 1604.5.",
+    "difficulty": "Easy",
+    "tags": ["routing", "direct_retrieval", "table"],
+    "expected_outcome": {
+      "routing_decision": "direct_retrieval",
+      "research_plan_summary": null,
+      "key_information_to_find": ["Table 1604.5 content"],
+      "final_answer_summary": "Should display the full content of Table 1604.5.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-011-ROUTING-EASY-CHAPTER",
+    "description": "Tests direct retrieval of a chapter summary.",
+    "query": "Summarize Chapter 3 of the Virginia Building Code.",
+    "difficulty": "Easy",
+    "tags": ["routing", "direct_retrieval", "chapter"],
+    "expected_outcome": {
+      "routing_decision": "direct_retrieval",
+      "research_plan_summary": null,
+      "key_information_to_find": ["Summary of Chapter 3"],
+      "final_answer_summary": "Should provide a summary of the key topics covered in Chapter 3.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-012-RESEARCH-EASY-DEFINITION",
+    "description": "Tests basic research for a definition.",
+    "query": "What is a 'fire wall'?",
+    "difficulty": "Easy",
+    "tags": ["research", "definition"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to search for the definition of 'fire wall'.",
+      "key_information_to_find": ["Section 706.2"],
+      "final_answer_summary": "Should provide the definition of a fire wall as per the building code.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-013-CALCULATION-MEDIUM-PARTIAL",
+    "description": "Tests calculation path with missing information.",
+    "query": "Calculate the required live load for a library reading room with a tributary area of 300 sq ft.",
+    "difficulty": "Medium",
+    "tags": ["calculation", "live_load", "missing_info"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "validation_decision": "calculation",
+      "key_information_to_find": ["Table 1607.1 (Libraries)", "Section 1607.12"],
+      "final_answer_summary": "Should state the base live load and explain that a reduction cannot be fully determined without more information from the code, but may illustrate the calculation.",
+      "expected_fallbacks": true
+    }
+  },
+  {
+    "test_id": "TC-014-RESEARCH-MEDIUM-COMPARE-EGRESS",
+    "description": "Tests comparison of requirements for two different occupancy types.",
+    "query": "Compare the means of egress requirements for a business occupancy versus a mercantile occupancy.",
+    "difficulty": "Medium",
+    "tags": ["research", "comparison", "egress"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to research egress requirements for both 'business' and 'mercantile' occupancies.",
+      "key_information_to_find": ["Chapter 10"],
+      "final_answer_summary": "Should highlight the key differences in egress requirements (e.g., occupant load, exit widths) between the two occupancy types.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-015-ROUTING-MEDIUM-AMBIGUOUS-DIAGRAM",
+    "description": "Tests the router's ability to ask for clarification on an ambiguous diagram request.",
+    "query": "Explain the diagram for roof framing.",
+    "difficulty": "Medium",
+    "tags": ["routing", "clarification", "diagram"],
+    "expected_outcome": {
+      "routing_decision": "clarification",
+      "research_plan_summary": null,
+      "key_information_to_find": [],
+      "final_answer_summary": "Should ask the user to specify which roof framing diagram they are interested in, as there are many.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-016-RESEARCH-MEDIUM-KEYWORD",
+    "description": "Tests the agent's ability to find a specific material using keyword search.",
+    "query": "What are the code requirements for using cross-laminated timber (CLT)?",
+    "difficulty": "Medium",
+    "tags": ["research", "keyword_search", "materials"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to search for 'cross-laminated timber' or 'CLT'.",
+      "key_information_to_find": ["Chapter 23"],
+      "final_answer_summary": "Should explain the code's requirements for the use of CLT as a structural material.",
+      "expected_fallbacks": true
+    }
+  },
+  {
+    "test_id": "TC-017-CALCULATION-HARD-WIND-LOAD",
+    "description": "Tests a complex, multi-step wind load calculation.",
+    "query": "An office building is located in a 115 mph wind zone. For a component on the roof with a mean height of 60 feet and an effective wind area of 20 sq ft, what is the design wind pressure? Assume Exposure C and an enclosed building.",
+    "difficulty": "Hard",
+    "tags": ["calculation", "multi-step", "wind_load"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "validation_decision": "calculation",
+      "key_information_to_find": ["Section 1609", "Wind speed map", "Pressure coefficients table", "Equation 16-32"],
+      "final_answer_summary": "Should correctly look up all necessary values from tables and diagrams, plug them into the wind pressure formula, and calculate the final design wind pressure.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-018-REASONING-HARD-FIRE-RATING",
+    "description": "Tests multi-hop reasoning for fire-resistance ratings.",
+    "query": "What are the fire-resistance rating requirements for a structural frame supporting a roof in a Type IIA construction building that is 5 stories high?",
+    "difficulty": "Hard",
+    "tags": ["reasoning", "multi-hop", "fire-resistance"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to look up construction types, then building height limitations, then structural frame requirements based on those findings.",
+      "key_information_to_find": ["Table 601", "Table 602", "Chapter 5"],
+      "final_answer_summary": "Should follow the chain of references to determine the correct fire-resistance rating for the specified structural element.",
+      "expected_fallbacks": true
+    }
+  },
+  {
+    "test_id": "TC-019-MULTIMODAL-HARD-ZONE-COEFFICIENT",
+    "description": "Tests using a diagram to get a value for a subsequent step.",
+    "query": "Using the diagrams for roof zones in Section 1609, determine the correct zone for a corner of a hip roof with a 35-degree slope and use that to find the pressure coefficient.",
+    "difficulty": "Hard",
+    "tags": ["multimodal", "diagram_analysis", "wind_load"],
+    "expected_outcome": {
+      "routing_decision": "direct_retrieval",
+      "key_information_to_find": ["Diagrams in Section 1609", "Pressure coefficient tables"],
+      "final_answer_summary": "Should first interpret the roof zone diagram to identify the correct zone, then use that zone to look up the correct pressure coefficient in the corresponding table.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-020-RESILIENCE-HARD-NONEXISTENT",
+    "description": "Tests the agent's ability to handle a query for a non-existent section gracefully.",
+    "query": "Explain the requirements in Section 1625.3 for seismic isolation systems.",
+    "difficulty": "Hard",
+    "tags": ["resilience", "error_handling"],
+    "expected_outcome": {
+      "routing_decision": "direct_retrieval",
+      "key_information_to_find": [],
+      "final_answer_summary": "Should gracefully report that Section 1625.3 could not be found in the knowledge base and suggest searching for the topic of 'seismic isolation systems' generally.",
+      "expected_fallbacks": true
+    }
+  },
+  {
+    "test_id": "TC-021-USER-ARCHITECT-MATERIALS",
+    "description": "An architect asking about approved materials for a specific application.",
+    "query": "I'm designing a 5-story building with Type IIIA construction. What are the approved exterior wall coverings that will meet the fire-resistance rating requirements?",
+    "difficulty": "Hard",
+    "tags": ["materials", "fire-resistance", "architect_persona"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to first determine the fire-resistance requirements for Type IIIA construction, then find approved exterior wall materials that meet those requirements.",
+      "key_information_to_find": ["Table 601", "Table 602", "Chapter 7", "Chapter 14"],
+      "final_answer_summary": "Should list the approved exterior wall coverings and their required fire-resistance ratings for a 5-story, Type IIIA building.",
+      "expected_fallbacks": true
+    }
+  },
+  {
+    "test_id": "TC-022-USER-ENGINEER-SEISMIC",
+    "description": "A structural engineer asking a detailed question about seismic design.",
+    "query": "For a building in Seismic Design Category D, what are the limitations on using ordinary steel concentric braced frames?",
+    "difficulty": "Hard",
+    "tags": ["seismic", "structural", "engineer_persona"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to find the seismic design requirements, then look for limitations on specific structural systems within that category.",
+      "key_information_to_find": ["ASCE 7", "Chapter 16", "AISC 341"],
+      "final_answer_summary": "Should explain the specific limitations (e.g., height limits) on the use of ordinary steel concentric braced frames in Seismic Design Category D.",
+      "expected_fallbacks": true
+    }
+  },
+  {
+    "test_id": "TC-023-USER-HOMEOWNER-BASIC",
+    "description": "A homeowner asking a basic question about a home renovation project.",
+    "query": "I want to build a deck on the back of my house. How far apart should the support posts be?",
+    "difficulty": "Medium",
+    "tags": ["deck", "homeowner_persona", "span_rating"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to find the section on deck construction and look for tables related to post spacing and beam spans.",
+      "key_information_to_find": ["Chapter 5", "Deck construction details"],
+      "final_answer_summary": "Should explain that post spacing depends on the size of the beams and joists, and should provide an example from a relevant table.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-024-USER-CONTRACTOR-PRACTICAL",
+    "description": "A contractor asking a practical, on-the-job question.",
+    "query": "What are the fastening requirements for gypsum board in a 1-hour fire-rated wall assembly?",
+    "difficulty": "Medium",
+    "tags": ["fastening", "fire-resistance", "contractor_persona"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to find the section on fire-rated assemblies and look for tables or text related to fastener spacing for gypsum board.",
+      "key_information_to_find": ["Table 721.1(2)", "Section 2508"],
+      "final_answer_summary": "Should provide the specific requirements for fastener type and spacing for a 1-hour fire-rated wall.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-025-REASONING-HARD-EXCEPTION",
+    "description": "Tests the agent's ability to find and correctly apply an exception to a general rule.",
+    "query": "Are there any exceptions to the minimum ceiling height requirements in a basement with a sloped ceiling?",
+    "difficulty": "Hard",
+    "tags": ["reasoning", "exception", "ceiling_height"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to find the general ceiling height requirements, then look for exceptions related to basements or sloped ceilings.",
+      "key_information_to_find": ["Section 1208.2"],
+      "final_answer_summary": "Should explain the general rule for ceiling height and then detail the specific exception for basements with sloped ceilings.",
+      "expected_fallbacks": true
+    }
+  },
+  {
+    "test_id": "TC-026-CALCULATION-HARD-SNOW-LOAD",
+    "description": "Tests a complex snow load calculation.",
+    "query": "Calculate the flat roof snow load for a hospital in a location with a ground snow load of 30 psf, assuming a heated structure and a fully exposed roof. The roof is for an essential facility.",
+    "difficulty": "Hard",
+    "tags": ["calculation", "multi-step", "snow_load"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "validation_decision": "calculation",
+      "key_information_to_find": ["Section 1608", "Table 1604.5 (Risk Category)", "Formula for flat roof snow load"],
+      "final_answer_summary": "Should correctly determine the risk category, find all relevant factors (exposure, thermal, importance), and use them to calculate the final flat roof snow load.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-027-RESEARCH-MEDIUM-HISTORIC",
+    "description": "Tests research on a specialized topic like historic buildings.",
+    "query": "What special provisions apply to the repair of an existing historic building?",
+    "difficulty": "Medium",
+    "tags": ["research", "historic_buildings"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to search for 'historic buildings' or 'existing structures'.",
+      "key_information_to_find": ["Chapter 34"],
+      "final_answer_summary": "Should summarize the special considerations and allowances for historic buildings found in the code.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-028-MULTIMODAL-MEDIUM-TABLE-IMAGE",
+    "description": "Tests the agent's ability to read and interpret a table that is presented as an image.",
+    "query": "Using the image of Table 602, what is the required fire-resistance rating for an exterior wall in a Type VB building with a fire separation distance of 5 feet?",
+    "difficulty": "Medium",
+    "tags": ["multimodal", "table_image"],
+    "expected_outcome": {
+      "routing_decision": "direct_retrieval",
+      "key_information_to_find": ["Image of Table 602"],
+      "final_answer_summary": "Should correctly read the values from the image of the table and provide the required fire-resistance rating.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-029-ROUTING-MEDIUM-CODE-INTERPRETATION",
+    "description": "Tests the router's ability to handle a query that asks for an interpretation of the code's intent.",
+    "query": "What is the intent behind the code's requirements for smoke alarms in residential occupancies?",
+    "difficulty": "Medium",
+    "tags": ["routing", "research", "intent"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to find the sections on smoke alarms and look for commentary or purpose statements.",
+      "key_information_to_find": ["Section 907"],
+      "final_answer_summary": "Should explain the life-safety principles that underlie the smoke alarm requirements.",
+      "expected_fallbacks": true
+    }
+  },
+  {
+    "test_id": "TC-030-REASONING-HARD-CONFLICTING",
+    "description": "Tests the agent's ability to handle seemingly conflicting information between a general chapter and a specific chapter.",
+    "query": "Chapter 10 requires a certain number of exits, but Chapter 4 for atriums seems to have different rules. Which one should I follow for an atrium space?",
+    "difficulty": "Hard",
+    "tags": ["reasoning", "multi-hop", "conflicting_info"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to research both Chapter 10 and Chapter 4, and look for language that specifies which section governs in case of conflict.",
+      "key_information_to_find": ["Chapter 10", "Chapter 4", "Section 101.2"],
+      "final_answer_summary": "Should explain that specific provisions (like those for atriums in Chapter 4) typically govern over general provisions (like those in Chapter 10).",
+      "expected_fallbacks": true
+    }
+  },
+  {
+    "test_id": "TC-031-USER-INSPECTOR-PRACTICAL",
+    "description": "A building inspector asking a question about a specific inspection detail.",
+    "query": "I am inspecting a foundation and the anchor bolts are not placed exactly as shown on the approved plans. What is the maximum allowable tolerance for anchor bolt placement?",
+    "difficulty": "Hard",
+    "tags": ["inspector_persona", "tolerance", "foundation"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to search for foundation and anchor bolt requirements, and look for any mention of construction tolerances.",
+      "key_information_to_find": ["Chapter 17", "ACI 318"],
+      "final_answer_summary": "Should explain the code's requirements for anchor bolt placement and any specified tolerances. May need to resort to web search for ACI standards.",
+      "expected_fallbacks": true
+    }
+  },
+  {
+    "test_id": "TC-032-CALCULATION-HARD-STAIRS",
+    "description": "Tests a calculation related to stair geometry.",
+    "query": "I am designing a stair with a total rise of 9 feet. What is the minimum required width of the stairway and the maximum allowable riser height?",
+    "difficulty": "Hard",
+    "tags": ["calculation", "stairs", "geometry"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "validation_decision": "calculation",
+      "key_information_to_find": ["Section 1011"],
+      "final_answer_summary": "Should provide the minimum stairway width and maximum riser height from the code. May also calculate the number of risers needed.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-033-RESEARCH-MEDIUM-ACCESSIBILITY",
+    "description": "Tests research on accessibility requirements.",
+    "query": "What are the accessibility requirements for a public restroom?",
+    "difficulty": "Medium",
+    "tags": ["research", "accessibility", "ada"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to search for accessibility and restroom requirements.",
+      "key_information_to_find": ["Chapter 11", "ICC A117.1"],
+      "final_answer_summary": "Should summarize the key accessibility requirements for public restrooms, such as clear floor space, grab bar locations, and sink height.",
+      "expected_fallbacks": true
+    }
+  },
+  {
+    "test_id": "TC-034-USER-DIY-HOMEOWNER-EGRESS",
+    "description": "A DIY homeowner asking about basement egress windows.",
+    "query": "I'm finishing my basement and want to add a bedroom. What are the rules for an egress window?",
+    "difficulty": "Medium",
+    "tags": ["homeowner_persona", "egress", "basement"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to find the section on emergency escape and rescue openings.",
+      "key_information_to_find": ["Section R310"],
+      "final_answer_summary": "Should explain the minimum size, height from floor, and other requirements for a basement egress window.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-035-REASONING-HARD-MIXED-USE",
+    "description": "Tests reasoning about mixed-use buildings.",
+    "query": "I have a building with a retail store on the first floor and apartments on the second floor. How do I determine the required fire separation between them?",
+    "difficulty": "Hard",
+    "tags": ["reasoning", "multi-hop", "mixed-use"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should create a plan to find the sections on mixed-use occupancies and required separations.",
+      "key_information_to_find": ["Section 508"],
+      "final_answer_summary": "Should explain how to classify the different occupancies and then find the required fire-resistance rating for the separation between them from the relevant table.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-036-CALCULATION-MEDIUM-OCCUPANT-LOAD",
+    "description": "Tests a simple occupant load calculation.",
+    "query": "What is the occupant load of a 1,500 square foot business office?",
+    "difficulty": "Medium",
+    "tags": ["calculation", "occupant_load"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "validation_decision": "calculation",
+      "key_information_to_find": ["Table 1004.1.2"],
+      "final_answer_summary": "Should find the occupant load factor for business areas and use it to calculate the occupant load for the given area.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-037-RESEARCH-HARD-ENERGY-CODE",
+    "description": "Tests the agent's ability to find information in a related but separate code.",
+    "query": "What are the minimum insulation requirements for a wood-framed wall in Climate Zone 4?",
+    "difficulty": "Hard",
+    "tags": ["research", "energy_code", "insulation"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should recognize that this is likely in the Energy Code, not the Building Code, and search accordingly.",
+      "key_information_to_find": ["IECC", "Chapter 4 [RE]"],
+      "final_answer_summary": "Should provide the required R-values for wall insulation in Climate Zone 4 from the Energy Conservation Code.",
+      "expected_fallbacks": true
+    }
+  },
+  {
+    "test_id": "TC-038-RESILIENCE-MEDIUM-TYPO",
+    "description": "Tests the agent's resilience to typos in section numbers.",
+    "query": "What does Section 1607.12.1 say about live lod reduction?",
+    "difficulty": "Medium",
+    "tags": ["resilience", "typo"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should be able to find the correct section despite the typo in 'load'.",
+      "key_information_to_find": ["Section 1607.12.1"],
+      "final_answer_summary": "Should provide the correct information from Section 1607.12.1 about live load reduction.",
+      "expected_fallbacks": true
+    }
+  },
+  {
+    "test_id": "TC-039-CALCULATION-HARD-DEAD-LOAD",
+    "description": "Tests a dead load calculation requiring multiple lookups.",
+    "query": "Calculate the dead load of a wall assembly consisting of 1/2-inch gypsum board, 2x4 wood studs at 16 inches on center, and brick veneer.",
+    "difficulty": "Hard",
+    "tags": ["calculation", "multi-step", "dead_load"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "validation_decision": "calculation",
+      "key_information_to_find": ["Table of material weights"],
+      "final_answer_summary": "Should look up the weight of each component in the assembly and add them together to get the total dead load in psf.",
+      "expected_fallbacks": false
+    }
+  },
+  {
+    "test_id": "TC-040-REASONING-HARD-PLUMBING",
+    "description": "Tests reasoning about plumbing requirements, which may be in a separate code.",
+    "query": "How many toilets are required for a restaurant with a capacity of 100 people?",
+    "difficulty": "Hard",
+    "tags": ["reasoning", "plumbing_code"],
+    "expected_outcome": {
+      "routing_decision": "research",
+      "research_plan_summary": "Should recognize this is a plumbing question and search for the Plumbing Code requirements.",
+      "key_information_to_find": ["IPC Table 403.1"],
+      "final_answer_summary": "Should find the correct table in the International Plumbing Code and use it to determine the required number of toilets for an assembly occupancy.",
+      "expected_fallbacks": true
+    }
+  }
+] 

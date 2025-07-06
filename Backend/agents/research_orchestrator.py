@@ -26,6 +26,7 @@ from tools.web_search_tool import TavilySearchTool
 from tools.keyword_retrieval_tool import KeywordRetrievalTool
 from tools.reranker import Reranker
 from config import USE_RERANKER, redis_client
+from prompts import RE_PLANNING_PROMPT
 
 class ResearchOrchestrator(BaseLangGraphAgent):
     """
@@ -357,6 +358,41 @@ class ResearchOrchestrator(BaseLangGraphAgent):
         updated_state["quality_metrics"]["fallback_methods_used"] = output_data.get("research_metadata", {}).get("fallback_methods_used", [])
         
         return updated_state
+
+    async def _handle_insufficient_context(self, sub_query: str, original_query: str) -> Dict[str, Any]:
+        """
+        Handles cases where initial context is insufficient by re-planning.
+        """
+        self.logger.warning(f"Initial context for sub-query '{sub_query[:100]}...' was insufficient. Initiating re-planning.")
+        
+        prompt = RE_PLANNING_PROMPT.format(sub_query=sub_query, original_query=original_query)
+        
+        try:
+            response_text = await self.generate_content_async(prompt)
+            re_plan_data = json.loads(response_text)
+            
+            tool_to_use = re_plan_data.get("tool_to_use")
+            search_query = re_plan_data.get("search_query")
+            
+            self.logger.info(f"Re-planning decided to use '{tool_to_use}' with query: '{search_query}'")
+            
+            if tool_to_use == "keyword_retrieval":
+                return self.keyword_tool(query=search_query)
+            elif tool_to_use == "deep_graph_retrieval":
+                # Assuming a graph retrieval tool exists and is implemented
+                # This is a placeholder for the actual deep graph retrieval logic
+                self.logger.warning("Deep graph retrieval is not fully implemented yet.")
+                return {"answer": "Deep graph retrieval not implemented."}
+            elif tool_to_use == "web_search":
+                return self.web_search_tool(query=search_query)
+            else:
+                self.logger.error(f"Unknown tool recommended by re-planning: {tool_to_use}")
+                return {"answer": "Re-planning failed to select a valid tool."}
+                
+        except Exception as e:
+            self.logger.error(f"Error during re-planning: {e}", exc_info=True)
+            # As a final fallback, use web search
+            return self.web_search_tool(query=sub_query)
 
 class EnhancedResearchOrchestrator(ResearchOrchestrator):
     """
