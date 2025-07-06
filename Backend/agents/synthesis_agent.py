@@ -221,35 +221,24 @@ class SynthesisAgent(BaseLangGraphAgent):
         Returns:
             Confidence score between 0.0 and 1.0
         """
-        # Base score from integration success
-        integration_score = synthesis_metadata.get("integration_rate", 0.0)
+        # For now, we use a simple heuristic based on the number of sources
+        # and whether any fallback methods were required.
         
-        # Source quality score
-        source_score = min(synthesis_metadata.get("unique_sources_used", 0) / 3.0, 1.0)
+        num_sources = len(synthesis_metadata.get("sources_used", []))
         
-        # Content quality indicators
-        citation_bonus = 0.1 if synthesis_metadata.get("has_proper_citations", False) else 0.0
-        structure_bonus = 0.1 if synthesis_metadata.get("has_structured_format", False) else 0.0
+        # Start with a base score
+        score = 0.5
         
-        # Length appropriateness (not too short, not excessively long)
-        length_score = min(synthesis_metadata.get("answer_word_count", 0) / 200.0, 1.0)
-        if length_score < 0.2:  # Penalize very short answers
-            length_score *= 0.5
+        # Increase score for more sources
+        if num_sources > 0:
+            score += 0.1
+        if num_sources > 2:
+            score += 0.1
+        if num_sources > 4:
+            score += 0.1
         
-        # Research quality from previous steps
-        research_quality = state.get("retrieval_quality_scores", {}).get("overall_quality", 0.7)
-        
-        # Combined confidence score
-        confidence = (
-            integration_score * 0.3 +
-            source_score * 0.2 +
-            length_score * 0.2 +
-            research_quality * 0.2 +
-            citation_bonus +
-            structure_bonus
-        )
-        
-        return min(max(confidence, 0.0), 1.0)  # Clamp between 0 and 1
+        # Simple confidence calculation
+        return min(1.0, score) # Cap at 1.0
     
     def _validate_agent_specific_state(self, state: AgentState) -> None:
         """

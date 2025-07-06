@@ -10,16 +10,19 @@ from langchain_core.prompts import PromptTemplate
 # --- Conversation Memory Management Prompts ---
 
 UPDATE_STRUCTURED_MEMORY_PROMPT = """
-You are a precision data-entry agent. Your task is to update a JSON memory object based on the latest turns of a conversation.
-Read the provided JSON and the new messages. Update the JSON with any new facts, user goals, or resolved questions.
+You are a precision data-entry agent. Your task is to incrementally update a JSON memory object based on the latest turn of a conversation.
+Read the provided current memory and the latest user/assistant exchange. Update the JSON with any new facts, user goals, or resolved questions from this latest exchange.
 Do not change existing data unless it is explicitly contradicted. Preserve numerical values and specific identifiers exactly.
-Output ONLY the updated, validated JSON object and nothing else.
+
+**CRITICAL RULE: You MUST output a single, valid JSON object and nothing else. Ensure all strings are properly escaped.**
 
 **[Current Memory JSON]**
 {structured_memory_json}
 
-**[New Conversation Turns to Integrate]**
-{history_text}
+**[Latest Conversation Exchange to Integrate]**
+{latest_exchange}
+
+**Your Updated JSON Response:**
 """
 
 GENERATE_NARRATIVE_SUMMARY_PROMPT = """
@@ -32,55 +35,7 @@ Focus on the user's main goal and the key conclusions reached so far.
 
 # --- ReAct Agent Prompts ---
 
-PLANNER_PROMPT = """
-You are the master planner for an AI agent that answers questions about the Virginia Building Code.
-Your primary goal is to analyze the user's query and create an optimal research strategy.
-The query has already been classified as requiring research.
-
-**CRITICAL SUB-QUERY GUIDELINES:**
-- **ALWAYS anchor sub-queries to specific section numbers** when mentioned in the user query
-- **Separate formula retrieval from calculation steps** - create distinct sub-queries for each
-- **Be extremely specific** - target exact information needed, not general concepts
-- **For formulas**: Ask specifically for the equation, variables, and conditions
-- **For requirements**: Ask for specific conditions, thresholds, and applicability rules
-
-**CRITICAL INSTRUCTION: Adhere to User Intent**
-- If the user's query is **explanatory** (e.g., "explain", "what is", "describe"), your sub-queries MUST be limited to information gathering. DO NOT generate sub-queries that perform calculations, make decisions, or take other actions.
-- If the user's query asks for a **calculation**, you may then create sub-queries to first retrieve the formula and then perform the calculation.
-
-**HYDE DOCUMENT GUIDELINES:**
-- Write documents that mirror actual building code language and structure
-- Use regulatory terminology: "shall", "permitted", "required", "in accordance with"
-- Include specific section references and technical terms
-- For formulas: Describe mathematical relationships and variable definitions in detail
-- Match the hierarchical structure of building code sections
-
-**CRITICAL OUTPUT FORMAT:**
-Your plan must be a list of objects with EXACTLY these keys:
-- "sub_query": The specific question
-- "hyde_document": The hypothetical document
-
-**Example JSON for Live Load Query:**
-```json
-{{
-  "reasoning": "Complex query requiring multiple research steps",
-  "plan": [
-    {{
-      "sub_query": "According to Section 1607.12.1, what are the specific conditions and tributary area requirements for live load reduction in office buildings?",
-      "hyde_document": "Section 1607.12.1 of the Virginia Building Code establishes the conditions under which live load reduction is permitted for structural members. The section specifies minimum tributary area requirements for different occupancy classifications, including office buildings."
-    }}
-  ]
-}}
-```
-
-**Conversation Context:**
-{context_payload}
-
-**User Query:**
-{user_query}
-
-**Your JSON Response:**
-"""
+PLANNER_PROMPT = """\nYou are the master planner for an AI agent that answers questions about the Virginia Building Code.\nYour primary goal is to analyze a user's query and create an optimal research strategy.\n\n**CRITICAL CLASSIFICATION RULES:**\n1.  **Use `direct_retrieval` for simple lookups**: If the user asks for a specific, single entity like "Show me Section 1604.5" or "What is Chapter 3 about?", classify as `direct_retrieval`. You MUST also extract the `entity_type` (e.g., "Section", "Table", "Chapter") and `entity_id` (e.g., "1604.5").\n    *   **STRICT RULE:** If the user asks for a **Table** or **Diagram**, the `entity_type` MUST be `Subsection`. This is a system limitation.\n2.  **Use `engage` for complex questions**: If the query requires research, multi-step reasoning, calculations, or synthesizing information from multiple sources, you MUST classify it as `engage`.\n3.  **Use `clarify` for ambiguous questions**: If the query is too vague to be actionable (e.g., "Tell me about safety"), you MUST classify it as `clarify` and provide a `question_for_user`.\n4.  **COMPARISON OVERRIDES ALL**: If the query requires any form of **comparison** (e.g., "What is the difference...", "Compare A vs. B"), you MUST classify it as `engage`, even if it seems like a direct lookup.\n\n**CRITICAL SUB-QUERY GUIDELINES (for `engage` classification only):**\n- **ALWAYS anchor sub-queries to specific section numbers** when mentioned in the user query\n- **Separate formula retrieval from calculation steps** - create distinct sub-queries for each\n- **Be extremely specific** - target exact information needed, not general concepts\n- **For formulas**: Ask specifically for the equation, variables, and conditions\n- **For requirements**: Ask for specific conditions, thresholds, and applicability rules\n- **Adhere to User Intent**: If the original query is explanatory, your sub-queries MUST ONLY gather information. DO NOT create sub-queries that perform calculations.\n\n**HYDE DOCUMENT GUIDELINES:**\n- Write documents that mirror actual building code language and structure.\n- Use regulatory terminology: "shall", "permitted", "required", "in accordance with".\n- Include specific section references and technical terms.\n\n**CRITICAL OUTPUT FORMAT:**\nYour response MUST be a single JSON object. For `engage`, it must contain "reasoning" and a "plan" array. For other classifications, provide the relevant keys.\n\n**Example JSON for a Research Plan:**\n```json\n{{\n  "classification": "engage",\n  "reasoning": "This is a complex query requiring multiple research steps to compare two different sets of requirements.",\n  "plan": [\n    {{\n      "sub_query": "What are the live load requirements for residential balconies according to Table 1607.1?",\n      "hyde_document": "Table 1607.1 of the Virginia Building Code specifies the minimum uniformly distributed live loads for various occupancies, including residential balconies."\n    }},\n    {{\n      "sub_query": "What are the live load requirements for commercial parking garages according to Table 1607.1?",\n      "hyde_document": "Table 1607.1 of the Virginia Building Code specifies the minimum uniformly distributed live loads for various occupancies, including garages for passenger vehicles."\n    }}\n  ]\n}}\n```\n\n**Conversation Context:**\n{context_payload}\n\n**User Query:**\n{user_query}\n\n**Your JSON Response:**\n"""
 
 # ------------------------------------------------------------------------------
 # SUB-ANSWER PROMPT
@@ -129,26 +84,20 @@ SUB_ANSWER_PROMPT = PromptTemplate(
 # ------------------------------------------------------------------------------
 
 _quality_check_template = """
-You are a quality control assistant for a Virginia Building Code AI system. Your task is to determine if the retrieved context is likely to be helpful for answering the sub-query. You should be optimistic and trust the retrieval system.
-
-**Sub-Query:**
-{sub_query}
-
-**Retrieved Context:**
-{context_str}
+You are a quality control analyst. Your task is to evaluate if the given CONTEXT is relevant enough to help answer the SUB-QUERY. Return a JSON object with your analysis.
 
 **Analysis Guidelines:**
-1.  **Check for Relevance, Not Perfection**: The context does not need to contain the final, perfect answer. It only needs to be on-topic and contain information that a human expert could use to formulate an answer.
-2.  **Trust Section Numbers**: If the context contains the specific section numbers mentioned in the sub-query (e.g., "1607.12"), it is almost always `sufficient`.
-3.  **Keywords are a Strong Signal**: If the context contains the key technical terms from the sub-query (e.g., "live load reduction", "tributary area"), it is very likely `sufficient`.
-4.  **Any Related Content is Good**: For general queries about a topic (e.g., "wind loads"), any retrieved context that discusses that topic is `sufficient`. Do not fall back to web search just because the context isn't a perfect match.
-5.  **Err on the side of 'sufficient'**: It is much better to try to synthesize an answer from imperfect but relevant internal data than to resort to an external web search.
+1.  **Focus on Relevance, Not Perfection:** The context does not need to be a perfect answer. It only needs to contain keywords, concepts, or section numbers that are clearly related to the sub-query.
+2.  **Be Optimistic:** Assume the research system is good. If the context is on the right topic, it's likely sufficient.
+3.  **Return a Score:** Provide a `relevance_score` from 1 to 10, where 1 is completely irrelevant and 10 is a direct answer.
 
-**Decision Criteria:**
-- `sufficient`: The context is on-topic, contains relevant keywords or section numbers, and provides a reasonable starting point for answering the sub-query.
-- `insufficient`: The context is completely empty or discusses a topic that is totally unrelated to the sub-query (e.g., plumbing code for a structural query).
+**SUB-QUERY:**
+{sub_query}
 
-**Your classification (a single word in lowercase):**
+**CONTEXT:**
+{context_str}
+
+**Your JSON Response:**
 """
 
 QUALITY_CHECK_PROMPT = PromptTemplate(

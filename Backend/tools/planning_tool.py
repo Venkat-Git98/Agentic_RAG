@@ -148,20 +148,14 @@ For "engage" classification, your plan must be a list of objects with EXACTLY th
             
             logging.info(f"Raw LLM response: {response_text}")  # Log full response for debugging
             
-            # More robust JSON extraction - handle multiple JSON blocks
-            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
+            # Use a more robust regex to find the JSON block
+            json_match = re.search(r"```json\n(.*)```", response_text, re.DOTALL)
             if not json_match:
-                # Try to find JSON without curly braces (in case it's malformed)
-                lines = response_text.split('\n')
-                json_lines = [line for line in lines if '"classification"' in line or '"reasoning"' in line or '"plan"' in line]
-                if json_lines:
-                    logging.warning(f"Found potential JSON lines but no valid JSON block: {json_lines}")
-                logging.error(f"Full response was: {response_text}")
-                raise ValueError("Could not find a JSON object in the model's response for planning.")
-            
-            json_text = json_match.group(0)
-            logging.info(f"Extracted JSON: {json_text}")
-            
+                # Fallback for models that don't use markdown fences
+                json_text = response_text.strip()
+            else:
+                json_text = json_match.group(1).strip()
+
             plan_result = json.loads(json_text)
             classification = plan_result.get("classification")
             logging.info(f"LLM classification: {classification}")

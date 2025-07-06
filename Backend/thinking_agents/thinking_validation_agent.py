@@ -8,6 +8,7 @@ while providing detailed reasoning about its decision-making process.
 import json
 import re
 from typing import Dict, Any, List
+import google.generativeai as genai
 
 # Add parent directories to path for imports
 from agents.base_agent import BaseLangGraphAgent
@@ -214,6 +215,7 @@ class ThinkingValidationAgent(BaseLangGraphAgent, ThinkingMixin):
 
             has_placeholders = False
             has_errors = False
+            error_signals = []
             for i, result in enumerate(research_results, 1):
                 answer = result.get("answer", "").upper()
                 if "PLACEHOLDER" in answer or "INSUFFICIENT" in answer:
@@ -222,14 +224,15 @@ class ThinkingValidationAgent(BaseLangGraphAgent, ThinkingMixin):
                 if result.get("error"):
                     has_errors = True
                     self.thinking_logger.error(f"Detected an error in research result {i}: {result['error']}")
+                    error_signals.append(result['error'])
 
             # If we find explicit failures, the research is not sufficient.
             if has_placeholders or has_errors:
-                self.thinking_logger.concluding_decision("Research integrity check failed. Explicit errors or placeholders were found.")
+                self.thinking_logger.conclude("Research integrity check failed. Explicit errors or placeholders were found.")
                 return {
                     "is_sufficient": False,
                     "sufficiency_score": 0.1,
-                    "validation_reasoning": "The research results contained explicit placeholders or error messages, indicating a failure in the retrieval process."
+                    "validation_reasoning": f"The research results contained explicit placeholders or error messages, indicating a failure in the retrieval process. Errors: {', '.join(error_signals)}"
                 }
 
             # If no explicit failures, we trust the upstream assessment.
@@ -246,73 +249,37 @@ class ThinkingValidationAgent(BaseLangGraphAgent, ThinkingMixin):
         with self.thinking_logger.analysis_block("Checking for Mathematical Requirements"):
             self.thinking_logger.think("Analyzing query and research for any math, assuming 'yes' on ambiguity.")
             
-            math_score = self._calculate_math_score_with_thinking(user_query, research_results)
-            self.thinking_logger.note(f"Initial math score (keyword-based): {math_score:.2f}")
-
-            math_content = []
-            for result in research_results:
-                answer = result.get("answer", "")
-                if any(re.search(pattern, answer, re.IGNORECASE) for pattern in self.building_math_patterns):
-                    math_content.append(result.get("sub_query"))
-
-            if math_content:
-                self.thinking_logger.discovering(f"Found math-related content for sub-queries: {', '.join(math_content)}")
-
+            # Focus ONLY on the user's original query to determine intent.
             prompt = f"""
-            You are a specialized math detection agent for building code analysis.
-            Your task is to determine if a user query requires mathematical calculations.
-            Your default assumption should be YES if there is any ambiguity.
+            You are a simple decision-making agent. Your only job is to determine if the user's query is asking for a numerical calculation or a textual explanation.
 
-            **USER QUERY:** {user_query}
+            **User Query:** "{user_query}"
 
-            **RESEARCH CONTEXT:**
-            {self._format_research_for_validation(research_results)}
+            **Instructions:**
+            - If the query asks "what is," "explain," "summarize," or "describe," the user wants an explanation. Respond with `synthesis`.
+            - If the query asks to "calculate," "compute," "determine the value of," or contains specific numerical values for a calculation, the user wants a calculation. Respond with `calculation`.
+            - Your response must be a single word: `calculation` or `synthesis`.
 
-            **CRITICAL INSTRUCTION: Adhere to User Intent**
-            - You MUST determine if the user's **original query** is asking for a *calculation* vs. an *explanation*.
-            - If the original query is explanatory (e.g., "explain," "what is," "describe"), you MUST return `"requires_math_calculations": false`, even if the research context contains formulas. The user only wants to understand the topic, not to perform a calculation.
-            - If the original query explicitly asks to "calculate," "compute," or find a specific numerical value (e.g., "what is the design live load?"), then and ONLY then should you return `"requires_math_calculations": true`.
-
-            **Analysis Guidelines & Rules:**
-            1.  **Err on the side of caution**: If you see formulas, keywords like "calculate," "determine," "what is the load," or numerical data in the context, you MUST default to `true`.
-            2.  **Explicit Intent**: If the user asks to "calculate," "compute," etc., it is ALWAYS `true`.
-            3.  **Implicit Need**: If the query asks for a design value (e.g., "what is the required live load?"), it is ALWAYS `true` because finding the final value may require reduction calculations.
-            4.  **Formulas are a hard rule**: If the research context contains ANY mathematical formulas or equations (e.g., `L = L₀(...)`, `Pressure = 0.00256 * V^2`), it is ALWAYS `true`.
-
-            **Your Final Decision (JSON only):**
-            Provide a JSON object with your determination.
-            {{
-                "requires_math_calculations": boolean,
-                "math_confidence_score": float (0.0 to 1.0),
-                "math_complexity": "low|medium|high",
-                "calculation_type": "general_calculation|load_calculation|pressure_calculation|area_calculation|deflection_calculation|other",
-                "reasoning": "Brief explanation of why you made this decision. Be specific."
-            }}
+            **Your decision:**
             """
             
             try:
-                response = await self.generate_content_async(prompt)
-                parsed_response = self._parse_json_response(response)
-                
-                if parsed_response and 'requires_math_calculations' in parsed_response:
-                    # --- CONFIDENCE OVERRIDE LOGIC ---
-                    math_needed = parsed_response.get("requires_math_calculations", False)
-                    confidence = parsed_response.get("math_confidence_score", 1.0)
+                # Use a fast model for this simple classification
+                model = genai.GenerativeModel(self.model_name) 
+                response = await model.generate_content_async(prompt)
+                decision = response.text.strip().lower()
 
-                    # If the model says NO, but is not confident, override to YES.
-                    if not math_needed and confidence < 0.8:
-                        self.thinking_logger.reconsidering(f"LLM was not confident in its 'no math' assessment (confidence: {confidence:.2f}). Overriding to YES to be safe.")
-                        parsed_response["requires_math_calculations"] = True
-                        parsed_response["reasoning"] += " | [Auto-Correction]: Overridden to 'true' due to low confidence."
-                    
-                    self.thinking_logger.concluding_decision(f"Math assessment: {'Yes' if parsed_response['requires_math_calculations'] else 'No'} (confidence: {parsed_response.get('math_confidence_score', 0.0):.2f})")
-                    return parsed_response
+                if "calculation" in decision:
+                    self.thinking_logger.conclude("User's query appears to require a calculation.")
+                    return {"requires_math_calculations": True}
                 else:
-                    self.thinking_logger.problem("Failed to get a valid math assessment from LLM, defaulting to True based on keyword score.")
-                    return {"requires_math_calculations": math_score > 0.3, "math_confidence_score": 0.4}
+                    self.thinking_logger.conclude("User's query appears to be explanatory. No calculation needed.")
+                    return {"requires_math_calculations": False}
+
             except Exception as e:
-                self.thinking_logger.problem(f"Error during math detection: {e}, defaulting to True based on keyword score.")
-                return {"requires_math_calculations": math_score > 0.3, "math_confidence_score": 0.4}
+                self.logger.error(f"Error during simplified math detection: {e}")
+                # Default to synthesis on error to be safe
+                return {"requires_math_calculations": False}
     
     def _calculate_math_score_with_thinking(self, user_query: str, research_results: List[Dict]) -> float:
         """Calculate math probability with detailed reasoning."""

@@ -185,26 +185,35 @@ Here is the context for the current query:
             return
 
         # --- Step 1: Update the Structured Memory JSON ---
-        # We take the messages that need to be processed (those not in the recent window)
-        messages_to_process = self.full_history[: -self.window_size*2]
-        if not messages_to_process:
-            logging.warning("Memory update triggered, but no messages to process.")
+        # Process only the last user query and assistant response for efficiency.
+        if len(self.full_history) < 2:
+            logging.warning("Not enough history to perform an incremental memory update.")
             return
-            
-        history_text = "\n".join(f"{msg['role'].capitalize()}: {msg['content']}" for msg in messages_to_process)
+
+        last_exchange = self.full_history[-2:]
+        history_text = "\n".join(f"{msg['role'].capitalize()}: {msg['content']}" for msg in last_exchange)
 
         prompt_for_json = UPDATE_STRUCTURED_MEMORY_PROMPT.format(
             structured_memory_json=self.structured_memory.model_dump_json(indent=2),
-            history_text=history_text
+            latest_exchange=history_text # Use the new prompt variable
         )
 
         try:
-            logging.info("Updating structured memory...")
+            logging.info("Updating structured memory based on the latest exchange...")
             response = self.memory_model.generate_content(prompt_for_json)
             # Clean up the response to ensure it's valid JSON
             cleaned_response = response.text.strip().lstrip("```json").rstrip("```").strip()
-            self.structured_memory = StructuredMemory.model_validate_json(cleaned_response)
-            logging.info("Structured memory updated successfully.")
+            
+            # Harden the JSON parsing to prevent crashes
+            try:
+                self.structured_memory = StructuredMemory.model_validate_json(cleaned_response)
+                logging.info("Structured memory updated successfully.")
+            except Exception as json_error:
+                logging.error(f"Failed to parse structured memory JSON. Error: {json_error}")
+                logging.debug(f"Malformed JSON received for memory update:\n{cleaned_response}")
+                # Do not proceed with the rest of the memory update if parsing fails
+                return
+
         except Exception as e:
             logging.error(f"Failed to update structured memory. Error: {e}")
             # If this fails, we don't proceed to summary generation
@@ -225,5 +234,7 @@ Here is the context for the current query:
         # --- Step 3: Prune the full history log ---
         # We've processed the old messages, so we can now discard them from the main log,
         # keeping only the recent window.
-        self.full_history = self.full_history[-self.window_size*2:]
-        logging.info(f"History pruned. New length: {len(self.full_history)}") 
+        # This pruning logic is now handled differently, as we only process the last exchange.
+        # The full history is preserved until the next explicit pruning cycle.
+        # logging.info(f"History pruned. New length: {len(self.full_history)}")
+        pass 

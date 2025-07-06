@@ -73,33 +73,24 @@ class ResearchOrchestrator(BaseLangGraphAgent):
     
     async def execute(self, state: AgentState) -> Dict[str, Any]:
         """
-        Execute the parallel research using the original ParallelResearchTool,
-        with a sub-query cache.
+        Execute the parallel research using the new strategy-based approach.
         """
         research_plan = state.get("research_plan", [])
-        original_query = state.get("original_query", state.get("user_query", ""))
+        original_query = state.get("user_query", "")
         
         if not research_plan:
             self.logger.error("No research plan provided to research orchestrator")
-            return {
-                "error_state": {
-                    "agent": self.agent_name,
-                    "error_type": "MissingPlan",
-                    "error_message": "No research plan provided",
-                    "timestamp": "now"
-                },
-                "current_step": "error",
-                "workflow_status": "failed"
-            }
+            return {"sub_answers": []} # Return empty list to avoid crash
         
-        self.logger.info(f"Executing research for {len(research_plan)} sub-queries")
+        self.logger.info(f"Executing research for {len(research_plan)} sub-queries.")
 
         # --- Sub-Query Cache Logic ---
         cached_sub_answers = []
         queries_to_run = []
         if redis_client:
             for task in research_plan:
-                sub_query = task['sub_query']
+                sub_query = task.get('sub_query') or task.get('query')
+                if not sub_query: continue
                 try:
                     query_hash = hashlib.sha256(sub_query.encode()).hexdigest()
                     cache_key = f"sub_cache:{query_hash}"
@@ -115,48 +106,42 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             
             self.logger.info(f"Sub-query cache summary: {len(cached_sub_answers)} hits, {len(queries_to_run)} misses.")
         else:
-            # If redis is not available, run all queries
             queries_to_run = research_plan
         # --- End Cache Logic ---
         
         newly_generated_answers = []
-        try:
-            # Execute research only for queries that were not in the cache
-            if queries_to_run:
-                research_results = await self._execute_parallel_research(queries_to_run, original_query)
-                newly_generated_answers = research_results.get("sub_answers", [])
+        if queries_to_run:
+            # Use the simplified, strategy-driven research tool
+            research_results = await self.research_tool._run_async_logic(queries_to_run, original_query)
+            newly_generated_answers = research_results.get("sub_answers", [])
 
-                # --- Save new results to Sub-Query Cache ---
-                if redis_client:
-                    for answer in newly_generated_answers:
-                        sub_query = answer['sub_query']
-                        try:
-                            query_hash = hashlib.sha256(sub_query.encode()).hexdigest()
-                            cache_key = f"sub_cache:{query_hash}"
-                            redis_client.set(cache_key, json.dumps(answer))
-                            self.logger.info(f"--- [SAVED TO SUB-CACHE] for: {sub_query[:100]}... ---")
-                        except Exception as e:
-                            self.logger.error(f"Sub-query cache save failed for '{sub_query[:100]}': {e}")
-                # --- End Cache Save Logic ---
+            # --- Save new results to Sub-Query Cache ---
+            if redis_client:
+                for answer in newly_generated_answers:
+                    sub_query = answer.get('sub_query')
+                    if not sub_query: continue
+                    try:
+                        query_hash = hashlib.sha256(sub_query.encode()).hexdigest()
+                        cache_key = f"sub_cache:{query_hash}"
+                        redis_client.set(cache_key, json.dumps(answer), ex=3600) # Cache for 1 hour
+                        self.logger.info(f"--- [SAVED TO SUB-CACHE] for: {sub_query[:100]}... ---")
+                    except Exception as e:
+                        self.logger.error(f"Sub-query cache save failed for '{sub_query[:100]}': {e}")
+            # --- End Cache Save Logic ---
 
-            # Combine cached results with newly generated ones
-            all_sub_answers = cached_sub_answers + newly_generated_answers
-            
-            # Process and format all results for LangGraph state
-            return await self._process_research_results({"sub_answers": all_sub_answers}, state)
-            
-        except Exception as e:
-            self.logger.error(f"Error in parallel research execution: {e}")
-            return {
-                "error_state": {
-                    "agent": self.agent_name,
-                    "error_type": type(e).__name__,
-                    "error_message": str(e),
-                    "timestamp": "now"
-                },
-                "current_step": "error",
-                "workflow_status": "failed"
-            }
+        final_answers = cached_sub_answers + newly_generated_answers
+        
+        self.logger.info(f"Research completed: {len(final_answers)} sub-answers generated")
+        
+        # CRITICAL FIX: Restore metadata and quality score calculations with robust defaults.
+        metadata = self._extract_research_metadata(final_answers)
+        quality_scores = self._calculate_quality_scores(final_answers)
+        
+        return {
+            "sub_query_answers": final_answers,
+            "research_metadata": metadata,
+            "retrieval_quality_scores": quality_scores
+        }
     
     async def _execute_parallel_research(self, research_plan: List[Dict[str, str]], original_query: str) -> Dict[str, Any]:
         """
@@ -210,7 +195,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             }
         
         # Extract metadata for quality tracking
-        metadata = self._extract_research_metadata(research_results, sub_answers)
+        metadata = self._extract_research_metadata(sub_answers)
         
         # Calculate quality scores
         quality_scores = self._calculate_quality_scores(sub_answers)
@@ -227,73 +212,38 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             "workflow_status": "running"
         }
     
-    def _extract_research_metadata(self, research_results: Dict[str, Any], sub_answers: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """
-        Extracts comprehensive metadata from research results.
-        
-        Args:
-            research_results: Raw research results
-            sub_answers: Processed sub-answers
-            
-        Returns:
-            Research metadata dictionary
-        """
-        # Count successful vs failed queries
-        successful_queries = len([ans for ans in sub_answers if ans.get("answer") and "error" not in ans.get("answer", "").lower()])
-        
-        # Extract fallback methods used
-        fallback_methods = set()
-        for ans in sub_answers:
-            if ans.get("fallback_method"):
-                fallback_methods.add(ans["fallback_method"])
-        
-        # Calculate source diversity
-        all_sources = []
-        for ans in sub_answers:
-            sources = ans.get("sources_used", [])
-            all_sources.extend(sources)
-        
-        unique_sources = len(set(all_sources))
-        
+    def _extract_research_metadata(self, sub_answers: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Extracts comprehensive metadata from a list of sub-answers."""
+        if not sub_answers:
+            return {
+                "total_sub_queries": 0, "successful_queries": 0, "failed_queries": 0,
+                "retrieval_methods_used": [], "total_sources": 0
+            }
+
+        retrieval_methods = [ans.get("retrieval_method", "unknown") for ans in sub_answers]
+        successful_queries = len([a for a in sub_answers if "No information was found" not in a.get("answer", "")])
+
         return {
             "total_sub_queries": len(sub_answers),
             "successful_queries": successful_queries,
             "failed_queries": len(sub_answers) - successful_queries,
-            "fallback_methods_used": list(fallback_methods),
-            "source_diversity": unique_sources,
-            "total_sources": len(all_sources),
-            "execution_log": research_results.get("execution_log", []),
-            "research_quality": "high" if successful_queries == len(sub_answers) else "partial"
+            "retrieval_methods_used": list(set(retrieval_methods)),
+            "total_sources": len(sub_answers) # Simplified for now
         }
     
     def _calculate_quality_scores(self, sub_answers: List[Dict[str, Any]]) -> Dict[str, float]:
-        """
-        Calculates quality scores for the research results.
-        
-        Args:
-            sub_answers: List of sub-query answers
-            
-        Returns:
-            Quality scores dictionary
-        """
+        """Calculates quality scores based on the research results."""
         if not sub_answers:
-            return {"overall_quality": 0.0}
+            return {"overall_quality": 0.0, "answer_completeness": 0.0}
+
+        completeness = len([a for a in sub_answers if "No information was found" not in a.get("answer", "")]) / len(sub_answers)
         
-        # Calculate individual quality metrics
-        answer_completeness = len([ans for ans in sub_answers if ans.get("answer") and len(ans["answer"]) > 50]) / len(sub_answers)
-        
-        source_coverage = len([ans for ans in sub_answers if ans.get("sources_used")]) / len(sub_answers)
-        
-        error_rate = len([ans for ans in sub_answers if "error" in ans.get("answer", "").lower()]) / len(sub_answers)
-        
-        # Combined quality score
-        overall_quality = (answer_completeness + source_coverage) / 2 * (1 - error_rate)
-        
+        # Simple quality score based on completeness
+        quality = completeness * 0.9 # Base score on whether answers were found
+
         return {
-            "overall_quality": round(overall_quality, 3),
-            "answer_completeness": round(answer_completeness, 3),
-            "source_coverage": round(source_coverage, 3),
-            "error_rate": round(error_rate, 3)
+            "overall_quality": round(quality, 2),
+            "answer_completeness": round(completeness, 2)
         }
     
     def _validate_agent_specific_state(self, state: AgentState) -> None:

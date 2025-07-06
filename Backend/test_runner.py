@@ -4,8 +4,9 @@ import sys
 from datetime import datetime
 import time
 import os
+import argparse
 
-def run_test_suite():
+def run_test_suite(test_id_to_run=None):
     """
     Reads the test suite, runs each test case against the main agent script,
     and saves the detailed results.
@@ -19,6 +20,12 @@ def run_test_suite():
     except json.JSONDecodeError:
         print("ERROR: Could not decode testing_suite.json. Please check for syntax errors.")
         return
+
+    if test_id_to_run:
+        test_cases = [tc for tc in test_cases if tc.get("test_id") == test_id_to_run]
+        if not test_cases:
+            print(f"ERROR: Test case with ID '{test_id_to_run}' not found in testing_suite.json.")
+            return
 
     total_tests = len(test_cases)
     print(f"Found {total_tests} test cases. Starting the test run...")
@@ -106,4 +113,8 @@ def run_test_suite():
     print("Results have been saved to test_results.json")
 
 if __name__ == "__main__":
-    run_test_suite() 
+    parser = argparse.ArgumentParser(description="Run the AI agent test suite.")
+    parser.add_argument('--test_id', type=str, help='Run a single test case by its ID.')
+    args = parser.parse_args()
+
+    run_test_suite(args.test_id)

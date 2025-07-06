@@ -75,8 +75,8 @@ if not all([NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD]):
 # Define which models to use for different tasks to balance cost and performance.
 # This makes it easy to upgrade or change a model in one place.
 TIER_1_MODEL_NAME = "gemini-2.5-pro"  # For final synthesis and critical validation
-TIER_2_MODEL_NAME = "gemini-2.5-flash" # For decomposition, HyDE, and initial validation
-TIER_3_MODEL_NAME = "gemini-2.5-flash" # For triage and simple lookups (can be same as Tier 2)
+TIER_2_MODEL_NAME = "gemini-1.5-flash-latest" # For decomposition, HyDE, and initial validation
+TIER_3_MODEL_NAME = "gemini-1.5-flash-latest" # For triage and simple lookups (can be same as Tier 2)
 MEMORY_ANALYSIS_MODEL = "gemini-1.5-flash-latest" # For the cost-effective memory management tasks
 
 # --- Embedding Model Configuration ---

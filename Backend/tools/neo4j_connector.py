@@ -14,7 +14,7 @@ from config import (
     EMBEDDING_MODEL, TIER_1_MODEL_NAME
 )
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 import google.generativeai as genai
 from .direct_retrieval_queries import (
@@ -112,8 +112,14 @@ class Neo4jConnector:
             
         logging.info(f"Vector search found best match: {best_match_uid}. Expanding context via graph.")
         # The result of get_gold_standard_context is a dictionary, so we wrap it in a list
-        # to match the expected return type of the original vector_search function.
-        return [Neo4jConnector.get_gold_standard_context(best_match_uid)]
+        # to match the expected return type of the other retrieval functions.
+        gold_standard_context = Neo4jConnector.get_gold_standard_context(best_match_uid)
+        
+        # Ensure the output is a list of dictionaries, even if only one item is returned.
+        if gold_standard_context:
+            return [gold_standard_context]
+        else:
+            return []
 
     @staticmethod
     def get_related_nodes_for_parent(parent_uid: str) -> list:
@@ -502,22 +508,24 @@ class Neo4jConnector:
                 "diagrams": []
             }
 
-            for raw_child in child_nodes:
-                formatted_child = format_node(raw_child)
-                if not formatted_child or formatted_child.get("uid") == parent_data.get("uid"):
-                    continue
+            # This makes the function robust to different input structures.
+            for child in child_nodes:
+                if not isinstance(child, dict): continue
+                node_type = child.get('type', 'Unknown').lower()
+                if 'passage' in node_type or 'subsection' in node_type or 'section' in node_type:
+                    content_map["passages"].append(child)
+                elif 'table' in node_type:
+                    content_map["tables"].append(child)
+                elif 'math' in node_type:
+                    content_map["mathematical_content"].append(child)
+                elif 'diagram' in node_type:
+                    content_map["diagrams"].append(child)
 
-                node_type = formatted_child.get("type", "Unknown").lower()
-                if any(keyword in node_type for keyword in ["passage", "subsection", "section"]):
-                    content_map["passages"].append(formatted_child)
-                elif "table" in node_type:
-                    content_map["tables"].append(formatted_child)
-                elif "math" in node_type:
-                    content_map["mathematical_content"].append(formatted_child)
-                elif "diagram" in node_type:
-                    content_map["diagrams"].append(formatted_child)
-
-            return {"primary_item": parent_data, "supplemental_context": content_map}
+            # Return a list containing a single, well-structured context block
+            return [{
+                "primary_item": parent_data,
+                "supplemental_context": content_map
+            }]
             
         except Exception as e:
             logging.error(f"Error getting full subsection context for {uid}: {e}")
@@ -677,6 +685,31 @@ class Neo4jConnector:
         driver = Neo4jConnector.get_driver()
         records, _, _ = driver.execute_query(query, params, database_="neo4j")
         return [r.data() for r in records]
+
+    def keyword_search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+        """
+        Performs a keyword-based search against the 'text' property of all nodes.
+        This is a fallback for specific terms not well-suited for vector search.
+        """
+        # This query now uses a standard CONTAINS search, which is less performant
+        # than a full-text index but does not require one to be created.
+        cypher_query = """
+        MATCH (n)\n        WHERE n.text CONTAINS $query\n        RETURN n.uid AS uid, n.text AS text, labels(n)[0] AS type, 0.9 AS score\n        LIMIT $top_k\n        """
+        params = {"query": query, "top_k": top_k}
+        records = self.execute_query(cypher_query, params)
+        
+        # Format the results into the standard context block structure
+        context_blocks = []
+        for record in records:
+            context_blocks.append({
+                "primary_item": {
+                    "uid": record.get("uid"),
+                    "text": record.get("text"),
+                    "type": record.get("type")
+                },
+                "supplemental_context": {}
+            })
+        return context_blocks
 
 # Ensure the driver is closed when the application exits.
 atexit.register(Neo4jConnector.close_driver) 

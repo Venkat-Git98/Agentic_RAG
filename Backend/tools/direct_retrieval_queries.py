@@ -45,12 +45,15 @@ ORDER BY s.number
 # Fetches a Section and lists all its Subsections.
 GET_SECTION_CONTEXT_BY_ID = """
 MATCH (s:Section {uid: $uid})-[:CONTAINS]->(sub:Subsection)
+// For each subsection, find its child text chunks
+OPTIONAL MATCH (sub)-[:HAS_CHUNK]->(c:Passage)
+WITH s, sub, COLLECT(DISTINCT c.text) AS chunks
 RETURN s.title AS section_title, s.number AS section_number,
-       COLLECT(DISTINCT {
+       COLLECT({ \
            number: sub.number,
            title: sub.title,
-           text: sub.text,
-           chunks: COLLECT(DISTINCT c.text)
+           text: sub.text, \
+           chunks: chunks\
        }) as subsections
 """
 
