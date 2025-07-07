@@ -724,41 +724,51 @@ class Neo4jConnector:
         UNWIND nodes AS n
         OPTIONAL MATCH (n)-[r]-(m)
         WHERE m IN nodes
-        RETURN n, COLLECT(r) AS relationships
+        WITH nodes, COLLECT(DISTINCT r) AS relationships
+        RETURN nodes, relationships
         """
         parameters = {"query": query}
         records = Neo4jConnector.execute_query(cypher_query, parameters)
 
+        if not records:
+            return {"nodes": [], "edges": []}
+
+        record = records[0]
+        db_nodes = record.get("nodes", [])
+        db_relationships = record.get("relationships", [])
+
         nodes = []
         edges = []
         node_ids = set()
-        edge_ids = set()
 
-        for record in records:
-            node_n = record["n"]
-            if node_n and node_n["uid"] not in node_ids:
-                node_ids.add(node_n["uid"])
+        for node_obj in db_nodes:
+            uid = node_obj.get("uid")
+            if uid and uid not in node_ids:
+                node_ids.add(uid)
                 nodes.append({
-                    "id": node_n["uid"],
-                    "type": list(node_n.labels)[0],
+                    "id": uid,
+                    "type": list(node_obj.labels)[0],
                     "position": {"x": 0, "y": 0},
                     "data": {
-                        "label": node_n["title"] if "title" in node_n else node_n["uid"],
-                        "properties": dict(node_n)
+                        "label": node_obj.get("title", uid),
+                        "properties": dict(node_obj)
                     }
                 })
 
-            for rel in record["relationships"]:
-                if rel and rel.element_id not in edge_ids:
-                    edge_ids.add(rel.element_id)
+        if db_relationships:
+            for rel in db_relationships:
+                start_node_uid = rel.start_node.get("uid")
+                end_node_uid = rel.end_node.get("uid")
+
+                if start_node_uid and end_node_uid:
                     edges.append({
                         "id": rel.element_id,
-                        "source": rel.start_node["uid"],
-                        "target": rel.end_node["uid"],
+                        "source": start_node_uid,
+                        "target": end_node_uid,
                         "label": rel.type
                     })
 
         return {"nodes": nodes, "edges": edges}
 
 # Ensure the driver is closed when the application exits.
-atexit.register(Neo4jConnector.close_driver) 
+atexit.register(Neo4jConnector.close_driver)
