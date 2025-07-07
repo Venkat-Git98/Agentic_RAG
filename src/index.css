@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #081118; /* Aqua Borealis Dark Base */
+  font-family: 'Inter', sans-serif;
+}
+
+.bg-dots-dark {
+    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0);
+    background-size: 20px 20px;
+}
+
+/* --- React Flow Edge Fix --- */
+.react-flow__edge-path {
+  stroke: #06b6d4 !important;
+  stroke-width: 2 !important;
+}
+
+.react-flow__edge.animated > path {
+    stroke-dasharray: 5;
+    animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+  from {
+    stroke-dashoffset: 10;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+} 

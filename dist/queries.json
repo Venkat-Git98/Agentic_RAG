@@ -1,0 +1,29 @@
+[
+  {
+    "category": "Code Compliance",
+    "icon": "FileCheck",
+    "queries": [
+      "What are the fire safety requirements for a new single-family home in Fairfax County?",
+      "Is a permit required to build a 150 sq ft deck attached to a house in Richmond?",
+      "List the key differences in electrical code for commercial vs. residential buildings in Virginia."
+    ]
+  },
+  {
+    "category": "Comparative Analysis",
+    "icon": "GitCompareArrows",
+    "queries": [
+      "Compare the maximum building height regulations in Arlington County versus Loudoun County.",
+      "What are the differences in setback requirements for sheds in Virginia Beach and Chesapeake?",
+      "Contrast the energy efficiency code requirements for windows in Northern Virginia vs. the rest of the state."
+    ]
+  },
+  {
+    "category": "Scenario-Based",
+    "icon": "Building2",
+    "queries": [
+      "I want to finish my basement in a 1980s house in Alexandria. What are the egress window requirements I need to be aware of?",
+      "Outline the steps and required inspections for converting a garage into a living space in Norfolk.",
+      "My client wants to install a solar panel system on their roof in Roanoke. What are the structural load considerations I should review?"
+    ]
+  }
+] 
