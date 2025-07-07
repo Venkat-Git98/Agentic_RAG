@@ -7,7 +7,7 @@ that provides detailed reasoning visibility for all agent decisions.
 
 import sys
 import os
-from typing import Dict, Any, List, Literal
+from typing import Dict, Any, List, Literal, Optional
 import logging
 from datetime import datetime
 import hashlib
@@ -36,6 +36,8 @@ from thinking_agents import (
 
 from thinking_logger import ThinkingLogger, ThinkingMode
 from config import redis_client
+from cognitive_flow_agent_wrapper import CognitiveFlowAgentWrapper
+from cognitive_flow import CognitiveFlowLogger
 
 class ThinkingAgenticWorkflow:
     """
@@ -45,7 +47,7 @@ class ThinkingAgenticWorkflow:
     processes while maintaining all the advanced features of the original system.
     """
     
-    def __init__(self, debug_mode: bool = True, thinking_mode: bool = True, thinking_detail_mode: ThinkingMode = ThinkingMode.SIMPLE):
+    def __init__(self, debug_mode: bool = True, thinking_mode: bool = True, thinking_detail_mode: ThinkingMode = ThinkingMode.SIMPLE, cognitive_flow_logger: Optional[CognitiveFlowLogger] = None):
         """
         Initialize the thinking-enhanced workflow.
         
@@ -53,12 +55,14 @@ class ThinkingAgenticWorkflow:
             debug_mode: Whether to enable debug logging
             thinking_mode: Whether to enable thinking process logging
             thinking_detail_mode: Simple or detailed thinking display mode
+            cognitive_flow_logger: Logger for streaming UI updates.
         """
         self.debug_mode = debug_mode
         self.thinking_mode = thinking_mode
         self.thinking_detail_mode = thinking_detail_mode
         self.logger = logging.getLogger("ThinkingAgenticWorkflow")
         self.conversation_manager = None
+        self.cognitive_flow_logger = cognitive_flow_logger
         
         # Initialize workflow thinking logger
         self.workflow_thinking = ThinkingLogger(
@@ -86,31 +90,24 @@ class ThinkingAgenticWorkflow:
             with self.workflow_thinking.thinking_block("Agent Initialization"):
                 self.workflow_thinking.craft("Initializing sophisticated agent ensemble...")
         
+        # This method is now effectively empty, as initialization is handled in _build_workflow_graph
+        pass
+    
+    def _build_workflow_graph(self) -> StateGraph:
+        """Build the workflow graph with thinking-enhanced agents."""
+        
         # Import Enhanced agents (preserving original functionality)
         from agents.planning_agent import EnhancedPlanningAgent
         from agents.research_orchestrator import EnhancedResearchOrchestrator
         from agents.synthesis_agent import EnhancedSynthesisAgent
         from agents.memory_agent import EnhancedMemoryAgent
-        
-        # Initialize core agents
-        self.triage_agent = TriageAgent()
-        self.planning_agent = EnhancedPlanningAgent()
-        self.research_agent = EnhancedResearchOrchestrator()
-        self.synthesis_agent = EnhancedSynthesisAgent()
-        self.memory_agent = EnhancedMemoryAgent()
-        self.error_handler = ErrorHandler()
-        
-        # Initialize thinking-enhanced agents with proper thinking mode
-        self.validation_agent = ThinkingValidationAgent(thinking_mode=self.thinking_detail_mode)
-        self.calculation_executor = ThinkingCalculationExecutor(thinking_mode=self.thinking_detail_mode)
-        self.placeholder_handler = ThinkingPlaceholderHandler(thinking_mode=self.thinking_detail_mode)
-        
-        if self.thinking_mode and self.workflow_thinking:
-            self.workflow_thinking.success("✅ All agents initialized successfully")
-            self.workflow_thinking.note("Enhanced agents: ValidationAgent, CalculationExecutor, PlaceholderHandler")
-    
-    def _build_workflow_graph(self) -> StateGraph:
-        """Build the workflow graph with thinking-enhanced agents."""
+        from agents.triage_agent import TriageAgent
+        from agents.error_handler import ErrorHandler
+        from thinking_agents import (
+            ThinkingValidationAgent,
+            ThinkingCalculationExecutor,
+            ThinkingPlaceholderHandler
+        )
         
         if self.thinking_mode and self.workflow_thinking:
             with self.workflow_thinking.thinking_block("Workflow Graph Construction"):
@@ -120,18 +117,18 @@ class ThinkingAgenticWorkflow:
         workflow = StateGraph(AgentState)
         
         # Add all agent nodes
-        workflow.add_node("triage", self.triage_agent)
-        workflow.add_node("planning", self.planning_agent)
-        workflow.add_node("research", self.research_agent)
+        workflow.add_node("triage", CognitiveFlowAgentWrapper(TriageAgent(), self.cognitive_flow_logger))
+        workflow.add_node("planning", CognitiveFlowAgentWrapper(EnhancedPlanningAgent(), self.cognitive_flow_logger))
+        workflow.add_node("research", CognitiveFlowAgentWrapper(EnhancedResearchOrchestrator(), self.cognitive_flow_logger))
         
         # Add thinking-enhanced nodes
-        workflow.add_node("validation", self.validation_agent)
-        workflow.add_node("calculation", self.calculation_executor)
-        workflow.add_node("placeholder", self.placeholder_handler)
+        workflow.add_node("validation", CognitiveFlowAgentWrapper(ThinkingValidationAgent(thinking_mode=self.thinking_detail_mode), self.cognitive_flow_logger))
+        workflow.add_node("calculation", CognitiveFlowAgentWrapper(ThinkingCalculationExecutor(thinking_mode=self.thinking_detail_mode), self.cognitive_flow_logger))
+        workflow.add_node("placeholder", CognitiveFlowAgentWrapper(ThinkingPlaceholderHandler(thinking_mode=self.thinking_detail_mode), self.cognitive_flow_logger))
         
-        workflow.add_node("synthesis", self.synthesis_agent)
-        workflow.add_node("memory_update", self.memory_agent)
-        workflow.add_node("error_handler", self.error_handler)
+        workflow.add_node("synthesis", CognitiveFlowAgentWrapper(EnhancedSynthesisAgent(), self.cognitive_flow_logger))
+        workflow.add_node("memory_update", CognitiveFlowAgentWrapper(EnhancedMemoryAgent(), self.cognitive_flow_logger))
+        workflow.add_node("error_handler", CognitiveFlowAgentWrapper(ErrorHandler(), self.cognitive_flow_logger))
         
         # Set entry point
         workflow.set_entry_point("triage")
@@ -643,9 +640,25 @@ class ThinkingAgenticWorkflow:
         return visualization
 
 # Factory functions for easy usage
-def create_thinking_agentic_workflow(debug: bool = True, thinking_mode: bool = True, thinking_detail_mode: ThinkingMode = ThinkingMode.SIMPLE) -> ThinkingAgenticWorkflow:
-    """Create a thinking-enhanced agentic workflow."""
-    return ThinkingAgenticWorkflow(debug_mode=debug, thinking_mode=thinking_mode, thinking_detail_mode=thinking_detail_mode)
+def create_thinking_agentic_workflow(debug: bool = True, thinking_mode: bool = True, thinking_detail_mode: ThinkingMode = ThinkingMode.SIMPLE, cognitive_flow_logger: Optional[CognitiveFlowLogger] = None) -> ThinkingAgenticWorkflow:
+    """
+    Factory function to create the thinking-enhanced agentic workflow.
+    
+    Args:
+        debug: Enable debug logging
+        thinking_mode: Enable thinking process logging
+        thinking_detail_mode: Simple or detailed thinking display mode
+        cognitive_flow_logger: Logger for streaming UI updates.
+        
+    Returns:
+        An instance of the ThinkingAgenticWorkflow.
+    """
+    return ThinkingAgenticWorkflow(
+        debug_mode=debug,
+        thinking_mode=thinking_mode,
+        thinking_detail_mode=thinking_detail_mode,
+        cognitive_flow_logger=cognitive_flow_logger
+    )
 
 async def run_thinking_agentic_query(
     user_query: str, 

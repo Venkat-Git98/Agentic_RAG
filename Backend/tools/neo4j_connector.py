@@ -711,5 +711,64 @@ class Neo4jConnector:
             })
         return context_blocks
 
+    @staticmethod
+    def get_knowledge_graph(query: str) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Fetches a knowledge graph based on a user's query string.
+
+        Args:
+            query: The user's query string.
+
+        Returns:
+            A dictionary containing the nodes and edges of the knowledge graph.
+        """
+        cypher_query = """
+        MATCH (n)
+        WHERE n.uid STARTS WITH $query
+        OPTIONAL MATCH (n)-[r]-(m)
+        RETURN n, r, m
+        """
+        parameters = {"query": query}
+        records = Neo4jConnector.execute_query(cypher_query, parameters)
+
+        nodes = []
+        edges = []
+        node_ids = set()
+
+        for record in records:
+            if record["n"] and record["n"]["uid"] not in node_ids:
+                node_ids.add(record["n"]["uid"])
+                nodes.append({
+                    "id": record["n"]["uid"],
+                    "type": list(record["n"].labels)[0],
+                    "position": {"x": 0, "y": 0},
+                    "data": {
+                        "label": record["n"]["title"] if "title" in record["n"] else record["n"]["uid"],
+                        "properties": dict(record["n"])
+                    }
+                })
+
+            if record["m"] and record["m"]["uid"] not in node_ids:
+                node_ids.add(record["m"]["uid"])
+                nodes.append({
+                    "id": record["m"]["uid"],
+                    "type": list(record["m"].labels)[0],
+                    "position": {"x": 0, "y": 0},
+                    "data": {
+                        "label": record["m"]["title"] if "title" in record["m"] else record["m"]["uid"],
+                        "properties": dict(record["m"])
+                    }
+                })
+
+            if record["r"]:
+                edges.append({
+                    "id": f'{record["r"].start_node["uid"]}-{record["r"].end_node["uid"]}',
+                    "source": record["r"].start_node["uid"],
+                    "target": record["r"].end_node["uid"],
+                    "label": type(record["r"]).__name__
+                })
+
+        return {"nodes": nodes, "edges": edges}
+
 # Ensure the driver is closed when the application exits.
 atexit.register(Neo4jConnector.close_driver) 

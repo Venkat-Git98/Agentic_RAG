@@ -27,6 +27,7 @@ logging.basicConfig(
 from conversation_manager import ConversationManager
 from thinking_workflow import create_thinking_agentic_workflow, run_thinking_agentic_query
 from thinking_logger import ThinkingMode
+from cognitive_flow import CognitiveFlowLogger
 
 # --- Static User Identity ---
 # This static ID ensures that the same conversation history is used across sessions.
@@ -54,14 +55,13 @@ class LangGraphAgenticAI:
         self.debug = debug
         self.thinking_mode = ThinkingMode.DETAILED if detailed_thinking else ThinkingMode.SIMPLE
         
-        # Initialize the thinking workflow (this is the default now)
-        # The workflow itself is stateless and can be reused.
-        self.workflow = create_thinking_agentic_workflow(debug=debug, thinking_mode=True, thinking_detail_mode=self.thinking_mode)
+        # The workflow is no longer created here.
+        self.workflow = None
         
         mode_desc = "detailed" if detailed_thinking else "simple"
         logger.info(f"🧠 LangGraph Agentic AI with Thinking initialized (debug={debug}, mode={mode_desc})")
     
-    async def query(self, user_query: str, thread_id: str) -> str:
+    async def query(self, user_query: str, thread_id: str, cognitive_flow_logger: Optional[CognitiveFlowLogger] = None) -> str:
         """
         Process a single query through the agentic workflow.
         
@@ -71,6 +71,7 @@ class LangGraphAgenticAI:
         Args:
             user_query: The user's question
             thread_id: The unique thread ID for conversation continuity
+            cognitive_flow_logger: Logger for streaming UI updates
             
         Returns:
             The AI's response
@@ -81,8 +82,16 @@ class LangGraphAgenticAI:
         conversation_manager = ConversationManager(thread_id)
         context_payload = conversation_manager.get_contextual_payload()
         
+        # Create a new workflow for each query, with the logger.
+        workflow = create_thinking_agentic_workflow(
+            debug=self.debug,
+            thinking_mode=True,
+            thinking_detail_mode=self.thinking_mode,
+            cognitive_flow_logger=cognitive_flow_logger
+        )
+        
         # Run through the workflow
-        result = await self.workflow.run(
+        result = await workflow.run(
             user_query=user_query,
             context_payload=context_payload,
             conversation_manager=conversation_manager,
@@ -140,7 +149,11 @@ class LangGraphAgenticAI:
                 
                 # Process the query using the interactive session's thread ID
                 print("\n🤔 Processing...", end="", flush=True)
-                response = await self.query(user_input, interactive_thread_id)
+                response = await self.query(
+                    user_input, 
+                    interactive_thread_id,
+                    cognitive_flow_logger=CognitiveFlowLogger(interactive_cognitive_queue)
+                )
                 print("\r" + " "*15 + "\r", end="")  # Clear processing message
                 
                 # Display response
@@ -263,41 +276,35 @@ Examples:
         sys.exit(1)
 
 # Simple function for direct integration with thinking
-async def ask_langgraph_ai(question: str, debug: bool = False) -> str:
-    """
-    Simple function for asking a question to the LangGraph AI system with thinking.
-    
-    Args:
-        question: The question to ask
-        debug: Whether to enable debug mode
-        
-    Returns:
-        The AI's response
-    """
-    return await run_thinking_agentic_query(
-        user_query=question,
-        debug=debug,
-        thinking_mode=True
-    )
+async def ask_langgraph_ai(question: str, debug: bool = False, cognitive_flow_logger: Optional[CognitiveFlowLogger] = None) -> str:
+    """Run a single query through the LangGraph Agentic AI."""
+    ai_system = LangGraphAgenticAI(debug=debug)
+    return await ai_system.query(question, USER_THREAD_ID, cognitive_flow_logger)
 
 # Compatibility function with thinking capabilities
-async def langgraph_compatibility_wrapper(user_query: str, context_payload: str = "") -> str:
+async def langgraph_compatibility_wrapper(user_query: str, context_payload: str = "", cognitive_flow_logger: Optional[CognitiveFlowLogger] = None) -> str:
     """
-    Compatibility wrapper with thinking capabilities.
+    Simplified wrapper to maintain compatibility with older calls.
     
     Args:
-        user_query: The user's question
-        context_payload: Context from conversation manager
+        user_query: The user's question.
+        context_payload: The contextual payload (not used in this simplified version).
+        cognitive_flow_logger: Logger for streaming UI updates.
         
     Returns:
-        The AI's response
+        The AI's response as a string.
     """
-    return await run_thinking_agentic_query(
+    # For simplicity, we create a new AI instance for each call.
+    # In a real application, you might manage this differently.
+    ai_system = LangGraphAgenticAI(debug=True) 
+    
+    # Use the static thread ID for this compatibility wrapper
+    response = await ai_system.query(
         user_query=user_query,
-        context_payload=context_payload,
-        debug=False,
-        thinking_mode=True
+        thread_id=USER_THREAD_ID,
+        cognitive_flow_logger=cognitive_flow_logger
     )
+    return response
 
 if __name__ == "__main__":
     asyncio.run(main()) 

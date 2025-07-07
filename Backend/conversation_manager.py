@@ -205,14 +205,23 @@ Here is the context for the current query:
             cleaned_response = response.text.strip().lstrip("```json").rstrip("```").strip()
             
             # Harden the JSON parsing to prevent crashes
-            try:
-                self.structured_memory = StructuredMemory.model_validate_json(cleaned_response)
-                logging.info("Structured memory updated successfully.")
-            except Exception as json_error:
-                logging.error(f"Failed to parse structured memory JSON. Error: {json_error}")
-                logging.debug(f"Malformed JSON received for memory update:\n{cleaned_response}")
-                # Do not proceed with the rest of the memory update if parsing fails
-                return
+            for attempt in range(3):
+                try:
+                    self.structured_memory = StructuredMemory.model_validate_json(cleaned_response)
+                    logging.info("Structured memory updated successfully.")
+                    break  # Exit the loop if parsing is successful
+                except Exception as json_error:
+                    logging.warning(f"Attempt {attempt + 1}: Failed to parse structured memory JSON. Error: {json_error}")
+                    # Attempt to fix the JSON by finding the start and end of the JSON object
+                    start_index = cleaned_response.find('{')
+                    end_index = cleaned_response.rfind('}')
+                    if start_index != -1 and end_index != -1:
+                        cleaned_response = cleaned_response[start_index:end_index+1]
+                    if attempt == 2:
+                        logging.error("Failed to parse structured memory JSON after 3 attempts.")
+                        logging.debug(f"Malformed JSON received for memory update:\n{cleaned_response}")
+                        # Do not proceed with the rest of the memory update if parsing fails
+                        return
 
         except Exception as e:
             logging.error(f"Failed to update structured memory. Error: {e}")

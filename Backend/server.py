@@ -12,7 +12,7 @@ from typing import Dict, Any, AsyncGenerator
 from datetime import datetime
 import json
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -20,6 +20,7 @@ from pydantic import BaseModel
 # --- Local Imports ---
 # Import the main AI class
 from main import LangGraphAgenticAI
+from knowledge_graph import get_knowledge_graph_service
 
 # --- Pydantic Models for API ---
 
@@ -173,6 +174,22 @@ async def query_endpoint(request: QueryRequest):
         stream_logs_and_query(request.user_query, request.thread_id),
         media_type="text/event-stream"
     )
+
+@app.get("/api/knowledge-graph", summary="Get knowledge graph data")
+async def get_knowledge_graph_endpoint(query: str):
+    """
+    Accepts a user query and returns the corresponding knowledge graph data.
+    """
+    try:
+        graph_data = get_knowledge_graph_service(query)
+        if not graph_data["nodes"]:
+            raise HTTPException(status_code=404, detail="No data found for the specified query.")
+        return graph_data
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logging.error(f"Error getting knowledge graph: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 if __name__ == "__main__":
     import uvicorn
