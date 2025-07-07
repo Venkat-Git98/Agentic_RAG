@@ -27,6 +27,7 @@ from tools.keyword_retrieval_tool import KeywordRetrievalTool
 from tools.reranker import Reranker
 from config import USE_RERANKER, redis_client
 from prompts import RE_PLANNING_PROMPT
+from agents.retrieval_strategy_agent import RetrievalStrategyAgent
 
 class ResearchOrchestrator(BaseLangGraphAgent):
     """
@@ -80,7 +81,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
         
         if not research_plan:
             self.logger.error("No research plan provided to research orchestrator")
-            return {"sub_answers": []} # Return empty list to avoid crash
+            return {"sub_answers": []}
         
         self.logger.info(f"Executing research for {len(research_plan)} sub-queries.")
 
@@ -111,9 +112,27 @@ class ResearchOrchestrator(BaseLangGraphAgent):
         
         newly_generated_answers = []
         if queries_to_run:
-            # Use the simplified, strategy-driven research tool
-            research_results = await self.research_tool._run_async_logic(queries_to_run, original_query)
-            newly_generated_answers = research_results.get("sub_answers", [])
+            initial_research_results = await self.research_tool._run_async_logic(queries_to_run, original_query)
+            
+            # --- BEGIN CRITICAL FIX: Robust Fallback Logic ---
+            final_research_results = []
+            for i, result in enumerate(initial_research_results.get("sub_answers", [])):
+                sub_query = result.get('sub_query', queries_to_run[i].get('sub_query', ''))
+                answer = result.get('answer', '')
+
+                if not answer or "No information was found" in answer:
+                    await self._handle_insufficient_context(sub_query)
+                    
+                    self.logger.info(f"Executing web search fallback for: '{sub_query[:80]}...'")
+                    web_search_result = self.web_search_tool(query=sub_query)
+                    
+                    web_search_result['sub_query'] = sub_query
+                    final_research_results.append(web_search_result)
+                else:
+                    final_research_results.append(result)
+            
+            newly_generated_answers = final_research_results
+            # --- END CRITICAL FIX ---
 
             # --- Save new results to Sub-Query Cache ---
             if redis_client:
@@ -133,7 +152,6 @@ class ResearchOrchestrator(BaseLangGraphAgent):
         
         self.logger.info(f"Research completed: {len(final_answers)} sub-answers generated")
         
-        # CRITICAL FIX: Restore metadata and quality score calculations with robust defaults.
         metadata = self._extract_research_metadata(final_answers)
         quality_scores = self._calculate_quality_scores(final_answers)
         
@@ -309,40 +327,12 @@ class ResearchOrchestrator(BaseLangGraphAgent):
         
         return updated_state
 
-    async def _handle_insufficient_context(self, sub_query: str, original_query: str) -> Dict[str, Any]:
+    async def _handle_insufficient_context(self, sub_query: str) -> None:
         """
-        Handles cases where initial context is insufficient by re-planning.
+        Logs that a fallback is needed. The actual fallback logic is now
+        handled directly in the execute method for robustness.
         """
-        self.logger.warning(f"Initial context for sub-query '{sub_query[:100]}...' was insufficient. Initiating re-planning.")
-        
-        prompt = RE_PLANNING_PROMPT.format(sub_query=sub_query, original_query=original_query)
-        
-        try:
-            response_text = await self.generate_content_async(prompt)
-            re_plan_data = json.loads(response_text)
-            
-            tool_to_use = re_plan_data.get("tool_to_use")
-            search_query = re_plan_data.get("search_query")
-            
-            self.logger.info(f"Re-planning decided to use '{tool_to_use}' with query: '{search_query}'")
-            
-            if tool_to_use == "keyword_retrieval":
-                return self.keyword_tool(query=search_query)
-            elif tool_to_use == "deep_graph_retrieval":
-                # Assuming a graph retrieval tool exists and is implemented
-                # This is a placeholder for the actual deep graph retrieval logic
-                self.logger.warning("Deep graph retrieval is not fully implemented yet.")
-                return {"answer": "Deep graph retrieval not implemented."}
-            elif tool_to_use == "web_search":
-                return self.web_search_tool(query=search_query)
-            else:
-                self.logger.error(f"Unknown tool recommended by re-planning: {tool_to_use}")
-                return {"answer": "Re-planning failed to select a valid tool."}
-                
-        except Exception as e:
-            self.logger.error(f"Error during re-planning: {e}", exc_info=True)
-            # As a final fallback, use web search
-            return self.web_search_tool(query=sub_query)
+        self.logger.warning(f"Initial context for sub-query '{sub_query[:100]}...' was insufficient. Triggering web_search fallback.")
 
 class EnhancedResearchOrchestrator(ResearchOrchestrator):
     """

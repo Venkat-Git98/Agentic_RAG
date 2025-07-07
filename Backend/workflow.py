@@ -11,6 +11,7 @@ import os
 from typing import Dict, Any, List, Literal
 import logging
 from datetime import datetime
+import re
 
 # Add parent directories to path for imports
 # LangGraph imports
@@ -85,6 +86,26 @@ class AgenticWorkflow:
         self.calculation_executor = ThinkingCalculationExecutor(thinking_mode=ThinkingMode.SIMPLE)
         self.placeholder_handler = ThinkingPlaceholderHandler(thinking_mode=ThinkingMode.SIMPLE)
     
+    def _summary_check(self, state: AgentState) -> str:
+        """
+        Checks if the user query is a summary request and routes accordingly.
+        This acts as a pre-router to handle this specific, problematic case.
+        """
+        user_query = state.get("user_query", "").lower()
+        if re.search(r'\b(summarize|summary of)\b', user_query) and "chapter" in user_query:
+            self.logger.info("Summary request detected, bypassing planner and routing directly to research.")
+            # This logic was flawed. It needs to create a research plan and pass it in the state.
+            chapter_match = re.search(r'chapter\s+(\d+)', user_query)
+            chapter_number = chapter_match.group(1) if chapter_match else "the specified chapter"
+            
+            research_plan = [
+                {"sub_query": f"Retrieve all subsections and content for Chapter {chapter_number} to create a summary."},
+                {"sub_query": f"Synthesize the retrieved subsections of Chapter {chapter_number} into a comprehensive summary."}
+            ]
+            state['research_plan'] = research_plan
+            return "research"
+        return "router"
+    
     def _build_workflow_graph(self) -> StateGraph:
         """
         Builds the LangGraph workflow graph with all nodes and edges.
@@ -96,6 +117,7 @@ class AgenticWorkflow:
         workflow = StateGraph(AgentState)
         
         # Add all agent nodes
+        workflow.add_node("summary_check", self._summary_check)
         workflow.add_node("router", self.router_agent)
         workflow.add_node("planning", self.planning_agent)
         workflow.add_node("research", self.research_agent)
@@ -110,7 +132,17 @@ class AgenticWorkflow:
         workflow.add_node("error_handler", self.error_handler)
         
         # Set entry point
-        workflow.set_entry_point("router")
+        workflow.set_entry_point("summary_check")
+        
+        # CORRECTED conditional edge
+        workflow.add_conditional_edges(
+            "summary_check",
+            self._summary_check,
+            {
+                "research": "research",
+                "router": "router"
+            }
+        )
         
         # Add conditional edges based on workflow logic
         workflow.add_conditional_edges(

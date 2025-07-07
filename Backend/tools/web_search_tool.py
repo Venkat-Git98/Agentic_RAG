@@ -2,6 +2,7 @@ import os
 from tavily import TavilyClient
 from react_agent.base_tool import BaseTool
 import logging
+from typing import Dict
 
 class TavilySearchTool(BaseTool):
     """
@@ -27,7 +28,7 @@ class TavilySearchTool(BaseTool):
             raise ValueError("TAVILY_API is not set in the environment.")
         self.client = TavilyClient(api_key=tavily_api_key)
 
-    def __call__(self, query: str) -> str:
+    def __call__(self, query: str) -> Dict[str, str]:
         """
         Executes the advanced search and formats the results.
 
@@ -35,10 +36,13 @@ class TavilySearchTool(BaseTool):
             query: The search query to execute.
 
         Returns:
-            A formatted string containing the search answer and top results.
+            A dictionary containing the search answer and the retrieval method.
         """
         if not query:
-            return "Error: The search query cannot be empty."
+            return {
+                "answer": "Error: The search query cannot be empty.",
+                "retrieval_method": "web_search_error"
+            }
 
         try:
             logging.info(f"Executing Tavily search for query: '{query}'")
@@ -60,12 +64,18 @@ class TavilySearchTool(BaseTool):
                 formatted_results += "No search results found."
             
             for result in results:
-                formatted_results += f"- Title: {result.get('title', 'N/A')}\n"
-                formatted_results += f"  URL: {result.get('url', 'N/A')}\n"
-                formatted_results += f"  Content: {result.get('content', 'N/A')}\n\n"
+                formatted_results += f"- Title: {result.get('title', 'N/A')}\\n"
+                formatted_results += f"  URL: {result.get('url', 'N/A')}\\n"
+                formatted_results += f"  Content: {result.get('content', 'N/A')}\\n\\n"
 
-            return formatted_results
+            return {
+                "answer": formatted_results,
+                "retrieval_method": "web_search"
+            }
 
         except Exception as e:
             logging.error(f"An error occurred during Tavily search: {e}")
-            return f"Error: Failed to execute search due to: {e}" 
+            return {
+                "answer": f"Error: Failed to execute search due to: {e}",
+                "retrieval_method": "web_search_error"
+            }
