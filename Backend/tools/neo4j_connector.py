@@ -715,18 +715,16 @@ class Neo4jConnector:
     def get_knowledge_graph(query: str) -> Dict[str, List[Dict[str, Any]]]:
         """
         Fetches a knowledge graph based on a user's query string.
-
-        Args:
-            query: The user's query string.
-
-        Returns:
-            A dictionary containing the nodes and edges of the knowledge graph.
+        This method now uses a more robust query to gather all nodes and edges.
         """
         cypher_query = """
         MATCH (n)
         WHERE n.uid STARTS WITH $query
+        WITH COLLECT(n) AS nodes
+        UNWIND nodes AS n
         OPTIONAL MATCH (n)-[r]-(m)
-        RETURN n, r, m
+        WHERE m IN nodes
+        RETURN n, COLLECT(r) AS relationships
         """
         parameters = {"query": query}
         records = Neo4jConnector.execute_query(cypher_query, parameters)
@@ -734,39 +732,31 @@ class Neo4jConnector:
         nodes = []
         edges = []
         node_ids = set()
+        edge_ids = set()
 
         for record in records:
-            if record["n"] and record["n"]["uid"] not in node_ids:
-                node_ids.add(record["n"]["uid"])
+            node_n = record["n"]
+            if node_n and node_n["uid"] not in node_ids:
+                node_ids.add(node_n["uid"])
                 nodes.append({
-                    "id": record["n"]["uid"],
-                    "type": list(record["n"].labels)[0],
+                    "id": node_n["uid"],
+                    "type": list(node_n.labels)[0],
                     "position": {"x": 0, "y": 0},
                     "data": {
-                        "label": record["n"]["title"] if "title" in record["n"] else record["n"]["uid"],
-                        "properties": dict(record["n"])
+                        "label": node_n["title"] if "title" in node_n else node_n["uid"],
+                        "properties": dict(node_n)
                     }
                 })
 
-            if record["m"] and record["m"]["uid"] not in node_ids:
-                node_ids.add(record["m"]["uid"])
-                nodes.append({
-                    "id": record["m"]["uid"],
-                    "type": list(record["m"].labels)[0],
-                    "position": {"x": 0, "y": 0},
-                    "data": {
-                        "label": record["m"]["title"] if "title" in record["m"] else record["m"]["uid"],
-                        "properties": dict(record["m"])
-                    }
-                })
-
-            if record["r"]:
-                edges.append({
-                    "id": f'{record["r"].start_node["uid"]}-{record["r"].end_node["uid"]}',
-                    "source": record["r"].start_node["uid"],
-                    "target": record["r"].end_node["uid"],
-                    "label": type(record["r"]).__name__
-                })
+            for rel in record["relationships"]:
+                if rel and rel.element_id not in edge_ids:
+                    edge_ids.add(rel.element_id)
+                    edges.append({
+                        "id": rel.element_id,
+                        "source": rel.start_node["uid"],
+                        "target": rel.end_node["uid"],
+                        "label": rel.type
+                    })
 
         return {"nodes": nodes, "edges": edges}
 
