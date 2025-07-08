@@ -16,11 +16,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+import redis
 
 # --- Local Imports ---
 # Import the main AI class
 from main import LangGraphAgenticAI
 from knowledge_graph import get_knowledge_graph_service
+from config import REDIS_URL
 
 # --- Pydantic Models for API ---
 
@@ -51,6 +53,7 @@ class QueueHandler(logging.Handler):
 # This dictionary will hold the AI system instance.
 # It's a simple way to manage the singleton instance.
 ai_system_instance: Dict[str, LangGraphAgenticAI] = {}
+redis_client_instance: Dict[str, redis.Redis] = {}
 
 # --- FastAPI Application Setup ---
 
@@ -58,17 +61,38 @@ ai_system_instance: Dict[str, LangGraphAgenticAI] = {}
 async def lifespan(app: FastAPI):
     """
     Handles startup and shutdown events for the FastAPI application.
-    This is where the AI system is initialized.
+    This is where the AI system and other resources are initialized.
     """
     print("Server starting up...")
-    # Initialize the AI system on startup and store it in the singleton
-    ai_system_instance["instance"] = LangGraphAgenticAI(debug=True, detailed_thinking=True)
+    # Initialize Redis client
+    try:
+        redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+        redis_client.ping()
+        redis_client_instance["instance"] = redis_client
+        print("Successfully connected to Redis.")
+    except redis.exceptions.ConnectionError as e:
+        print(f"FATAL: Could not connect to Redis: {e}")
+        # In a real-world scenario, you might want to exit the app if Redis is critical
+        redis_client_instance["instance"] = None
+    
+    # Initialize the AI system on startup, now with the Redis client
+    ai_system_instance["instance"] = LangGraphAgenticAI(
+        redis_client=redis_client_instance.get("instance"),
+        debug=True, 
+        detailed_thinking=True
+    )
     print("AI System Initialized.")
     yield
     # Placeholder for cleanup
     print("Server shutting down...")
     ai_system_instance.clear()
     print("AI System shut down.")
+    
+    # Close Redis connection
+    if redis_client_instance.get("instance"):
+        redis_client_instance["instance"].close()
+        print("Redis connection closed.")
+    redis_client_instance.clear()
 
 app = FastAPI(
     title="LangGraph Agentic AI Server",
@@ -161,6 +185,11 @@ async def read_root():
     """Health check endpoint to ensure the server is running."""
     return {"status": "ok", "message": "Welcome to the Agentic AI Server!"}
 
+class ChatRequest(BaseModel):
+    """Request model for a chat message."""
+    message: str
+    thread_id: str
+
 @app.post("/query", summary="Process a query and stream logs")
 async def query_endpoint(request: QueryRequest):
     """
@@ -174,6 +203,31 @@ async def query_endpoint(request: QueryRequest):
         stream_logs_and_query(request.user_query, request.thread_id),
         media_type="text/event-stream"
     )
+
+@app.post("/chat", summary="Process a chat message")
+async def chat_endpoint(request: ChatRequest):
+    """
+    Accepts a chat message and thread_id, processes it through the AI system,
+    and returns the response directly (non-streaming version).
+    """
+    ai_system = ai_system_instance.get("instance")
+    if not ai_system:
+        raise HTTPException(status_code=503, detail="AI system not initialized.")
+    
+    try:
+        # Process the chat message
+        response = await ai_system.query(user_query=request.message, thread_id=request.thread_id)
+        
+        return {
+            "success": True,
+            "message": "Message processed successfully",
+            "thread_id": request.thread_id,
+            "response": response
+        }
+        
+    except Exception as e:
+        logging.error(f"Error processing chat message: {e}")
+        raise HTTPException(status_code=500, detail=f"Error processing message: {str(e)}")
 
 @app.get("/api/knowledge-graph", summary="Get knowledge graph data")
 async def get_knowledge_graph_endpoint(query: str):
@@ -190,6 +244,67 @@ async def get_knowledge_graph_endpoint(query: str):
     except Exception as e:
         logging.error(f"Error getting knowledge graph: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/history", summary="Get chat history for a user")
+async def get_history(userId: str):
+    """
+    Retrieves the chat history for a specific user from Redis.
+    Falls back to file-based storage if Redis is unavailable.
+    The `userId` corresponds to the `thread_id` used in the query endpoint.
+    """
+    redis_client = redis_client_instance.get("instance")
+    
+    # Try Redis first if available
+    if redis_client:
+        try:
+            # The history is stored as a Redis list. LRANGE fetches all items.
+            history_json = redis_client.lrange(userId, 0, -1)
+            
+            if history_json:
+                # The items stored in Redis are JSON strings, so they must be parsed.
+                history = [json.loads(item) for item in history_json]
+                return {
+                    "success": True,
+                    "message": f"Retrieved {len(history)} messages from Redis",
+                    "user_id": userId,
+                    "message_count": len(history),
+                    "data": history
+                }
+            
+        except Exception as e:
+            logging.error(f"Error fetching history from Redis for userId '{userId}': {e}")
+    
+    # Fallback to file-based storage
+    try:
+        import os
+        data_file = f"data/{userId}.json"
+        
+        if os.path.exists(data_file):
+            with open(data_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            history = data.get('full_history', [])
+            return {
+                "success": True,
+                "message": f"Retrieved {len(history)} messages from file storage",
+                "user_id": userId,
+                "message_count": len(history),
+                "data": history,
+                "source": "file"
+            }
+        
+        # No data found anywhere
+        return {
+            "success": False,
+            "message": f"No chat history found for user {userId}",
+            "user_id": userId,
+            "message_count": 0,
+            "data": []
+        }
+        
+    except Exception as e:
+        logging.error(f"Error fetching history from file for userId '{userId}': {e}")
+        raise HTTPException(status_code=500, detail="Could not retrieve chat history.")
 
 if __name__ == "__main__":
     import uvicorn

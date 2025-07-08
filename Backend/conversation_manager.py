@@ -12,6 +12,8 @@ import os
 from typing import List, Dict, Any, Literal
 import google.generativeai as genai
 from pydantic import BaseModel, Field
+import redis
+from uuid import uuid4
 
 # Imports are now relative to the project root
 from config import MEMORY_ANALYSIS_MODEL, GOOGLE_API_KEY, CONVERSATION_STATE_FILE
@@ -43,19 +45,21 @@ class ConversationManager:
     """
     Manages the state of a conversation with a user, providing context for the agents.
     """
-    def __init__(self, conversation_id: str, history_prune_threshold: int = 10, window_size: int = 4):
+    def __init__(self, conversation_id: str, redis_client: redis.Redis, history_prune_threshold: int = 10, window_size: int = 4):
         """
         Initializes the ConversationManager, loading state from disk if available.
         
         Args:
             conversation_id: A unique identifier for the conversation. This is used
                              to create a unique filename for storing the state.
+            redis_client: An active client for connecting to Redis.
             history_prune_threshold: The number of messages after which to trigger
                                      a memory consolidation.
             window_size: The number of recent user/assistant turns to keep in the
                          immediate context window.
         """
         self.conversation_id = conversation_id
+        self.redis_client = redis_client
         # Construct a unique file path for this conversation's state
         self.state_file_path = os.path.join(os.path.dirname(CONVERSATION_STATE_FILE), f"{self.conversation_id}.json")
         self.history_prune_threshold = history_prune_threshold
@@ -89,8 +93,21 @@ class ConversationManager:
         """
         Adds a new message to the conversation history and triggers memory updates if needed.
         """
-        self.full_history.append({"role": role, "content": content})
+        message = {
+            "id": str(uuid4()),
+            "role": role, 
+            "content": content
+        }
+        self.full_history.append(message)
         
+        # Also push the message to Redis for the frontend history
+        if self.redis_client:
+            try:
+                self.redis_client.rpush(self.conversation_id, json.dumps(message))
+                logging.info(f"Message for conversation '{self.conversation_id}' saved to Redis.")
+            except redis.exceptions.RedisError as e:
+                logging.error(f"Failed to save message to Redis for conversation '{self.conversation_id}': {e}")
+
         if len(self.full_history) > self.history_prune_threshold:
             logging.info("History prune threshold reached. Updating memory...")
             self._update_memory()

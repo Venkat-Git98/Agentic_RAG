@@ -28,6 +28,7 @@ from conversation_manager import ConversationManager
 from thinking_workflow import create_thinking_agentic_workflow, run_thinking_agentic_query
 from thinking_logger import ThinkingMode
 from cognitive_flow import CognitiveFlowLogger
+import redis
 
 # --- Static User Identity ---
 # This static ID ensures that the same conversation history is used across sessions.
@@ -44,14 +45,16 @@ class LangGraphAgenticAI:
     its reasoning process while working through problems.
     """
     
-    def __init__(self, debug: bool = False, detailed_thinking: bool = False):
+    def __init__(self, redis_client: redis.Redis, debug: bool = False, detailed_thinking: bool = False):
         """
         Initialize the LangGraph Agentic AI system with thinking capabilities.
         
         Args:
+            redis_client: An active client for connecting to Redis.
             debug: Whether to enable debug mode
             detailed_thinking: Whether to use detailed thinking mode
         """
+        self.redis_client = redis_client
         self.debug = debug
         self.thinking_mode = ThinkingMode.DETAILED if detailed_thinking else ThinkingMode.SIMPLE
         
@@ -79,7 +82,7 @@ class LangGraphAgenticAI:
         logger.info(f"🧠 Processing query for thread '{thread_id}': {user_query[:100]}...")
         
         # Create a ConversationManager for this specific thread
-        conversation_manager = ConversationManager(thread_id)
+        conversation_manager = ConversationManager(thread_id, self.redis_client)
         context_payload = conversation_manager.get_contextual_payload()
         
         # Create a new workflow for each query, with the logger.
@@ -99,6 +102,12 @@ class LangGraphAgenticAI:
         )
         
         response = result["response"]
+        
+        # --- Save the final interaction to history ---
+        # This ensures that every turn is saved, regardless of the agentic path taken.
+        logger.info(f"Attempting to save history for thread '{thread_id}'. Redis client is: {'present' if conversation_manager.redis_client else 'None'}")
+        conversation_manager.add_user_message(user_query)
+        conversation_manager.add_assistant_message(response)
         
         # Log execution summary if in debug mode
         if self.debug:
@@ -122,7 +131,7 @@ class LangGraphAgenticAI:
         
         # For interactive CLI mode, we use the static user ID to maintain a single conversation.
         interactive_thread_id = USER_THREAD_ID
-        conversation_manager = ConversationManager(interactive_thread_id)
+        conversation_manager = ConversationManager(interactive_thread_id, self.redis_client)
         
         while True:
             try:
@@ -243,8 +252,24 @@ Examples:
     
     args = parser.parse_args()
     
+    # This part of the script is for CLI usage and won't have the server's redis client.
+    # We create a new one for standalone script execution.
+    cli_redis_client = None
+    if args.interactive or args.query:
+        from config import REDIS_URL
+        try:
+            cli_redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+            cli_redis_client.ping()
+        except redis.exceptions.ConnectionError as e:
+            logger.error(f"Could not connect to Redis for CLI mode. History will not be saved. Error: {e}")
+            # The app can continue without Redis in CLI mode.
+
     # Initialize the system
-    ai_system = LangGraphAgenticAI(debug=args.debug, detailed_thinking=args.detailed)
+    ai_system = LangGraphAgenticAI(
+        redis_client=cli_redis_client,
+        debug=args.debug, 
+        detailed_thinking=args.detailed
+    )
     
     try:
         if args.interactive:
