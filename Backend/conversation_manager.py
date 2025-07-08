@@ -47,11 +47,10 @@ class ConversationManager:
     """
     def __init__(self, conversation_id: str, redis_client: redis.Redis, history_prune_threshold: int = 10, window_size: int = 4):
         """
-        Initializes the ConversationManager, loading state from disk if available.
+        Initializes the ConversationManager, loading state from Redis as the primary source of truth.
         
         Args:
-            conversation_id: A unique identifier for the conversation. This is used
-                             to create a unique filename for storing the state.
+            conversation_id: A unique identifier for the conversation.
             redis_client: An active client for connecting to Redis.
             history_prune_threshold: The number of messages after which to trigger
                                      a memory consolidation.
@@ -60,7 +59,7 @@ class ConversationManager:
         """
         self.conversation_id = conversation_id
         self.redis_client = redis_client
-        # Construct a unique file path for this conversation's state
+        # Construct a unique file path for this conversation's state (used for backup)
         self.state_file_path = os.path.join(os.path.dirname(CONVERSATION_STATE_FILE), f"{self.conversation_id}.json")
         self.history_prune_threshold = history_prune_threshold
         self.window_size = window_size
@@ -70,8 +69,8 @@ class ConversationManager:
         self.structured_memory = StructuredMemory()
         self.running_summary = "No summary has been generated yet."
         
-        # Load state from disk if it exists
-        self._load_state_from_disk()
+        # Load the entire conversation state from Redis.
+        self._load_state_from_redis()
         
         # Initialize the generative model for memory analysis
         try:
@@ -100,20 +99,14 @@ class ConversationManager:
         }
         self.full_history.append(message)
         
-        # Also push the message to Redis for the frontend history
-        if self.redis_client:
-            try:
-                self.redis_client.rpush(self.conversation_id, json.dumps(message))
-                logging.info(f"Message for conversation '{self.conversation_id}' saved to Redis.")
-            except redis.exceptions.RedisError as e:
-                logging.error(f"Failed to save message to Redis for conversation '{self.conversation_id}': {e}")
+        # Memory and state are managed together. Defer saving until after potential memory update.
 
         if len(self.full_history) > self.history_prune_threshold:
             logging.info("History prune threshold reached. Updating memory...")
             self._update_memory()
         
-        # Persist the latest state to disk after every message
-        self._save_state_to_disk()
+        # Persist the latest state to Redis and disk after every message or memory update.
+        self._save_state()
 
     def get_formatted_history(self) -> str:
         """
@@ -151,6 +144,38 @@ Here is the context for the current query:
 """
         return payload
 
+    def _save_state(self):
+        """Saves the current full conversation state to Redis and a backup JSON file."""
+        # --- Save to Redis ---
+        if self.redis_client:
+            try:
+                # Use a pipeline for transactional integrity
+                pipe = self.redis_client.pipeline()
+
+                # 1. Save dialogue history (overwrite the whole list for consistency)
+                history_key = self.conversation_id
+                pipe.delete(history_key)
+                if self.full_history:
+                    pipe.rpush(history_key, *[json.dumps(msg) for msg in self.full_history])
+
+                # 2. Save memory and summary state in a separate hash
+                state_key = f"{self.conversation_id}:state"
+                state_to_save = {
+                    "structured_memory": self.structured_memory.model_dump_json(),
+                    "running_summary": self.running_summary
+                }
+                pipe.hset(state_key, mapping=state_to_save)
+                
+                # Execute the transaction
+                pipe.execute()
+                logging.info(f"Full conversation state for '{self.conversation_id}' successfully saved to Redis.")
+
+            except redis.exceptions.RedisError as e:
+                logging.error(f"Failed to save full state to Redis for conversation '{self.conversation_id}': {e}")
+        
+        # --- Save to disk as a backup ---
+        self._save_state_to_disk()
+
     def _save_state_to_disk(self):
         """Saves the current conversation state to a JSON file."""
         try:
@@ -169,25 +194,43 @@ Here is the context for the current query:
         except Exception as e:
             logging.error(f"Failed to save conversation state: {e}")
 
-    def _load_state_from_disk(self):
-        """Loads conversation state from a JSON file if it exists."""
-        if not os.path.exists(self.state_file_path):
-            logging.info("No saved state file found. Starting a new conversation.")
+    def _load_state_from_redis(self):
+        """
+        Loads the complete conversation state (history, memory, summary) from Redis.
+        """
+        if not self.redis_client:
+            logging.warning("Redis client not available. Cannot load state.")
             return
-        
+
         try:
-            with open(self.state_file_path, 'r', encoding='utf-8') as f:
-                loaded_state = json.load(f)
+            # Load the dialogue history from a Redis List
+            history_key = self.conversation_id
+            history_json = self.redis_client.lrange(history_key, 0, -1)
             
-            self.full_history = loaded_state.get("full_history", [])
-            # Load structured memory safely using Pydantic's model_validate
-            self.structured_memory = StructuredMemory.model_validate(loaded_state.get("structured_memory", {}))
-            self.running_summary = loaded_state.get("running_summary", "No summary found.")
-            
-            logging.info(f"Conversation state successfully loaded from {self.state_file_path}")
-        except (json.JSONDecodeError, FileNotFoundError) as e:
-            logging.error(f"Failed to load conversation state: {e}. Starting fresh.")
-            # Reset to default state in case of corruption
+            loaded_messages = []
+            if history_json:
+                for item in history_json:
+                    try:
+                        loaded_messages.append(json.loads(item))
+                    except json.JSONDecodeError:
+                        logging.error(f"Failed to decode message from Redis for '{history_key}': {item}")
+                self.full_history = loaded_messages
+                logging.info(f"Successfully loaded {len(self.full_history)} messages from Redis for '{self.conversation_id}'.")
+
+            # Load the structured memory and summary from a Redis Hash
+            state_key = f"{self.conversation_id}:state"
+            state_data = self.redis_client.hgetall(state_key)
+
+            if state_data:
+                if 'structured_memory' in state_data:
+                    self.structured_memory = StructuredMemory.model_validate_json(state_data['structured_memory'])
+                if 'running_summary' in state_data:
+                    self.running_summary = state_data['running_summary']
+                logging.info(f"Successfully loaded memory and summary from Redis for '{self.conversation_id}'.")
+
+        except redis.exceptions.RedisError as e:
+            logging.error(f"Failed to load full state from Redis for '{self.conversation_id}': {e}")
+            # Reset to default state in case of Redis failure
             self.full_history = []
             self.structured_memory = StructuredMemory()
             self.running_summary = "No summary has been generated yet."
@@ -256,6 +299,9 @@ Here is the context for the current query:
             logging.info("Narrative summary regenerated successfully.")
         except Exception as e:
             logging.error(f"Failed to regenerate narrative summary. Error: {e}")
+
+        # The state will be saved by the calling method (add_message) after this completes.
+        # No need for an explicit save call here.
 
         # --- Step 3: Prune the full history log ---
         # We've processed the old messages, so we can now discard them from the main log,

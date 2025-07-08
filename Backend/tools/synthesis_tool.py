@@ -23,7 +23,7 @@ class SynthesisTool(BaseTool):
             "Takes the original user query and a list of sub-query answers to generate a "
             "comprehensive, well-structured, and cited final answer. Use this as the "
             "last step before calling the 'finish' tool. "
-            "Input: {'query': 'The original user query.', 'sub_answers': [ ... ]}"
+            "Input: {'original_query': 'The query that started the research.', 'current_query': 'The user's most recent follow-up question.', 'sub_answers': [ ... ]}"
         )
 
     def _format_sub_answers_for_prompt(self, sub_answers: List[Dict[str, Any]]) -> str:
@@ -39,18 +39,22 @@ class SynthesisTool(BaseTool):
             formatted_string += f"{answer}\n\n"
         return formatted_string
 
-    def __call__(self, query: str, sub_answers: List[Dict[str, Any]]) -> dict:
+    def __call__(self, original_query: str, current_query: str, sub_answers: List[Dict[str, Any]]) -> dict:
         """
         Executes the synthesis logic.
         """
-        logging.info(f"Executing Synthesis Tool. Processing {len(sub_answers)} sub-answers.")
+        logging.info(f"Executing Synthesis Tool. Processing {len(sub_answers)} sub-answers for query: '{original_query}'")
         try:
             model = genai.GenerativeModel(TIER_1_MODEL_NAME)
             
             # Use a helper to format the sub-answers to be more readable for the LLM
             sub_answers_str = self._format_sub_answers_for_prompt(sub_answers)
 
-            prompt = SYNTHESIS_PROMPT.format(user_query=query, sub_answers_text=sub_answers_str)
+            prompt = SYNTHESIS_PROMPT.format(
+                original_user_query=original_query,
+                current_user_query=current_query,
+                sub_answers_text=sub_answers_str
+            )
             
             response = model.generate_content(prompt)
             final_answer = response.text.strip()

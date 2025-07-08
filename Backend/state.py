@@ -52,10 +52,10 @@ class AgentState(TypedDict):
     while being compatible with LangGraph's state management system.
     """
     
-    # === Core Input State ===
-    user_query: str
-    context_payload: str
-    original_query: str  # Preserved for context
+    # === Core Inputs ===
+    user_query: str  # The current query from the user
+    context_payload: str  # Context from the conversation manager
+    original_query: Optional[str] # The query that initiated the current agentic workflow
     # conversation_manager: Optional[object]  # Removed - not serializable for LangGraph
     
     # === Workflow Control ===
@@ -64,7 +64,7 @@ class AgentState(TypedDict):
     retry_count: int
     max_retries: int
     
-    # === Triage Agent Results ===
+    # === Triage Results ===
     triage_classification: Optional[Literal["engage", "direct_retrieval", "clarify", "reject"]]
     triage_reasoning: Optional[str]
     triage_confidence: Optional[float]
@@ -161,7 +161,7 @@ def create_initial_state(
         # Core inputs
         user_query=user_query,
         context_payload=context_payload,
-        original_query=user_query,
+        original_query=user_query, # At the start, user_query is the original_query
         # conversation_manager=conversation_manager,  # Removed - not serializable
         
         # Workflow control

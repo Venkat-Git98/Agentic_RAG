@@ -49,6 +49,9 @@ class SynthesisAgent(BaseLangGraphAgent):
             Dictionary containing synthesis results
         """
         user_query = state["user_query"]
+        # Use the original_query if available, otherwise fall back to the current user_query.
+        # This is crucial for contextual understanding in conversational follow-ups.
+        original_query = state.get("original_query", user_query)
         sub_query_answers = state.get("sub_query_answers", [])
         
         if not sub_query_answers:
@@ -64,11 +67,11 @@ class SynthesisAgent(BaseLangGraphAgent):
                 "workflow_status": "failed"
             }
         
-        self.logger.info(f"Synthesizing final answer from {len(sub_query_answers)} sub-answers")
+        self.logger.info(f"Synthesizing final answer from {len(sub_query_answers)} sub-answers for original query: '{original_query[:100]}'")
         
         try:
-            # Execute the original synthesis tool
-            synthesis_result = await self._execute_synthesis(user_query, sub_query_answers)
+            # Execute the original synthesis tool, passing the original query for context
+            synthesis_result = await self._execute_synthesis(original_query, user_query, sub_query_answers)
             
             # Process and format the results for LangGraph state
             return await self._process_synthesis_result(synthesis_result, state)
@@ -86,12 +89,13 @@ class SynthesisAgent(BaseLangGraphAgent):
                 "workflow_status": "failed"
             }
     
-    async def _execute_synthesis(self, user_query: str, sub_query_answers: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def _execute_synthesis(self, original_query: str, current_query: str, sub_query_answers: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Executes the synthesis using the original tool logic.
         
         Args:
-            user_query: Original user question
+            original_query: The query that initiated the research.
+            current_query: The most recent user query (could be a follow-up).
             sub_query_answers: List of sub-query answers to synthesize
             
         Returns:
@@ -99,7 +103,8 @@ class SynthesisAgent(BaseLangGraphAgent):
         """
         # Execute the original synthesis tool
         synthesis_result = self.synthesis_tool(
-            query=user_query,
+            original_query=original_query,
+            current_query=current_query,
             sub_answers=sub_query_answers
         )
         
