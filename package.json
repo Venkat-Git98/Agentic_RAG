@@ -11,17 +11,16 @@
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.16",
-    "@xyflow/react": "^12.8.1",
-    "elkjs": "^0.10.0",
+    "d3-force": "^3.0.0",
     "framer-motion": "^11.2.10",
     "lucide-react": "^0.395.0",
-    "neo4j-driver": "^5.28.1",
+    "mermaid": "^11.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",
-    "reactflow": "^11.11.4",
+    "react-zoom-pan-pinch": "^3.7.0",
     "remark-gfm": "^4.0.1",
-    "use-undo": "^1.1.1"
+    "vis-network": "^9.1.9"
   },
   "devDependencies": {
     "@types/react": "^18.2.66",
