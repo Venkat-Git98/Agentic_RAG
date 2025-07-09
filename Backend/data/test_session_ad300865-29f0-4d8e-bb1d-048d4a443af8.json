@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test_session_ad300865-29f0-4d8e-bb1d-048d4a443af8",
+  "full_history": [
+    {
+      "id": "d03c6a6e-e929-480e-a7aa-655ddc6ac822",
+      "role": "user",
+      "content": "Hello"
+    },
+    {
+      "id": "f5148e72-4c5c-45fc-9ecf-cb16844e821e",
+      "role": "assistant",
+      "content": "I was unable to generate a response to your query."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

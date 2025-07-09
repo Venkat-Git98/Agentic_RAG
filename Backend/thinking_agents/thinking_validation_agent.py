@@ -14,13 +14,17 @@ import google.generativeai as genai
 from agents.base_agent import BaseLangGraphAgent
 from state import AgentState
 from thinking_logger import ThinkingLogger, ThinkingMixin, ThinkingMode
+from state_keys import (
+    USER_QUERY, SUB_QUERY_ANSWERS, RESEARCH_VALIDATION_RESULTS,
+    MATH_CALCULATION_NEEDED, CURRENT_STEP, ERROR_STATE
+)
 
 class ThinkingValidationAgent(BaseLangGraphAgent, ThinkingMixin):
     """Enhanced ValidationAgent with detailed thinking process."""
     
     def __init__(self, thinking_mode: ThinkingMode = ThinkingMode.SIMPLE):
-        """Initialize with Tier 2 model and thinking capabilities."""
-        super().__init__(model_tier="tier_2", agent_name="ValidationAgent")
+        """Initialize with Tier 1 model for highest accuracy and thinking capabilities."""
+        super().__init__(model_tier="tier_1", agent_name="ValidationAgent")
         self._init_thinking("ValidationAgent", thinking_mode)
         
         self.math_keywords = [
@@ -43,8 +47,8 @@ class ThinkingValidationAgent(BaseLangGraphAgent, ThinkingMixin):
         """Execute validation with detailed thinking process."""
         
         # Initialize thinking session
-        user_query = state.get("user_query", "")
-        research_results = state.get("sub_query_answers", [])
+        user_query = state.get(USER_QUERY, "")
+        research_results = state.get(SUB_QUERY_ANSWERS, [])
         
         # Use enhanced human-like analysis
         self.thinking_logger.show_comprehensive_understanding(user_query)
@@ -183,8 +187,8 @@ class ThinkingValidationAgent(BaseLangGraphAgent, ThinkingMixin):
             validation_results["calculation_complexity"] = calc_complexity
             
             return {
-                "research_validation_results": validation_results,
-                "math_calculation_needed": math_needed,
+                RESEARCH_VALIDATION_RESULTS: validation_results,
+                MATH_CALCULATION_NEEDED: math_needed,
                 "math_detection_metadata": math_detection,
                 "validation_confidence": math_detection.get("math_confidence_score", 0.5),
                 "next_step": next_step,
@@ -195,10 +199,13 @@ class ThinkingValidationAgent(BaseLangGraphAgent, ThinkingMixin):
     def _create_error_state(self, error_message: str) -> Dict[str, Any]:
         """Create error state for validation failures."""
         return {
-            "research_validation_results": {"is_sufficient": False, "error": error_message},
-            "math_calculation_needed": False,
+            RESEARCH_VALIDATION_RESULTS: {"is_sufficient": False, "error": error_message},
+            MATH_CALCULATION_NEEDED: False,
             "next_step": "error",
-            "validation_agent_completed": True
+            ERROR_STATE: {
+                "agent": self.agent_name,
+                "error_message": error_message
+            }
         }
     
     async def _validate_research_with_thinking(self, user_query: str, research_results: List[Dict]) -> Dict[str, Any]:

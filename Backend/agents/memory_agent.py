@@ -151,14 +151,20 @@ class MemoryAgent(BaseLangGraphAgent):
             Updated state
         """
         updated_state = state.copy()
+        updated_state.update(output_data)
         
         # Store memory operation metadata
         if updated_state.get("intermediate_outputs") is not None:
-            updated_state["intermediate_outputs"]["memory_details"] = {
-                "conversation_updated": output_data.get("conversation_updated", False),
-                "memory_update_completed": output_data.get("memory_update_completed", False),
-                "execution_time_ms": output_data.get("total_execution_time_ms", 0.0)
+            log_entry = {
+                "step": "memory_update",
+                "agent": self.agent_name,
+                "details": {
+                    "conversation_updated": output_data.get("conversation_updated", False),
+                    "memory_update_completed": output_data.get("memory_update_completed", False),
+                    "execution_time_ms": output_data.get("total_execution_time_ms", 0.0)
+                }
             }
+            updated_state["intermediate_outputs"].append(log_entry)
         
         # Update final workflow status
         updated_state["workflow_status"] = "completed"

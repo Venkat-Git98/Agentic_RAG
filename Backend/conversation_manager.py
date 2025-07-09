@@ -9,7 +9,7 @@ perfect memory recall with the finite context windows of LLMs.
 import logging
 import json
 import os
-from typing import List, Dict, Any, Literal
+from typing import List, Dict, Any, Literal, Optional
 import google.generativeai as genai
 from pydantic import BaseModel, Field
 import redis
@@ -45,7 +45,7 @@ class ConversationManager:
     """
     Manages the state of a conversation with a user, providing context for the agents.
     """
-    def __init__(self, conversation_id: str, redis_client: redis.Redis, history_prune_threshold: int = 10, window_size: int = 4):
+    def __init__(self, conversation_id: str, redis_client: redis.Redis, history_prune_threshold: int = 10, window_size: int = 4, initial_state: Optional[Dict] = None):
         """
         Initializes the ConversationManager, loading state from Redis as the primary source of truth.
         
@@ -56,6 +56,7 @@ class ConversationManager:
                                      a memory consolidation.
             window_size: The number of recent user/assistant turns to keep in the
                          immediate context window.
+            initial_state: An optional dictionary to initialize the state, bypassing Redis load.
         """
         self.conversation_id = conversation_id
         self.redis_client = redis_client
@@ -69,8 +70,12 @@ class ConversationManager:
         self.structured_memory = StructuredMemory()
         self.running_summary = "No summary has been generated yet."
         
-        # Load the entire conversation state from Redis.
-        self._load_state_from_redis()
+        if initial_state:
+            logging.info(f"Initializing ConversationManager for '{conversation_id}' with provided initial state.")
+            self._load_state_from_dict(initial_state)
+        else:
+            # Load the entire conversation state from Redis.
+            self._load_state_from_redis()
         
         # Initialize the generative model for memory analysis
         try:
@@ -193,6 +198,20 @@ Here is the context for the current query:
             logging.info(f"Conversation state successfully saved to {self.state_file_path}")
         except Exception as e:
             logging.error(f"Failed to save conversation state: {e}")
+
+    def _load_state_from_dict(self, state: Dict[str, Any]):
+        """Loads the conversation state from a dictionary (for testing)."""
+        self.full_history = state.get("full_history", [])
+        
+        # Handle structured memory, which might be a dict or a JSON string
+        structured_memory_data = state.get("structured_memory", {})
+        if isinstance(structured_memory_data, str):
+            self.structured_memory = StructuredMemory.model_validate_json(structured_memory_data)
+        elif isinstance(structured_memory_data, dict):
+            self.structured_memory = StructuredMemory.model_validate(structured_memory_data)
+        
+        self.running_summary = state.get("running_summary", "No summary provided in initial state.")
+        logging.info("Successfully loaded state from initial_state dictionary.")
 
     def _load_state_from_redis(self):
         """

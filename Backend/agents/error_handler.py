@@ -357,17 +357,17 @@ class ErrorHandler(BaseLangGraphAgent):
     def _apply_agent_specific_updates(self, state: AgentState, output_data: Dict[str, Any]) -> AgentState:
         """Applies error handler specific state updates."""
         updated_state = state.copy()
-        
-        # Store error handling metadata
-        if updated_state.get("intermediate_outputs") is not None:
-            updated_state["intermediate_outputs"]["error_handling"] = {
-                "recovery_action": output_data.get("recovery_action"),
-                "error_handled": output_data.get("error_handled", False),
-                "retry_attempted": output_data.get("recovery_action") == "retry"
+        updated_state.update(output_data)
+
+        # Log error handling details
+        if "intermediate_outputs" in updated_state and updated_state["intermediate_outputs"] is not None:
+            log_entry = {
+                "step": "error_handling",
+                "agent": self.agent_name,
+                "failed_agent": updated_state.get("error_state", {}).get("agent"),
+                "recovery_strategy": output_data.get("recovery_action"),
+                "timestamp": datetime.now().isoformat()
             }
-        
-        # Clear error state if successfully handled
-        if output_data.get("error_handled", False):
-            updated_state["error_state"] = None
-        
+            updated_state["intermediate_outputs"].append(log_entry)
+            
         return updated_state 

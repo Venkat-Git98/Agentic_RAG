@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test_session_0236ed95-694f-454b-aec5-cacc8b608963",
+  "full_history": [
+    {
+      "id": "968c1c07-a4e3-4b77-b090-a8832645d58b",
+      "role": "user",
+      "content": "Hello"
+    },
+    {
+      "id": "85e3e6ed-e26f-463b-b425-7b7c378c5ea3",
+      "role": "assistant",
+      "content": "Hello! How can I help you with the Virginia Building Code today?"
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

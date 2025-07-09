@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test_session_279b43b3-9669-420b-a3cd-8b6c2c75416c",
+  "full_history": [
+    {
+      "id": "72a2b19a-e6e0-47ca-b9a9-e646075b5340",
+      "role": "user",
+      "content": "What are the fire-resistance rating requirements for exterior walls in Type V construction?"
+    },
+    {
+      "id": "66bc31d8-aca6-4f80-a693-5c5fd49a6f57",
+      "role": "assistant",
+      "content": "I was unable to generate a response to your query."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

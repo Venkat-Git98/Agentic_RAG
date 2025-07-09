@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test_session_39d63706-9d5e-4b77-b083-30d396bea6b1",
+  "full_history": [
+    {
+      "id": "3bc98b1f-853b-4d24-80c7-41b7db583c17",
+      "role": "user",
+      "content": "What are the exceptions?"
+    },
+    {
+      "id": "3bea2100-6f15-4eab-8e22-fa3f72379cb2",
+      "role": "assistant",
+      "content": "I was unable to generate a response to your query."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary provided in initial state."
+}

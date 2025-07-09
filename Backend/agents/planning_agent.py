@@ -13,6 +13,11 @@ from typing import Dict, Any, List
 # Add parent directories to path for imports
 from .base_agent import BaseLangGraphAgent
 from state import AgentState
+from state_keys import (
+    USER_QUERY, CONTEXT_PAYLOAD, CURRENT_STEP, WORKFLOW_STATUS,
+    TRIAGE_CLASSIFICATION, PLANNING_CLASSIFICATION, PLANNING_REASONING,
+    RESEARCH_PLAN, DIRECT_ANSWER
+)
 
 # Import the original planning tool logic
 from tools.planning_tool import PlanningTool
@@ -55,11 +60,11 @@ class PlanningAgent(BaseLangGraphAgent):
         Returns:
             Dictionary containing planning results
         """
-        user_query = state["user_query"]
-        context_payload = state.get("context_payload", "")
+        user_query = state[USER_QUERY]
+        context_payload = state.get(CONTEXT_PAYLOAD, "")
         
         # Use triage classification if available, otherwise use planning classification
-        classification = state.get("triage_classification") or state.get("planning_classification")
+        classification = state.get(TRIAGE_CLASSIFICATION) or state.get(PLANNING_CLASSIFICATION)
         
         self.logger.info(f"Planning for query: {user_query[:100]}...")
         self.logger.info(f"Input classification: {classification}")
@@ -80,14 +85,14 @@ class PlanningAgent(BaseLangGraphAgent):
             self.logger.error(f"Error in planning tool execution: {e}")
             # Fallback to basic engage classification
             return {
-                "planning_classification": "engage",
-                "planning_reasoning": f"Planning tool error: {str(e)}, falling back to engage",
-                "research_plan": [{
+                PLANNING_CLASSIFICATION: "engage",
+                PLANNING_REASONING: f"Planning tool error: {str(e)}, falling back to engage",
+                RESEARCH_PLAN: [{
                     "sub_query": user_query,
                     "hyde_document": f"Fallback research for: {user_query}"
                 }],
-                "current_step": "research",
-                "workflow_status": "running"
+                CURRENT_STEP: "research",
+                WORKFLOW_STATUS: "running"
             }
     
     async def _process_planning_result(self, planning_result: Dict[str, Any], state: AgentState) -> Dict[str, Any]:
@@ -106,11 +111,11 @@ class PlanningAgent(BaseLangGraphAgent):
         if classification == "simple_answer":
             # Direct answer provided by planning tool
             return {
-                "planning_classification": "simple_answer",
-                "planning_reasoning": "Planning tool provided direct answer",
-                "direct_answer": planning_result.get("direct_answer", "Direct answer provided."),
-                "current_step": "finish",
-                "workflow_status": "completed"
+                PLANNING_CLASSIFICATION: "simple_answer",
+                PLANNING_REASONING: "Planning tool provided a direct answer",
+                DIRECT_ANSWER: planning_result.get("direct_answer", "Direct answer provided."),
+                CURRENT_STEP: "finish",
+                WORKFLOW_STATUS: "completed"
             }
         
         elif classification == "engage":
@@ -120,40 +125,40 @@ class PlanningAgent(BaseLangGraphAgent):
             if not plan:
                 self.logger.warning("Engage classification but no plan provided, creating fallback")
                 plan = [{
-                    "sub_query": state["user_query"],
-                    "hyde_document": f"Research the following question from the Virginia Building Code: {state['user_query']}"
+                    "sub_query": state[USER_QUERY],
+                    "hyde_document": f"Research the following question from the Virginia Building Code: {state[USER_QUERY]}"
                 }]
             
             return {
-                "planning_classification": "engage",
-                "planning_reasoning": planning_result.get("reasoning", "Complex query requiring research"),
-                "research_plan": plan,
-                "current_step": "research",
-                "workflow_status": "running"
+                PLANNING_CLASSIFICATION: "engage",
+                PLANNING_REASONING: planning_result.get("reasoning", "Complex query requiring research"),
+                RESEARCH_PLAN: plan,
+                CURRENT_STEP: "research",
+                WORKFLOW_STATUS: "running"
             }
         
         elif classification == "direct_retrieval":
             # Direct entity lookup - pass context to synthesis
             return {
-                "planning_classification": "direct_retrieval", 
-                "planning_reasoning": planning_result.get("reasoning", "Direct entity retrieval"),
+                PLANNING_CLASSIFICATION: "direct_retrieval", 
+                PLANNING_REASONING: planning_result.get("reasoning", "Direct entity retrieval"),
                 "retrieved_context": planning_result.get("retrieved_context"),
                 "retrieved_diagrams": planning_result.get("retrieved_diagrams"),
-                "current_step": "synthesis"
+                CURRENT_STEP: "synthesis"
             }
         
         else:
             # Unknown classification, default to engage
             self.logger.warning(f"Unknown classification '{classification}', defaulting to engage")
             return {
-                "planning_classification": "engage",
-                "planning_reasoning": f"Unknown classification '{classification}', defaulting to research",
-                "research_plan": [{
-                    "sub_query": state["user_query"],
-                    "hyde_document": f"Research the following question: {state['user_query']}"
+                PLANNING_CLASSIFICATION: "engage",
+                PLANNING_REASONING: f"Unknown classification '{classification}', defaulting to research",
+                RESEARCH_PLAN: [{
+                    "sub_query": state[USER_QUERY],
+                    "hyde_document": f"Research the following question: {state[USER_QUERY]}"
                 }],
-                "current_step": "research", 
-                "workflow_status": "running"
+                CURRENT_STEP: "research", 
+                WORKFLOW_STATUS: "running"
             }
     
     def _validate_agent_specific_state(self, state: AgentState) -> None:
@@ -166,12 +171,12 @@ class PlanningAgent(BaseLangGraphAgent):
         Raises:
             ValueError: If required fields are missing
         """
-        if not state.get("user_query"):
+        if not state.get(USER_QUERY):
             raise ValueError("user_query is required for planning")
         
         # Check that we're in the right step
-        if state.get("current_step") not in ["planning", "triage"]:
-            self.logger.warning(f"Unexpected current_step '{state.get('current_step')}' for planning agent")
+        if state.get(CURRENT_STEP) not in ["planning", "triage"]:
+            self.logger.warning(f"Unexpected current_step '{state.get(CURRENT_STEP)}' for planning agent")
     
     def _apply_agent_specific_updates(self, state: AgentState, output_data: Dict[str, Any]) -> AgentState:
         """
@@ -189,15 +194,17 @@ class PlanningAgent(BaseLangGraphAgent):
         # Store planning metadata for debugging
         if updated_state.get("intermediate_outputs") is not None:
             updated_state["intermediate_outputs"]["planning_details"] = {
-                "classification": output_data.get("planning_classification"),
-                "reasoning": output_data.get("planning_reasoning"),
-                "plan_size": len(output_data.get("research_plan", [])),
-                "has_direct_answer": output_data.get("direct_answer") is not None
+                "classification": output_data.get(PLANNING_CLASSIFICATION),
+                "reasoning": output_data.get(PLANNING_REASONING),
+                "plan_size": len(output_data.get(RESEARCH_PLAN, [])),
+                "has_direct_answer": output_data.get(DIRECT_ANSWER) is not None
             }
         
         # Set quality metrics if we have a direct answer
-        if output_data.get("direct_answer"):
+        if output_data.get(DIRECT_ANSWER):
             updated_state["confidence_score"] = 0.85  # High confidence for direct answers
+            if updated_state.get("quality_metrics") is not None:
+                updated_state["quality_metrics"]["synthesis_quality_score"] = 0.85
         
         return updated_state
 
@@ -240,69 +247,69 @@ class EnhancedPlanningAgent(PlanningAgent):
     async def _handle_calculation_query(self, state: AgentState) -> Dict[str, Any]:
         """Handles calculation-specific queries with enhanced planning."""
         return {
-            "planning_classification": "engage",
-            "planning_reasoning": "Calculation query detected - enhanced planning for formulas and variables",
-            "research_plan": [
+            PLANNING_CLASSIFICATION: "engage",
+            PLANNING_REASONING: "Calculation query detected - enhanced planning for formulas and variables",
+            RESEARCH_PLAN: [
                 {
-                    "sub_query": f"What is the specific formula or equation for: {state['user_query']}",
+                    "sub_query": f"What is the specific formula or equation for: {state[USER_QUERY]}",
                     "hyde_document": "The Virginia Building Code provides specific formulas and equations for structural calculations. The formula typically includes variables such as load factors, material properties, and geometric parameters."
                 },
                 {
-                    "sub_query": f"What are the variable definitions and units for: {state['user_query']}",
+                    "sub_query": f"What are the variable definitions and units for: {state[USER_QUERY]}",
                     "hyde_document": "Building code formulas require precise definition of variables including units, acceptable ranges, and calculation methods."
                 }
             ],
-            "current_step": "research",
-            "workflow_status": "running"
+            CURRENT_STEP: "research",
+            WORKFLOW_STATUS: "running"
         }
     
     async def _handle_comparison_query(self, state: AgentState) -> Dict[str, Any]:
         """Handles comparison queries with enhanced planning."""
         return {
-            "planning_classification": "engage", 
-            "planning_reasoning": "Comparison query detected - enhanced planning for multiple entities",
-            "research_plan": [
+            PLANNING_CLASSIFICATION: "engage", 
+            PLANNING_REASONING: "Comparison query detected - enhanced planning for multiple entities",
+            RESEARCH_PLAN: [
                 {
-                    "sub_query": f"First component of comparison: {state['user_query']}",
+                    "sub_query": f"First component of comparison: {state[USER_QUERY]}",
                     "hyde_document": "Building code sections provide specific requirements, conditions, and applications for different structural elements and building types."
                 },
                 {
-                    "sub_query": f"Second component of comparison: {state['user_query']}",
+                    "sub_query": f"Second component of comparison: {state[USER_QUERY]}",
                     "hyde_document": "Comparative analysis requires understanding the specific requirements, limitations, and applications defined in the building code."
                 }
             ],
-            "current_step": "research",
-            "workflow_status": "running"
+            CURRENT_STEP: "research",
+            WORKFLOW_STATUS: "running"
         }
     
     async def _handle_requirement_query(self, state: AgentState) -> Dict[str, Any]:
         """Handles requirement-specific queries."""
         return {
-            "planning_classification": "engage",
-            "planning_reasoning": "Requirements query detected - enhanced planning for regulatory content",
-            "research_plan": [
+            PLANNING_CLASSIFICATION: "engage",
+            PLANNING_REASONING: "Requirements query detected - enhanced planning for regulatory content",
+            RESEARCH_PLAN: [
                 {
-                    "sub_query": f"Specific requirements for: {state['user_query']}",
+                    "sub_query": f"Specific requirements for: {state[USER_QUERY]}",
                     "hyde_document": "The Virginia Building Code establishes specific requirements including minimum standards, conditions for application, and compliance criteria."
                 }
             ],
-            "current_step": "research",
-            "workflow_status": "running"
+            CURRENT_STEP: "research",
+            WORKFLOW_STATUS: "running"
         }
     
     async def _handle_compliance_query(self, state: AgentState) -> Dict[str, Any]:
         """Handles compliance checking queries."""
         return {
-            "planning_classification": "engage",
-            "planning_reasoning": "Compliance query detected - enhanced planning for code verification",
-            "research_plan": [
+            PLANNING_CLASSIFICATION: "engage",
+            PLANNING_REASONING: "Compliance query detected - enhanced planning for code verification",
+            RESEARCH_PLAN: [
                 {
-                    "sub_query": f"Compliance requirements and criteria for: {state['user_query']}",
+                    "sub_query": f"Compliance requirements and criteria for: {state[USER_QUERY]}",
                     "hyde_document": "Building code compliance requires meeting specific criteria, following prescribed methods, and satisfying regulatory requirements as outlined in the Virginia Building Code."
                 }
             ],
-            "current_step": "research",
-            "workflow_status": "running"
+            CURRENT_STEP: "research",
+            WORKFLOW_STATUS: "running"
         }
 
     def _validate_agent_specific_state(self, state: AgentState) -> None:
@@ -315,12 +322,12 @@ class EnhancedPlanningAgent(PlanningAgent):
         Raises:
             ValueError: If required fields are missing
         """
-        if not state.get("user_query"):
+        if not state.get(USER_QUERY):
             raise ValueError("user_query is required for planning")
         
         # Check that we're in the right step
-        if state.get("current_step") not in ["planning", "triage"]:
-            self.logger.warning(f"Unexpected current_step '{state.get('current_step')}' for planning agent")
+        if state.get(CURRENT_STEP) not in ["planning", "triage"]:
+            self.logger.warning(f"Unexpected current_step '{state.get(CURRENT_STEP)}' for planning agent")
     
     def _apply_agent_specific_updates(self, state: AgentState, output_data: Dict[str, Any]) -> AgentState:
         """
@@ -338,14 +345,14 @@ class EnhancedPlanningAgent(PlanningAgent):
         # Store planning metadata for debugging
         if updated_state.get("intermediate_outputs") is not None:
             updated_state["intermediate_outputs"]["planning_details"] = {
-                "classification": output_data.get("planning_classification"),
-                "reasoning": output_data.get("planning_reasoning"),
-                "plan_size": len(output_data.get("research_plan", [])),
-                "has_direct_answer": output_data.get("direct_answer") is not None
+                "classification": output_data.get(PLANNING_CLASSIFICATION),
+                "reasoning": output_data.get(PLANNING_REASONING),
+                "plan_size": len(output_data.get(RESEARCH_PLAN, [])),
+                "has_direct_answer": output_data.get(DIRECT_ANSWER) is not None
             }
         
         # Set quality metrics if we have a direct answer
-        if output_data.get("direct_answer"):
+        if output_data.get(DIRECT_ANSWER):
             updated_state["confidence_score"] = 0.85  # High confidence for direct answers
         
         return updated_state 

@@ -53,7 +53,6 @@ class QueueHandler(logging.Handler):
 # This dictionary will hold the AI system instance.
 # It's a simple way to manage the singleton instance.
 ai_system_instance: Dict[str, LangGraphAgenticAI] = {}
-redis_client_instance: Dict[str, redis.Redis] = {}
 
 # --- FastAPI Application Setup ---
 
@@ -64,20 +63,9 @@ async def lifespan(app: FastAPI):
     This is where the AI system and other resources are initialized.
     """
     print("Server starting up...")
-    # Initialize Redis client
-    try:
-        redis_client = redis.from_url(REDIS_URL, decode_responses=True)
-        redis_client.ping()
-        redis_client_instance["instance"] = redis_client
-        print("Successfully connected to Redis.")
-    except redis.exceptions.ConnectionError as e:
-        print(f"FATAL: Could not connect to Redis: {e}")
-        # In a real-world scenario, you might want to exit the app if Redis is critical
-        redis_client_instance["instance"] = None
     
-    # Initialize the AI system on startup, now with the Redis client
+    # Initialize the AI system on startup. It will use the global redis_client from config.
     ai_system_instance["instance"] = LangGraphAgenticAI(
-        redis_client=redis_client_instance.get("instance"),
         debug=True, 
         detailed_thinking=True
     )
@@ -88,12 +76,6 @@ async def lifespan(app: FastAPI):
     ai_system_instance.clear()
     print("AI System shut down.")
     
-    # Close Redis connection
-    if redis_client_instance.get("instance"):
-        redis_client_instance["instance"].close()
-        print("Redis connection closed.")
-    redis_client_instance.clear()
-
 app = FastAPI(
     title="LangGraph Agentic AI Server",
     description="A backend server for the multi-agent AI system.",
@@ -252,7 +234,7 @@ async def get_history(userId: str):
     Falls back to file-based storage if Redis is unavailable.
     The `userId` corresponds to the `thread_id` used in the query endpoint.
     """
-    redis_client = redis_client_instance.get("instance")
+    redis_client = redis.from_url(REDIS_URL, decode_responses=True)
     
     # Try Redis first if available
     if redis_client:

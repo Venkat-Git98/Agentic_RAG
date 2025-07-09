@@ -13,8 +13,13 @@ from typing import Dict, Any, List
 # Add parent directories to path for imports
 from .base_agent import BaseLangGraphAgent
 from state import AgentState
+from state_keys import (
+    USER_QUERY, ORIGINAL_QUERY, SUB_QUERY_ANSWERS, FINAL_ANSWER,
+    SYNTHESIS_METADATA, SOURCE_CITATIONS, CONFIDENCE_SCORE,
+    CURRENT_STEP, WORKFLOW_STATUS, INTERMEDIATE_OUTPUTS, QUALITY_METRICS
+)
 
-# Import the original synthesis tool logic
+# Import the original synthesis tool
 from tools.synthesis_tool import SynthesisTool
 
 class SynthesisAgent(BaseLangGraphAgent):
@@ -48,11 +53,11 @@ class SynthesisAgent(BaseLangGraphAgent):
         Returns:
             Dictionary containing synthesis results
         """
-        user_query = state["user_query"]
+        user_query = state[USER_QUERY]
         # Use the original_query if available, otherwise fall back to the current user_query.
         # This is crucial for contextual understanding in conversational follow-ups.
-        original_query = state.get("original_query", user_query)
-        sub_query_answers = state.get("sub_query_answers", [])
+        original_query = state.get(ORIGINAL_QUERY, user_query)
+        sub_query_answers = state.get(SUB_QUERY_ANSWERS, [])
         
         if not sub_query_answers:
             self.logger.error("No sub-query answers provided to synthesis agent")
@@ -128,10 +133,10 @@ class SynthesisAgent(BaseLangGraphAgent):
             final_answer = "I was unable to generate a comprehensive answer based on the available information."
         
         # Extract citations and sources
-        source_citations = self._extract_citations(final_answer, state.get("sub_query_answers", []))
+        source_citations = self._extract_citations(final_answer, state.get(SUB_QUERY_ANSWERS, []))
         
         # Calculate synthesis quality metrics
-        synthesis_metadata = self._calculate_synthesis_metadata(final_answer, state.get("sub_query_answers", []))
+        synthesis_metadata = self._calculate_synthesis_metadata(final_answer, state.get(SUB_QUERY_ANSWERS, []))
         
         # Calculate confidence score
         confidence_score = self._calculate_confidence_score(synthesis_metadata, state)
@@ -139,12 +144,12 @@ class SynthesisAgent(BaseLangGraphAgent):
         self.logger.info(f"Synthesis completed: {len(final_answer)} characters, confidence: {confidence_score:.2f}")
         
         return {
-            "final_answer": final_answer,
-            "synthesis_metadata": synthesis_metadata,
-            "source_citations": source_citations,
-            "confidence_score": confidence_score,
-            "current_step": "memory_update",
-            "workflow_status": "running"
+            FINAL_ANSWER: final_answer,
+            SYNTHESIS_METADATA: synthesis_metadata,
+            SOURCE_CITATIONS: source_citations,
+            CONFIDENCE_SCORE: confidence_score,
+            CURRENT_STEP: "memory_update",
+            WORKFLOW_STATUS: "running"
         }
     
     def _extract_citations(self, final_answer: str, sub_query_answers: List[Dict[str, Any]]) -> List[str]:
@@ -255,11 +260,11 @@ class SynthesisAgent(BaseLangGraphAgent):
         Raises:
             ValueError: If required fields are missing
         """
-        if not state.get("sub_query_answers"):
+        if not state.get(SUB_QUERY_ANSWERS):
             raise ValueError("sub_query_answers is required for synthesis agent")
         
-        if state.get("current_step") not in ["synthesis", "research"]:
-            self.logger.warning(f"Unexpected current_step '{state.get('current_step')}' for synthesis agent")
+        if state.get(CURRENT_STEP) not in ["synthesis", "research"]:
+            self.logger.warning(f"Unexpected current_step '{state.get(CURRENT_STEP)}' for synthesis agent")
     
     def _apply_agent_specific_updates(self, state: AgentState, output_data: Dict[str, Any]) -> AgentState:
         """
@@ -272,25 +277,42 @@ class SynthesisAgent(BaseLangGraphAgent):
         Returns:
             Updated state
         """
+        # To preserve critical data like the conversation_manager, we update the existing state
+        # instead of creating a new one. This prevents accidental data loss.
         updated_state = state.copy()
         
-        # Store synthesis metadata for debugging
-        if updated_state.get("intermediate_outputs") is not None:
-            synthesis_metadata = output_data.get("synthesis_metadata", {})
-            
-            updated_state["intermediate_outputs"]["synthesis_details"] = {
-                "answer_length": synthesis_metadata.get("answer_length_chars", 0),
-                "word_count": synthesis_metadata.get("answer_word_count", 0),
-                "sources_integrated": synthesis_metadata.get("unique_sources_used", 0),
-                "confidence_score": output_data.get("confidence_score", 0.0),
-                "has_citations": synthesis_metadata.get("has_proper_citations", False)
-            }
+        # Add the new data from the synthesis agent
+        updated_state.update(output_data)
+
+        # To prevent state bloat, we can now safely remove large data fields
+        # that are no longer needed after the synthesis step.
+        if SUB_QUERY_ANSWERS in updated_state:
+            del updated_state[SUB_QUERY_ANSWERS]
+        
+        # It's also good practice to remove the research plan as it's been executed.
+        if "research_plan" in updated_state:
+            del updated_state["research_plan"]
+
+        # Update the intermediate outputs log
+        intermediate_log = state.get(INTERMEDIATE_OUTPUTS)
+        if intermediate_log is None:
+            self.logger.warning("Intermediate outputs log was None, re-initializing.")
+            intermediate_log = []
+
+        intermediate_log.append({
+            "step": "synthesis",
+            "agent": self.agent_name,
+            "output_data": output_data
+        })
+        updated_state[INTERMEDIATE_OUTPUTS] = intermediate_log
         
         # Update quality metrics
-        if updated_state.get("quality_metrics") is not None:
-            synthesis_metadata = output_data.get("synthesis_metadata", {})
-            updated_state["quality_metrics"]["synthesis_quality_score"] = output_data.get("confidence_score", 0.0)
-            updated_state["quality_metrics"]["context_sufficiency_score"] = synthesis_metadata.get("integration_rate", 0.0)
+        if updated_state.get(QUALITY_METRICS) is None:
+            updated_state[QUALITY_METRICS] = {}
+            
+        synthesis_metadata = output_data.get(SYNTHESIS_METADATA, {})
+        updated_state[QUALITY_METRICS]["synthesis_quality_score"] = output_data.get(CONFIDENCE_SCORE, 0.0)
+        updated_state[QUALITY_METRICS]["context_sufficiency_score"] = synthesis_metadata.get("integration_rate", 0.0)
         
         # Set end time for workflow
         updated_state["end_time"] = state.get("start_time", "")  # This should be current time in real implementation
@@ -339,8 +361,8 @@ class EnhancedSynthesisAgent(SynthesisAgent):
         Enhanced synthesis for queries requiring calculations.
         This prompt instructs the LLM to perform the math.
         """
-        user_query = state["user_query"]
-        sub_query_answers = state.get("sub_query_answers", [])
+        user_query = state[USER_QUERY]
+        sub_query_answers = state.get(SUB_QUERY_ANSWERS, [])
 
         # Construct the sub-answers string separately to avoid f-string syntax limitations.
         sub_answers_text = "".join([

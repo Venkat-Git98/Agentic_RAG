@@ -17,7 +17,11 @@ from datetime import datetime
 from agents.base_agent import BaseLangGraphAgent
 from state import AgentState
 from thinking_logger import ThinkingLogger, ThinkingMixin, ThinkingMode
-from config import USE_DOCKER
+from tools.reranker import Reranker
+from state_keys import (
+    USER_QUERY, SUB_QUERY_ANSWERS, RESEARCH_VALIDATION_RESULTS,
+    CALCULATION_RESULTS, CALCULATION_EXECUTION_SUCCESS
+)
 
 class ThinkingCalculationExecutor(BaseLangGraphAgent, ThinkingMixin):
     """
@@ -64,8 +68,8 @@ class ThinkingCalculationExecutor(BaseLangGraphAgent, ThinkingMixin):
         Returns:
             Dictionary with calculation results
         """
-        user_query = state.get("user_query", "")
-        calc_types = state.get("research_validation_results", {}).get("calculation_types", [])
+        user_query = state.get(USER_QUERY, "")
+        calc_types = state.get(RESEARCH_VALIDATION_RESULTS, {}).get("calculation_types", [])
         
         if USE_DOCKER:
             return await self._execute_docker_flow(state, user_query, calc_types)
@@ -120,13 +124,13 @@ class ThinkingCalculationExecutor(BaseLangGraphAgent, ThinkingMixin):
         self.thinking_logger.think("Checking prerequisites for calculation...")
         
         # Check for required validation results
-        validation_results = state.get("research_validation_results")
+        validation_results = state.get(RESEARCH_VALIDATION_RESULTS)
         if not validation_results:
             self.thinking_logger.problem("🚫 Research validation results are missing")
             return False
             
         # Check for research context
-        research_context = state.get("sub_query_answers")
+        research_context = state.get(SUB_QUERY_ANSWERS)
         if not research_context:
             self.thinking_logger.problem("🚫 Research context (sub-query answers) is missing")
             return False
@@ -145,11 +149,11 @@ class ThinkingCalculationExecutor(BaseLangGraphAgent, ThinkingMixin):
         
         self.thinking_logger.craft("Extracting calculation specifications from state...")
         
-        validation_results = state.get("research_validation_results", {})
+        validation_results = state.get(RESEARCH_VALIDATION_RESULTS, {})
         
         specs = {
-            "user_query": state.get("user_query", ""),
-            "research_context": state.get("sub_query_answers", []),
+            USER_QUERY: state.get(USER_QUERY, ""),
+            SUB_QUERY_ANSWERS: state.get(SUB_QUERY_ANSWERS, []),
             "calculation_types": validation_results.get("calculation_types", []),
             "complexity": validation_results.get("complexity", "moderate")
         }
@@ -248,23 +252,23 @@ class ThinkingCalculationExecutor(BaseLangGraphAgent, ThinkingMixin):
                 self.thinking_logger.success("✅ Calculation successful")
                 
                 # Combine original context with calculation results
-                combined_context = state.get("sub_query_answers", []) + [{
+                combined_context = state.get(SUB_QUERY_ANSWERS, []) + [{
                     "sub_query": "Calculation Results",
                     "answer": results["output"]
                 }]
                 
                 return {
-                    "sub_query_answers": combined_context,
-                    "calculation_results": results,
-                    "calculation_execution_success": True,
+                    SUB_QUERY_ANSWERS: combined_context,
+                    CALCULATION_RESULTS: results,
+                    CALCULATION_EXECUTION_SUCCESS: True,
                     "error_state": None
                 }
             else:
                 self.thinking_logger.problem("Calculation failed, preserving original research context.")
                 # On failure, we don't want to modify the sub_query_answers
                 return {
-                    "calculation_results": results,
-                    "calculation_execution_success": False,
+                    CALCULATION_RESULTS: results,
+                    CALCULATION_EXECUTION_SUCCESS: False,
                     "error_state": {
                         "agent": "ThinkingCalculationExecutor",
                         "message": results.get("error", "Unknown calculation error")
@@ -342,7 +346,7 @@ print("Note: This is a simplified calculation. Consult building code for complet
         self.thinking_logger.problem(f"Creating error state: {error_message}")
         
         return {
-            "calculation_execution_success": False,
+            CALCULATION_EXECUTION_SUCCESS: False,
             "calculation_errors": [error_message],
             "current_step": "synthesis",
             "workflow_status": "running",
@@ -357,7 +361,7 @@ print("Note: This is a simplified calculation. Consult building code for complet
         self.thinking_logger.problem("Docker setup required error")
         
         return {
-            "calculation_execution_success": False,
+            CALCULATION_EXECUTION_SUCCESS: False,
             "calculation_errors": ["Docker setup required"],
             "current_step": "synthesis",
             "workflow_status": "running",

@@ -6,16 +6,15 @@ import time
 import os
 import argparse
 
-def run_test_suite(test_id_to_run=None):
+def run_test_suite(suite_file: str, test_id_to_run=None):
     """
-    Reads the test suite, runs each test case against the main agent script,
-    and saves the detailed results.
+    Reads the specified test suite, runs each test case, and saves results.
     """
     try:
-        with open('testing_suite.json', 'r') as f:
+        with open(suite_file, 'r') as f:
             test_cases = json.load(f)
     except FileNotFoundError:
-        print("ERROR: testing_suite.json not found. Please ensure the file exists.")
+        print(f"ERROR: {suite_file} not found. Please ensure the file exists.")
         return
     except json.JSONDecodeError:
         print("ERROR: Could not decode testing_suite.json. Please check for syntax errors.")
@@ -37,6 +36,7 @@ def run_test_suite(test_id_to_run=None):
     for i, test_case in enumerate(test_cases, 1):
         test_id = test_case.get("test_id", f"unnamed-test-{i}")
         query = test_case.get("query")
+        initial_context = test_case.get("initial_context") # Get initial context
 
         if not query:
             print(f"SKIPPING Test {i}/{total_tests} ({test_id}): No query found.")
@@ -49,8 +49,14 @@ def run_test_suite(test_id_to_run=None):
             # Execute the main.py script as a subprocess
             env = os.environ.copy()
             env['PYTHONIOENCODING'] = 'utf-8'
+            
+            command = [sys.executable, 'main.py', '--query', query]
+            if initial_context:
+                # Pass the context as a JSON string
+                command.extend(['--initial_state', json.dumps(initial_context)])
+
             process = subprocess.Popen(
-                [sys.executable, 'main.py', '--query', query],
+                command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -114,7 +120,8 @@ def run_test_suite(test_id_to_run=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the AI agent test suite.")
+    parser.add_argument('--suite', type=str, default='testing_suite.json', help='The test suite file to run.')
     parser.add_argument('--test_id', type=str, help='Run a single test case by its ID.')
     args = parser.parse_args()
 
-    run_test_suite(args.test_id)
+    run_test_suite(args.suite, args.test_id)

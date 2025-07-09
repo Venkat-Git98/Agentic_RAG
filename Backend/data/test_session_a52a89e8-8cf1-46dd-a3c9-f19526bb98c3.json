@@ -1,0 +1,33 @@
+{
+  "conversation_id": "test_session_a52a89e8-8cf1-46dd-a3c9-f19526bb98c3",
+  "full_history": [
+    {
+      "id": "b8f4edaa-4359-4492-ae6c-ee2994a6c58d",
+      "role": "user",
+      "content": "What are the general requirements for fire resistance-rated construction?"
+    },
+    {
+      "id": "2c06c32f-77e3-417c-8001-71955306bb99",
+      "role": "assistant",
+      "content": "Fire resistance-rated construction involves several general requirements, including adherence to required fire-resistance ratings, use of permitted materials, and meeting specific fire separation distance requirements for exterior walls.\n\nFire-resistance ratings for structural elements like floors and roofs are dictated by the building type of construction [710.3].  These assemblies must be constructed of materials permitted by the building type of construction [710.2].  For exterior walls, the required fire-resistance rating depends on the fire separation distance and occupancy group [Table 705.5]. Load-bearing exterior walls must also meet the fire-resistance rating requirements of Table 601 [Table 705.5, Note 1]. Assemblies may also require specific fire-resistance ratings depending on what they support [704.1]. For example, structural members must have fire-resistance ratings no less than the assemblies they support.\n\nFurthermore, fire resistance-rated assemblies, including walls, firestops, shaft enclosures, partitions, smoke barriers, floors, fire-resistive coatings, and sprayed fire-resistant materials applied to structural members, must be maintained to ensure their continued effectiveness [703.1]. Specific requirements exist for various elements like projections from exterior walls [705.2] and penetrations through fire-resistance-rated assemblies.\n\nWhile some permitted materials are noted (e.g., solid wood construction consisting of \"not less than two layers of 1-inch (25 mm) matched boards or laminated construction 4 inches (102 mm) thick,\" and gypsum board/panel products), the provided context lacks a comprehensive list of all acceptable materials [Sub-Answer 3].  Additional information from Chapter 8 and related sections would be necessary for a complete understanding of permitted materials.  Similarly, the provided text mentions the need for specific ratings for different occupancies concerning fire barriers and shaft enclosures [707.3, Table in Sub-Answer 2], but a full explanation of fire-resistance rating requirements for all structural elements would require further research."
+    },
+    {
+      "id": "b50bbcb4-0502-449a-a804-b3d3eecce688",
+      "role": "user",
+      "content": "What about exterior walls?"
+    },
+    {
+      "id": "c429dbb9-8d0b-4778-b57e-d3912dfc9e5b",
+      "role": "assistant",
+      "content": "Exterior walls must have fire-resistance ratings as required by other sections of the Virginia Construction Code, not specified in the provided context [1402.4].  Opening protection requirements are found in Chapter 7. For load-bearing exterior walls, fire-resistance ratings are determined by Table 601 and Table 705.5, based on construction type and fire separation distance [705.5].  These ratings can range from 0 to 3 hours.  If the fire separation distance is 10 feet or less, fire-resistance ratings are required for both sides of the wall [705.5].  Permitted materials include concrete, brick, and fiber-cement siding, but they must meet specific fire-resistance ratings depending on the occupancy classification and fire separation distance.  While the Virginia Construction Code references these materials, the specific requirements for fire-resistance ratings based on material, occupancy, and fire separation distance are located in other sections of the code not provided here.\n\n**Practical Considerations:**\n\nDetermining the fire-resistance requirements for exterior walls involves cross-referencing multiple sections of the Virginia Construction Code and considering the building's construction type, occupancy classification, and fire separation distance. Due to the complexity, consulting with a fire protection engineer or code official is recommended for accurate application of these requirements."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

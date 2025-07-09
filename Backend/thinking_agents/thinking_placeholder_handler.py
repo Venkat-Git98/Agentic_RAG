@@ -14,6 +14,9 @@ from typing import Dict, Any, List
 from agents.base_agent import BaseLangGraphAgent
 from state import AgentState
 from thinking_logger import ThinkingLogger, ThinkingMixin, ThinkingMode
+from state_keys import (
+    USER_QUERY, SUB_QUERY_ANSWERS
+)
 
 class ThinkingPlaceholderHandler(BaseLangGraphAgent, ThinkingMixin):
     """Enhanced PlaceholderHandler with detailed thinking process."""
@@ -25,15 +28,15 @@ class ThinkingPlaceholderHandler(BaseLangGraphAgent, ThinkingMixin):
         self.logger.info("ThinkingPlaceholderHandler initialized")
     
     async def execute(self, state: AgentState) -> Dict[str, Any]:
-        """Execute placeholder handling with natural gap analysis."""
+        """Execute placeholder handling with detailed thinking process."""
         
-        # Extract validation results and show natural understanding
+        # Extract necessary state info
         validation_results = state.get("research_validation_results", {})
         missing_aspects = state.get("missing_research_aspects", [])
-        user_query = state.get("user_query", "")
+        user_query = state.get(USER_QUERY, "")
         
         # Natural problem understanding
-        self.thinking_logger.understanding_problem("Research was insufficient - need to identify what's missing")
+        self.thinking_logger.show_comprehensive_understanding(user_query)
         
         if missing_aspects:
             self.thinking_logger.discovering(f"Found {len(missing_aspects)} specific gaps: {', '.join(missing_aspects)}")
@@ -140,7 +143,7 @@ class ThinkingPlaceholderHandler(BaseLangGraphAgent, ThinkingMixin):
         """Generate partial answer with thinking process - NO MANUAL CALCULATIONS."""
         
         with self.thinking_logger.creative_process("Partial Answer Generation"):
-            research_results = state.get("sub_query_answers", [])
+            research_results = state.get(SUB_QUERY_ANSWERS, [])
             available_info = self._format_available_research_with_thinking(research_results)
             
             self.thinking_logger.think("Crafting professional partial answer with clear placeholders...")
@@ -245,155 +248,122 @@ class ThinkingPlaceholderHandler(BaseLangGraphAgent, ThinkingMixin):
             return suggestions
     
     def _prepare_placeholder_state_updates_with_thinking(self, placeholder_context: Dict, partial_answer: str, 
-                                                       enhancement_suggestions: Dict, state: AgentState) -> Dict[str, Any]:
-        """Prepare state updates with thinking."""
+                                                        enhancement_suggestions: Dict, state: AgentState) -> Dict[str, Any]:
+        """Prepare final state updates with thinking process."""
         
-        with self.thinking_logger.thinking_block("State Updates Preparation"):
-            self.thinking_logger.craft("Preparing comprehensive placeholder state updates...")
+        with self.thinking_logger.synthesis_block("Final State Preparation"):
+            self.thinking_logger.think("Assembling final state update with placeholder information...")
             
-            # Calculate placeholder metrics
-            placeholder_count = partial_answer.count('[PLACEHOLDER:')
-            enhancement_items = len(enhancement_suggestions.get("immediate_actions", []))
+            # Combine new partial answer with existing research
+            original_answers = state.get(SUB_QUERY_ANSWERS, [])
             
-            self.thinking_logger.review(f"Generated answer with {placeholder_count} placeholders")
-            self.thinking_logger.review(f"Created {enhancement_items} enhancement actions")
-            
-            state_updates = {
-                # Placeholder fields
-                "requires_additional_research": True,
-                "placeholder_context": placeholder_context,
-                "enhancement_pipeline_triggered": True,
-                
-                # Synthesis preparation
-                "synthesis_context_ready": True,
-                "final_answer": partial_answer,  # Set partial answer as final
-                
-                # Enhancement information
-                "additional_research_needed": enhancement_suggestions["research_priorities"],
-                
-                # Workflow control
-                "current_step": "synthesis",
-                "workflow_status": "running",
-                
-                # Context flags
-                "context_enhanced_with_math": False,
-                "research_sufficient": False,
-                
-                # Metadata
-                "synthesis_metadata": {
-                    "answer_type": "partial_with_placeholders",
-                    "completeness_score": placeholder_context.get("completeness_estimate", 0.3),
-                    "enhancement_required": True,
-                    "placeholder_count": placeholder_count,
-                    "enhancement_suggestions": enhancement_suggestions
-                },
-                
-                # Thinking metadata
-                "placeholder_thinking_summary": self.thinking_logger.get_thinking_summary()
+            # Create a new sub-answer for the placeholder content
+            placeholder_answer = {
+                "sub_query": "Placeholder for Insufficient Research",
+                "answer": partial_answer,
+                "is_placeholder": True,
+                "sources_used": []
             }
             
-            self.thinking_logger.conclude(f"Prepared {len(state_updates)} state updates - proceeding to synthesis with partial answer")
+            # Append the new placeholder answer to the list
+            updated_answers = original_answers + [placeholder_answer]
+            
+            self.thinking_logger.craft("Created consolidated answer list including new placeholder content")
+            
+            state_updates = {
+                SUB_QUERY_ANSWERS: updated_answers,
+                "placeholder_metadata": {
+                    "context": placeholder_context,
+                    "enhancement_suggestions": enhancement_suggestions,
+                    "placeholders_generated": 1  # Simplified for now
+                },
+                "enhancement_triggered": True, # Flag for workflow
+                "current_step": "synthesis"  # Move on to synthesis
+            }
+            
+            self.thinking_logger.success("✅ State updates prepared successfully")
             
             return state_updates
-    
+            
     def _format_available_research_with_thinking(self, research_results: List[Dict]) -> str:
-        """Format available research with thinking."""
+        """Format available research for the prompt, showing thinking."""
         
-        self.thinking_logger.analyze(f"Formatting {len(research_results)} research results for context...")
-        
-        if not research_results:
-            self.thinking_logger.note("No research results available")
-            return "No research results available."
-        
-        formatted = []
-        for i, result in enumerate(research_results, 1):
-            sub_query = result.get("sub_query", "Unknown query")
-            answer = result.get("answer", "No answer provided")
+        with self.thinking_logger.analysis_block("Formatting Available Research"):
             
-            # Assess quality briefly
-            quality_indicators = []
-            if len(answer) > 200:
-                quality_indicators.append("detailed")
-            if "formula" in answer.lower():
-                quality_indicators.append("contains formulas")
-            if "virginia building code" in answer.lower():
-                quality_indicators.append("code-specific")
+            if not research_results:
+                self.thinking_logger.note("No research results to format.")
+                return "No specific research information was found."
             
-            quality_note = f" ({', '.join(quality_indicators)})" if quality_indicators else ""
+            formatted_texts = []
+            for i, result in enumerate(research_results, 1):
+                sub_query = result.get('sub_query', f'Result {i}')
+                answer = result.get('answer', 'No answer provided.')
+                
+                # Skip placeholders in the available research context
+                if "PLACEHOLDER:" in answer:
+                    self.thinking_logger.note(f"Skipping placeholder content for sub-query: '{sub_query}'")
+                    continue
+                
+                formatted_text = f"Sub-Query: {sub_query}\nAnswer: {answer}\n---"
+                formatted_texts.append(formatted_text)
+                
+                self.thinking_logger.review(f"Formatted research item {i}: '{sub_query[:50]}...'")
             
-            formatted.append(f"Research {i}: {sub_query}\\nContent: {answer[:300]}...{quality_note}")
+            if not formatted_texts:
+                self.thinking_logger.warning("All research results were placeholders; no available info.")
+                return "All research conducted resulted in placeholders, indicating significant information gaps."
             
-            self.thinking_logger.note(f"Research {i}: {len(answer)} chars{quality_note}")
-        
-        return "\\n\\n".join(formatted)
+            return "\n".join(formatted_texts)
     
     def _parse_json_response_with_thinking(self, response: str) -> Dict[str, Any]:
-        """Parse JSON response with thinking."""
+        """Parse JSON response with detailed thinking process."""
         
-        self.thinking_logger.analyze("Parsing JSON response from LLM...")
-        
-        try:
-            # Try to extract JSON from response
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
+        with self.thinking_logger.analysis_block("Parsing LLM JSON Response"):
+            self.thinking_logger.think("Attempting to parse JSON from LLM response...")
             
-            if json_start >= 0 and json_end > json_start:
-                json_str = response[json_start:json_end]
-                parsed = json.loads(json_str)
-                self.thinking_logger.success(f"✅ Successfully parsed JSON with {len(parsed)} fields")
-                return parsed
-            else:
-                self.thinking_logger.problem("❌ No JSON structure found in response")
-                return {}
+            try:
+                # Use a more robust method to find the JSON block
+                first_brace = response.find('{')
+                last_brace = response.rfind('}')
                 
-        except Exception as e:
-            self.thinking_logger.problem(f"JSON parsing failed: {str(e)}")
-            return {}
+                if first_brace == -1 or last_brace == -1 or last_brace < first_brace:
+                    raise json.JSONDecodeError("Could not find a valid JSON object.", response, 0)
+                
+                json_string = response[first_brace:last_brace+1]
+                parsed_json = json.loads(json_string)
+                
+                self.thinking_logger.success("✅ JSON parsed successfully")
+                self.thinking_logger.review(f"Parsed keys: {list(parsed_json.keys())}")
+                
+                return parsed_json
+            
+            except json.JSONDecodeError as e:
+                self.thinking_logger.problem(f"JSON parsing failed: {e}")
+                self.thinking_logger.review(f"Problematic response: {response[:200]}...")
+                return None
     
     def _create_fallback_placeholder_context_with_thinking(self, missing_aspects: List[str]) -> Dict[str, Any]:
         """Create fallback placeholder context with thinking."""
         
-        self.thinking_logger.craft("Creating template-based placeholder context...")
-        
-        context = {
-            "insufficiency_summary": "Research results do not provide sufficient information for a complete answer",
-            "available_information": "Limited preliminary information found",
-            "critical_gaps": missing_aspects or ["Comprehensive analysis required"],
-            "placeholder_sections": [
-                {
-                    "section_title": "Missing Information",
-                    "placeholder_text": "[PLACEHOLDER: Additional research needed for complete analysis]",
-                    "required_research": "Targeted research on specific requirements"
-                }
-            ],
-            "enhancement_priority": "high",
-            "estimated_completion_effort": "Significant additional research required",
-            "fallback_context": True
-        }
-        
-        self.thinking_logger.note("Created fallback context with template structure")
-        return context
-    
+        with self.thinking_logger.adapt_block("Creating Fallback Context"):
+            self.thinking_logger.think("LLM context creation failed. Building fallback context from template.")
+            
+            return {
+                "insufficiency_summary": "Research was insufficient to provide a complete answer.",
+                "critical_gaps": missing_aspects or ["general information"],
+                "enhancement_priority": "high"
+            }
+            
     def _create_fallback_partial_answer_with_thinking(self, user_query: str, available_info: str) -> str:
         """Create fallback partial answer with thinking."""
         
-        self.thinking_logger.craft("Creating template-based partial answer...")
-        
-        answer = f"""Thank you for your inquiry regarding: {user_query}
-
-Based on our preliminary research, we can provide some initial information, but additional research is needed for a complete answer.
-
-**Available Information:**
-{available_info if available_info != "No research results available." else "Limited information found through initial research."}
-
-**Missing Information:**
-[PLACEHOLDER: Comprehensive analysis of specific requirements]
-[PLACEHOLDER: Detailed code references and standards]
-[PLACEHOLDER: Specific calculation parameters and methods]
-
-**Next Steps:**
-Additional targeted research is required to provide a complete and accurate answer. We recommend consulting the Virginia Building Code directly for the most current and detailed requirements.
-"""
-        
-        self.thinking_logger.note("Created template-based partial answer with 3 placeholders")
-        return answer 
+        with self.thinking_logger.adapt_block("Creating Fallback Partial Answer"):
+            self.thinking_logger.think("LLM partial answer generation failed. Using template.")
+            
+            return f"""
+            Regarding your query about "{user_query}", I was able to find the following information:
+            
+            {available_info}
+            
+            [PLACEHOLDER: Additional research is required to provide a complete and comprehensive answer.]
+            """ 
