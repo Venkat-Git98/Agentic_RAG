@@ -9,6 +9,7 @@ comprehensive, well-structured, and cited final response.
 import os
 import json
 from typing import Dict, Any, List
+from datetime import datetime
 
 # Add parent directories to path for imports
 from .base_agent import BaseLangGraphAgent
@@ -268,54 +269,36 @@ class SynthesisAgent(BaseLangGraphAgent):
     
     def _apply_agent_specific_updates(self, state: AgentState, output_data: Dict[str, Any]) -> AgentState:
         """
-        Applies synthesis-specific state updates.
+        Applies synthesis-specific updates to the state.
+        
+        This method ensures that intermediate outputs are correctly logged without
+        overwriting previous logs from other agents.
         
         Args:
-            state: Current state
-            output_data: Synthesis output data
+            state: The current state of the workflow.
+            output_data: The output from the synthesis agent's execution.
             
         Returns:
-            Updated state
+            The updated state.
         """
-        # To preserve critical data like the conversation_manager, we update the existing state
-        # instead of creating a new one. This prevents accidental data loss.
         updated_state = state.copy()
         
-        # Add the new data from the synthesis agent
-        updated_state.update(output_data)
+        # Ensure intermediate_outputs is a list
+        if "intermediate_outputs" not in updated_state or not isinstance(updated_state["intermediate_outputs"], list):
+            updated_state["intermediate_outputs"] = []
 
-        # To prevent state bloat, we can now safely remove large data fields
-        # that are no longer needed after the synthesis step.
-        if SUB_QUERY_ANSWERS in updated_state:
-            del updated_state[SUB_QUERY_ANSWERS]
-        
-        # It's also good practice to remove the research plan as it's been executed.
-        if "research_plan" in updated_state:
-            del updated_state["research_plan"]
-
-        # Update the intermediate outputs log
-        intermediate_log = state.get(INTERMEDIATE_OUTPUTS)
-        if intermediate_log is None:
-            self.logger.warning("Intermediate outputs log was None, re-initializing.")
-            intermediate_log = []
-
-        intermediate_log.append({
-            "step": "synthesis",
+        # Log the synthesis output
+        log_entry = {
             "agent": self.agent_name,
-            "output_data": output_data
-        })
-        updated_state[INTERMEDIATE_OUTPUTS] = intermediate_log
+            "output": {
+                "final_answer_length": len(output_data.get(FINAL_ANSWER, "")),
+                "confidence_score": output_data.get(CONFIDENCE_SCORE, 0.0),
+                "citation_count": len(output_data.get(SOURCE_CITATIONS, []))
+            },
+            "timestamp": datetime.now().isoformat()
+        }
         
-        # Update quality metrics
-        if updated_state.get(QUALITY_METRICS) is None:
-            updated_state[QUALITY_METRICS] = {}
-            
-        synthesis_metadata = output_data.get(SYNTHESIS_METADATA, {})
-        updated_state[QUALITY_METRICS]["synthesis_quality_score"] = output_data.get(CONFIDENCE_SCORE, 0.0)
-        updated_state[QUALITY_METRICS]["context_sufficiency_score"] = synthesis_metadata.get("integration_rate", 0.0)
-        
-        # Set end time for workflow
-        updated_state["end_time"] = state.get("start_time", "")  # This should be current time in real implementation
+        updated_state["intermediate_outputs"].append(log_entry)
         
         return updated_state
 

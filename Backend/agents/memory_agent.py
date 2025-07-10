@@ -141,35 +141,29 @@ class MemoryAgent(BaseLangGraphAgent):
     
     def _apply_agent_specific_updates(self, state: AgentState, output_data: Dict[str, Any]) -> AgentState:
         """
-        Applies memory-specific state updates.
+        Applies memory-specific updates to the state.
         
-        Args:
-            state: Current state
-            output_data: Memory output data
-            
-        Returns:
-            Updated state
+        This method ensures that intermediate outputs are correctly logged without
+        overwriting previous logs from other agents.
         """
         updated_state = state.copy()
-        updated_state.update(output_data)
         
-        # Store memory operation metadata
-        if updated_state.get("intermediate_outputs") is not None:
-            log_entry = {
-                "step": "memory_update",
-                "agent": self.agent_name,
-                "details": {
-                    "conversation_updated": output_data.get("conversation_updated", False),
-                    "memory_update_completed": output_data.get("memory_update_completed", False),
-                    "execution_time_ms": output_data.get("total_execution_time_ms", 0.0)
-                }
-            }
-            updated_state["intermediate_outputs"].append(log_entry)
+        # Ensure intermediate_outputs is a list
+        if "intermediate_outputs" not in updated_state or not isinstance(updated_state["intermediate_outputs"], list):
+            updated_state["intermediate_outputs"] = []
+
+        # Log the memory update
+        log_entry = {
+            "agent": self.agent_name,
+            "output": {
+                "memory_updated": output_data.get("memory_updated", False),
+                "summary_length": len(output_data.get("conversation_summary", ""))
+            },
+            "timestamp": datetime.now().isoformat()
+        }
         
-        # Update final workflow status
-        updated_state["workflow_status"] = "completed"
-        updated_state["current_step"] = "finish"
-        
+        updated_state["intermediate_outputs"].append(log_entry)
+
         return updated_state
 
 class EnhancedMemoryAgent(MemoryAgent):

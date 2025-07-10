@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test_session_dc892d68-c56b-44f6-a732-007bb89e43d6",
+  "full_history": [
+    {
+      "id": "0fce7e45-61b9-4d48-acbf-278aa19a1841",
+      "role": "user",
+      "content": "I'm designing a new multi-story hospital, which is obviously a critical facility. I need to understand the special structural integrity rules that apply to this type of high-risk building. Specifically, for a cast-in-place concrete frame, what are the fundamental requirements for tying the structure together to ensure stability, particularly concerning the connection of floors and beams to the columns?"
+    },
+    {
+      "id": "ded7fc83-2a46-481b-a543-1ca9e7c0b43d",
+      "role": "assistant",
+      "content": "I cannot provide an answer to the query regarding the structural integrity rules for a multi-story hospital using a cast-in-place concrete frame. The provided research context indicates the search failed because the query was too long.  Therefore, I am missing the necessary information from the Virginia Building Code to address the requirements for tying the structure together, specifically the connection of floors and beams to columns."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

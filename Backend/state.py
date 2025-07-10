@@ -134,6 +134,12 @@ class AgentState(TypedDict):
     intermediate_outputs: Optional[Dict[str, Any]]
     performance_metrics: Optional[Dict[str, Any]]
 
+    # === Mathematical Enhancement Metadata ===
+    mathematical_metadata: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Tracks mathematical content detection and enhancement throughout workflow"
+    )
+
     retrieved_diagrams: Optional[List[Dict[str, Any]]] = Field(
         default_factory=list,
         description="A list of retrieved diagrams, including their processed image data and metadata."
@@ -219,7 +225,8 @@ def create_initial_state(
         # Debug
         debug_mode=debug_mode,
         intermediate_outputs={} if debug_mode else None,
-        performance_metrics={} if debug_mode else None
+        performance_metrics={} if debug_mode else None,
+        mathematical_metadata={} if debug_mode else None
     )
 
 def log_agent_execution(

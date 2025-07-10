@@ -22,6 +22,10 @@ from .direct_retrieval_queries import (
     GET_SUBSECTION_CONTEXT_BY_ID,
     GET_SECTION_CONTEXT_BY_ID,
     GET_FULL_SUBSECTION_HIERARCHY,
+    GET_ENHANCED_SUBSECTION_CONTEXT,
+    GET_CHAPTER_EQUATIONS,
+    GET_SECTION_EQUATIONS,
+    GET_EXPANDED_MATHEMATICAL_CONTEXT
 )
 
 class Neo4jConnector:
@@ -769,6 +773,102 @@ class Neo4jConnector:
                     })
 
         return {"nodes": nodes, "edges": edges}
+    
+    @staticmethod
+    def get_enhanced_subsection_context(uid: str) -> Dict[str, Any]:
+        """
+        Enhanced subsection retrieval that explicitly includes Math, Diagram, and Table nodes.
+        
+        Args:
+            uid: The subsection UID (e.g., "1607.12.1")
+            
+        Returns:
+            Dictionary containing enhanced context with structured mathematical content
+        """
+        try:
+            records = Neo4jConnector.execute_query(GET_ENHANCED_SUBSECTION_CONTEXT, {"uid": uid})
+            if not records:
+                return {}
+            
+            record = records[0]
+            return {
+                "parent": dict(record.get("parent", {})),
+                "content_nodes": [dict(node) for node in record.get("content_nodes", [])],
+                "math_nodes": [dict(node) for node in record.get("math_nodes", [])],
+                "diagram_nodes": [dict(node) for node in record.get("diagram_nodes", [])],
+                "table_nodes": [dict(node) for node in record.get("table_nodes", [])],
+                "referenced_math": [dict(node) for node in record.get("referenced_math", [])],
+                "referenced_tables": [dict(node) for node in record.get("referenced_tables", [])]
+            }
+        except Exception as e:
+            logging.error(f"Failed to get enhanced subsection context for '{uid}': {e}")
+            return {}
+    
+    @staticmethod
+    def get_chapter_equations(chapter_number: str) -> List[Dict[str, Any]]:
+        """
+        Retrieve all mathematical equations from a specific chapter.
+        
+        Args:
+            chapter_number: Chapter number (e.g., "16")
+            
+        Returns:
+            List of equation dictionaries
+        """
+        try:
+            records = Neo4jConnector.execute_query(GET_CHAPTER_EQUATIONS, {"chapter_number": chapter_number})
+            return [dict(record) for record in records]
+        except Exception as e:
+            logging.error(f"Failed to get equations for chapter {chapter_number}: {e}")
+            return []
+    
+    @staticmethod
+    def get_section_equations(section_number: str) -> List[Dict[str, Any]]:
+        """
+        Retrieve all mathematical equations from a specific section or subsection.
+        
+        Args:
+            section_number: Section number (e.g., "1607.12.1")
+            
+        Returns:
+            List of equation dictionaries
+        """
+        try:
+            records = Neo4jConnector.execute_query(GET_SECTION_EQUATIONS, {"section_number": section_number})
+            return [dict(record) for record in records]
+        except Exception as e:
+            logging.error(f"Failed to get equations for section {section_number}: {e}")
+            return []
+    
+    @staticmethod
+    def get_expanded_mathematical_context(uid: str) -> Dict[str, Any]:
+        """
+        Get comprehensive mathematical context for a section with explicit content separation.
+        
+        Args:
+            uid: Section or subsection number (e.g., "1607.12")
+            
+        Returns:
+            Dictionary with separated regular content, math content, diagrams, and tables
+        """
+        try:
+            records = Neo4jConnector.execute_query(GET_EXPANDED_MATHEMATICAL_CONTEXT, {"uid": uid})
+            if not records:
+                return {}
+            
+            record = records[0]
+            return {
+                "main_node": dict(record.get("main_node", {})),
+                "regular_content": record.get("regular_content", []),
+                "math_content": record.get("math_content", []),
+                "diagram_content": record.get("diagram_content", []),
+                "table_content": record.get("table_content", []),
+                "referenced_math": record.get("referenced_math", []),
+                "referenced_tables": record.get("referenced_tables", [])
+            }
+        except Exception as e:
+            logging.error(f"Failed to get expanded mathematical context for '{uid}': {e}")
+            return {}
 
 # Ensure the driver is closed when the application exits.
 atexit.register(Neo4jConnector.close_driver)

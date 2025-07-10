@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test_session_be79643c-a992-4206-8622-16dd6e5394f4",
+  "full_history": [
+    {
+      "id": "87a92b37-6480-48e7-bbe8-83dd0aba0f88",
+      "role": "user",
+      "content": "Show me Section 101.1 of the Virginia Building Code."
+    },
+    {
+      "id": "7140c89f-6aae-4a1a-b49a-1a70923983a4",
+      "role": "assistant",
+      "content": "Section 101.1 of the Virginia Building Code (specifically, the Virginia Uniform Statewide Building Code, Part II, Existing Buildings) states that the code can be cited as the \"Virginia Existing Building Code\" or \"VEBC.\" [13VAC5-63-400. Chapter 1 Administration; Section 101 General.] This section pertains to the general administration of the code.  The Virginia Uniform Statewide Building Code (USBC) governs the construction, maintenance, and occupancy of buildings in Virginia, and is tailored to the state's specific needs. [https://www.commonwealthcontracts.com/guides/virginia-building-code-guide] The USBC is comprised of three parts: the Virginia Construction Code, the Virginia Existing Building Code, and the Virginia Maintenance Code. [https://www.dhcd.virginia.gov/virginia-uniform-statewide-building-code-usbc]  Note that the provided research also references 101.1 within Part I, Construction [13VAC5-63-10. Chapter 1 Administration; Section 101 General.], however, the content of this section was not included in the search results.  Therefore, further details regarding this specific section within the Construction portion of the code cannot be provided. The provided research does not include any diagrams or images related to section 101.1."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

@@ -349,25 +349,41 @@ class ErrorHandler(BaseLangGraphAgent):
             return f"{base_message}\n\nPlease try rephrasing your question or contact support if the issue persists."
     
     def _validate_agent_specific_state(self, state: AgentState) -> None:
-        """Validates error handler specific state requirements."""
-        # Error handler should have some kind of error to process
+        """Validate state for the error handler."""
+        # The error handler should always have an error state, but we can be defensive
         if not state.get("error_state"):
-            self.logger.warning("Error handler called without error_state")
-    
+            self.logger.warning("Error handler called without an error_state.")
+
     def _apply_agent_specific_updates(self, state: AgentState, output_data: Dict[str, Any]) -> AgentState:
-        """Applies error handler specific state updates."""
+        """Applies error handling specific state updates."""
         updated_state = state.copy()
         updated_state.update(output_data)
 
-        # Log error handling details
-        if "intermediate_outputs" in updated_state and updated_state["intermediate_outputs"] is not None:
-            log_entry = {
-                "step": "error_handling",
-                "agent": self.agent_name,
-                "failed_agent": updated_state.get("error_state", {}).get("agent"),
-                "recovery_strategy": output_data.get("recovery_action"),
-                "timestamp": datetime.now().isoformat()
+        # Log error handling details for debugging
+        error_details = updated_state.get("error_state") or {}
+        
+        intermediate_log = updated_state.get("intermediate_outputs", [])
+        if not isinstance(intermediate_log, list):
+            intermediate_log = []
+        
+        intermediate_log.append({
+            "step": "error_handling",
+            "agent": self.agent_name,
+            "log": {
+                "recovery_action": output_data.get("recovery_action"),
+                "failed_agent": error_details.get("agent"),
+                "error_type": error_details.get("error_type"),
+                "error_message": error_details.get("error_message")
             }
-            updated_state["intermediate_outputs"].append(log_entry)
-            
+        })
+        updated_state["intermediate_outputs"] = intermediate_log
+        
+        # Increment retry count if applicable
+        if output_data.get("recovery_action") == "retry":
+            updated_state["retry_count"] = updated_state.get("retry_count", 0) + 1
+        
+        # Clear the error state if it has been handled
+        if output_data.get("error_handled"):
+            updated_state["error_state"] = None
+        
         return updated_state 

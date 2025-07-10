@@ -2,6 +2,7 @@ from react_agent.base_tool import BaseTool
 from tools.neo4j_connector import Neo4jConnector
 import logging
 import re
+from typing import List
 
 class KeywordRetrievalTool(BaseTool):
     """
@@ -27,6 +28,100 @@ class KeywordRetrievalTool(BaseTool):
         if match:
             return match.group(1)
         return None
+
+    def _extract_key_terms_from_query(self, query: str) -> List[str]:
+        """
+        Extract key searchable terms from complex queries.
+        This helps convert question-style queries into specific terms that might appear in the database.
+        """
+        import re
+        
+        key_terms = []
+        
+        # Extract equation references (e.g., "Equation 16-7" -> "16-7")
+        equation_matches = re.findall(r'equation\s+(\d+[-\.]\d+)', query, re.IGNORECASE)
+        for eq in equation_matches:
+            key_terms.extend([eq, eq.replace('-', '.'), f"Equation {eq}"])
+        
+        # Extract section references (e.g., "Section 1607.12.1" -> "1607.12.1")
+        section_matches = re.findall(r'section\s+(\d+\.[\d\.]+)', query, re.IGNORECASE)
+        key_terms.extend(section_matches)
+        
+        # Extract table references (e.g., "Table 1607.12.1" -> "1607.12.1")
+        table_matches = re.findall(r'table\s+(\d+\.[\d\.]*)', query, re.IGNORECASE)
+        key_terms.extend(table_matches)
+        
+        # Extract specific technical terms commonly found in building codes
+        technical_terms = [
+            'live load', 'reduced live load', 'design live load', 'tributary area',
+            'unreduced live load', 'live load reduction', 'interior beams',
+            'KLL', 'factor', 'office building', 'psf', 'square feet'
+        ]
+        
+        for term in technical_terms:
+            if term.lower() in query.lower():
+                key_terms.append(term)
+        
+        # Extract numbers with units that might be relevant
+        number_unit_matches = re.findall(r'(\d+(?:\.\d+)?\s*(?:psf|sq\s*ft|square\s*feet))', query, re.IGNORECASE)
+        key_terms.extend(number_unit_matches)
+        
+        return list(set(key_terms))  # Remove duplicates
+
+    def _try_multiple_keyword_searches(self, key_terms: List[str]) -> str:
+        """
+        Try multiple keyword searches with different terms and combine results.
+        """
+        all_results = []
+        found_any_results = False
+        
+        for term in key_terms:
+            if not term or len(term.strip()) < 2:
+                continue
+                
+            query = """
+            MATCH (n)
+            WHERE (n:Passage OR n:Table OR n:Section OR n:Subsection OR n:Math)
+            AND (n.text CONTAINS $keyword OR n.latex CONTAINS $keyword OR n.title CONTAINS $keyword)
+            RETURN 
+                n.uid AS uid, 
+                labels(n)[0] AS type,
+                n.number AS number,
+                n.title AS title,
+                n.text AS text,
+                n.latex AS latex
+            LIMIT 5
+            """
+            
+            try:
+                logging.info(f"Trying keyword search for term: '{term}'")
+                results = Neo4jConnector.execute_query(query, {"keyword": term})
+                
+                if results:
+                    found_any_results = True
+                    all_results.append(f"\n=== Results for '{term}' ===")
+                    for record in results:
+                        data = record.data()
+                        all_results.append(f"- Type: {data.get('type')}, UID: {data.get('uid')}")
+                        if data.get('number'):
+                            all_results.append(f"  Number: {data.get('number')}")
+                        if data.get('title'):
+                            all_results.append(f"  Title: {data.get('title')}")
+                        if data.get('latex'):
+                            all_results.append(f"  Formula: {data.get('latex')}")
+                        if data.get('text'):
+                            text_preview = (data['text'][:200] + '...') if len(data['text']) > 200 else data['text']
+                            all_results.append(f"  Text: {text_preview}")
+                        all_results.append("---")
+                        
+            except Exception as e:
+                logging.warning(f"Keyword search failed for term '{term}': {e}")
+                continue
+        
+        if found_any_results:
+            return "\n".join(all_results)
+        else:
+            return f"No results found for any of the extracted terms: {', '.join(key_terms)}"
 
     def _fetch_complete_subsection(self, subsection_number: str) -> str:
         """
@@ -127,6 +222,7 @@ class KeywordRetrievalTool(BaseTool):
         """
         Executes a keyword search. If the keyword references a table, it fetches the complete
         subsection containing that table. Otherwise, performs a standard keyword search.
+        Enhanced to handle complex queries by extracting key terms.
 
         Args:
             keyword: The keyword or phrase to search for.
@@ -143,7 +239,18 @@ class KeywordRetrievalTool(BaseTool):
             logging.info(f"Detected table reference. Fetching complete subsection: {subsection_number}")
             return self._fetch_complete_subsection(subsection_number)
 
-        # Standard keyword search for non-table queries
+        # For complex queries, extract key terms and try multiple searches
+        if len(keyword.split()) > 3:  # Complex query with multiple words
+            logging.info(f"Complex query detected: '{keyword}'. Extracting key terms.")
+            key_terms = self._extract_key_terms_from_query(keyword)
+            
+            if key_terms:
+                logging.info(f"Extracted key terms: {key_terms}")
+                return self._try_multiple_keyword_searches(key_terms)
+            else:
+                logging.info("No key terms extracted. Falling back to standard search.")
+
+        # Standard keyword search for simple queries
         query = """
         MATCH (n)
         WHERE (n:Passage OR n:Table OR n:Section OR n:Subsection)
@@ -158,7 +265,7 @@ class KeywordRetrievalTool(BaseTool):
         """
         
         try:
-            logging.info(f"Executing keyword search in Neo4j for: '{keyword}'")
+            logging.info(f"Executing standard keyword search in Neo4j for: '{keyword}'")
             results = Neo4jConnector.execute_query(query, {"keyword": keyword})
 
             if not results:

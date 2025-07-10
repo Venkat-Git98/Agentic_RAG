@@ -20,6 +20,9 @@ from langgraph_agentic_ai.config import redis_client
 from config import TIER_1_MODEL_NAME, TIER_2_MODEL_NAME, GOOGLE_API_KEY
 from state import AgentState, log_agent_execution
 
+# Use the LangChain wrapper for Google Generative AI
+from langchain_google_genai import ChatGoogleGenerativeAI
+
 # Configure Gemini if not already configured
 if GOOGLE_API_KEY:
     try:
@@ -29,36 +32,32 @@ if GOOGLE_API_KEY:
 
 class BaseLangGraphAgent(ABC):
     """
-    Base class for all LangGraph agents in the agentic workflow.
-    
-    Provides common functionality including:
-    - Model initialization and management
-    - Execution logging and timing
-    - Error handling patterns
-    - State management utilities
+    Abstract base class for all agents in the LangGraph workflow.
     """
     
     def __init__(self, model_tier: str = "tier_2", agent_name: Optional[str] = None):
         """
-        Initialize the base agent.
+        Initializes the agent with a specific model tier and name.
         
         Args:
-            model_tier: "tier_1" for pro model, "tier_2" for flash model
-            agent_name: Optional custom name for the agent
+            model_tier: "tier_1" for high-capability model (e.g., Gemini Pro 1.5),
+                        "tier_2" for faster, cost-effective model (e.g., Gemini Flash 1.5)
+            agent_name: A descriptive name for the agent.
         """
         self.agent_name = agent_name or self.__class__.__name__
-        self.model_tier = model_tier
-        self.model_name = TIER_1_MODEL_NAME if model_tier == "tier_1" else TIER_2_MODEL_NAME
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+        # Use ChatGoogleGenerativeAI for LangChain compatibility
+        model_name = TIER_1_MODEL_NAME if model_tier == "tier_1" else TIER_2_MODEL_NAME
         
-        # Initialize the model
-        try:
-            self.model = genai.GenerativeModel(self.model_name)
-            self.logger = logging.getLogger(self.agent_name)
-            self.logger.info(f"Initialized {self.agent_name} with model {self.model_name}")
-        except Exception as e:
-            self.logger = logging.getLogger(self.agent_name)
-            self.logger.error(f"Failed to initialize model {self.model_name}: {e}")
-            raise
+        # This flag is crucial for structured output to work correctly with Gemini
+        self.model = ChatGoogleGenerativeAI(
+            model=model_name, 
+            temperature=0.0,
+        )
+
+        self.model_name = self.model.model
+        self.logger.info(f"Initialized {self.agent_name} with model {self.model_name}")
     
     async def __call__(self, state: AgentState) -> AgentState:
         """
@@ -266,8 +265,8 @@ class BaseLangGraphAgent(ABC):
         if not redis_client:
             # Fallback to direct call if Redis is not available
             self.logger.warning("Redis not available. Calling model directly without caching.")
-            response = self.model.generate_content(prompt, **kwargs)
-            return response.text.strip()
+            response = await self.model.ainvoke(prompt, **kwargs)
+            return response.content.strip()
 
         try:
             # 1. Create a unique, consistent key for the prompt
@@ -282,8 +281,8 @@ class BaseLangGraphAgent(ABC):
 
             # 3. If not in cache (cache miss), call the model
             self.logger.info("--- CACHE MISS ---")
-            response = self.model.generate_content(prompt, **kwargs)
-            response_text = response.text.strip()
+            response = await self.model.ainvoke(prompt, **kwargs)
+            response_text = response.content.strip()
 
             # 4. Store the new response in the cache with no expiration
             redis_client.set(cache_key, response_text)
@@ -293,8 +292,8 @@ class BaseLangGraphAgent(ABC):
         except Exception as e:
             self.logger.error(f"Error during content generation or caching: {e}")
             # Fallback to direct call on error
-            response = self.model.generate_content(prompt, **kwargs)
-            return response.text.strip()
+            response = await self.model.ainvoke(prompt, **kwargs)
+            return response.content.strip()
     
     def sanitize_for_logging(self, data: Any, max_length: int = 150) -> str:
         """

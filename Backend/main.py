@@ -34,13 +34,13 @@ class LangGraphAgenticAI:
         self.thinking_mode = ThinkingMode.DETAILED if detailed_thinking else ThinkingMode.SIMPLE
         mode_desc = "detailed" if detailed_thinking else "simple"
         logger.info(f"🧠 LangGraph Agentic AI initialized (debug={debug}, mode={mode_desc})")
-
+    
     async def query(self, user_query: str, thread_id: str, initial_state: Optional[Dict] = None) -> str:
         """
         Processes a single query through the agentic workflow.
         """
         logger.info(f"🧠 Processing query for thread '{thread_id}': {user_query[:100]}...")
-
+        
         conversation_manager = ConversationManager(thread_id, redis_client, initial_state=initial_state)
         context_payload = conversation_manager.get_contextual_payload()
         
@@ -63,7 +63,7 @@ class LangGraphAgenticAI:
         conversation_manager.add_assistant_message(response)
         
         return response
-
+    
     async def interactive_mode(self):
         """
         Runs the system in an interactive command-line mode.
@@ -85,7 +85,7 @@ class LangGraphAgenticAI:
             response = await self.query(user_input, USER_THREAD_ID)
             print("\r" + " "*15 + "\r", end="")
             print(f"AI: {response}\n")
-
+                
 def main():
     """Main execution function."""
     parser = argparse.ArgumentParser(description="Run the LangGraph Agentic AI.")
@@ -99,7 +99,7 @@ def main():
     args = parser.parse_args()
     
     ai_system = LangGraphAgenticAI(debug=args.debug, detailed_thinking=args.detailed)
-
+    
     if args.interactive:
         asyncio.run(ai_system.interactive_mode())
     elif args.query:

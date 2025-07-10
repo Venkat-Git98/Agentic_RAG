@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test_session_final",
+  "full_history": [
+    {
+      "id": "ba3fb982-1ce3-4971-9b5a-d939215d3a49",
+      "role": "user",
+      "content": "What are the live load requirements for office buildings?"
+    },
+    {
+      "id": "92334b26-921b-4e92-a064-28102f4b3a05",
+      "role": "assistant",
+      "content": "The minimum live load requirement for office building floors is 50 pounds per square foot (psf).  Partitions in office buildings require a live load of 15 psf, but this can be omitted if the overall live load is 80 psf or greater. File and computer rooms may require higher live loads based on anticipated use.\n\nA study referenced in one source found that average loads in office buildings were significantly lower than the prescribed minimum, with the highest recorded load at 40.2 psf.  However, building codes specify the 50 psf minimum for design purposes. Additionally, a concentrated load of 2000 pounds over a 2.5-foot square area must also be considered in the design if it produces greater stresses than the uniform 50 psf load.  California Building Code requires consideration for partition loads of 15 psf in office buildings and other buildings where partition locations may change, unless the specified live load is 80 psf or greater. (This information is synthesized from multiple sources including GOVPUB-C13-3fe62f845d95fcec4699463b39c5241d,  California Building Code 2022 Section 1607.5, and Eng-Tips discussions).  No diagrams were provided."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

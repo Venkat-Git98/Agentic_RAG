@@ -1,0 +1,1956 @@
+[
+  {
+    "id": "11",
+    "title": "ACCESSIBILITY",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "1105",
+        "title": "ACCESSIBLE ENTRANCES",
+        "level": "section"
+      },
+      {
+        "id": "1104",
+        "title": "ACCESSIBLE ROUTE",
+        "level": "section"
+      },
+      {
+        "id": "1102",
+        "title": "COMPLIANCE",
+        "level": "section"
+      },
+      {
+        "id": "1108",
+        "title": "DWELLING UNITS AND SLEEPING UNITS",
+        "level": "section"
+      },
+      {
+        "id": "1101",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1101",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1107",
+        "title": "MOTOR-VEHICLE-RELATED FACILITIES",
+        "level": "section"
+      },
+      {
+        "id": "1110",
+        "title": "OTHER FEATURES AND FACILITIES",
+        "level": "section"
+      },
+      {
+        "id": "1106",
+        "title": "PARKING AND PASSENGER LOADING FACILITIES",
+        "level": "section"
+      },
+      {
+        "id": "1111",
+        "title": "RECREATIONAL FACILITIES",
+        "level": "section"
+      },
+      {
+        "id": "1103",
+        "title": "SCOPING REQUIREMENTS",
+        "level": "section"
+      },
+      {
+        "id": "1112",
+        "title": "SIGNAGE",
+        "level": "section"
+      },
+      {
+        "id": "1109",
+        "title": "SPECIAL OCCUPANCIES",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "1",
+    "title": "ADMINISTRATION",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "119",
+        "title": "APPEALS",
+        "level": "section"
+      },
+      {
+        "id": "108",
+        "title": "APPLICATION FOR PERMIT",
+        "level": "section"
+      },
+      {
+        "id": "103",
+        "title": "APPLICATION OF CODE",
+        "level": "section"
+      },
+      {
+        "id": "118",
+        "title": "BUILDINGS OR STRUCTURES THAT BECOME A THREAT TO PUBLIC SAFETY DURING",
+        "level": "section"
+      },
+      {
+        "id": "116",
+        "title": "CERTIFICATES OF OCCUPANCY",
+        "level": "section"
+      },
+      {
+        "id": "109",
+        "title": "CONSTRUCTION DOCUMENTS",
+        "level": "section"
+      },
+      {
+        "id": "104",
+        "title": "ENFORCEMENT, GENERALLY",
+        "level": "section"
+      },
+      {
+        "id": "107",
+        "title": "FEES",
+        "level": "section"
+      },
+      {
+        "id": "101",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "101",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "113",
+        "title": "INSPECTIONS",
+        "level": "section"
+      },
+      {
+        "id": "105",
+        "title": "LOCAL BUILDING DEPARTMENT",
+        "level": "section"
+      },
+      {
+        "id": "110",
+        "title": "PERMITS",
+        "level": "section"
+      },
+      {
+        "id": "106",
+        "title": "POWERS AND DUTIES OF THE BUILDING OFFICIAL",
+        "level": "section"
+      },
+      {
+        "id": "102",
+        "title": "PURPOSE AND SCOPE",
+        "level": "section"
+      },
+      {
+        "id": "111",
+        "title": "RDP SERVICES",
+        "level": "section"
+      },
+      {
+        "id": "114",
+        "title": "STOP WORK ORDERS",
+        "level": "section"
+      },
+      {
+        "id": "117",
+        "title": "TEMPORARY AND MOVED BUILDINGS AND",
+        "level": "section"
+      },
+      {
+        "id": "115",
+        "title": "VIOLATIONS",
+        "level": "section"
+      },
+      {
+        "id": "112",
+        "title": "WORKMANSHIP, MATERIAL AND EQUIPMENT",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "20",
+    "title": "ALUMINUM",
+    "level": "chapter",
+    "sections": []
+  },
+  {
+    "id": "19",
+    "title": "CONCRETE",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "1902",
+        "title": "COORDINATION OF TERMINOLOGY",
+        "level": "section"
+      },
+      {
+        "id": "1904",
+        "title": "DURABILITY REQUIREMENTS",
+        "level": "section"
+      },
+      {
+        "id": "1906",
+        "title": "FOOTINGS FOR LIGHT-FRAME CONSTRUCTION",
+        "level": "section"
+      },
+      {
+        "id": "1901",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1901",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1907",
+        "title": "MINIMUM SLAB PROVISIONS",
+        "level": "section"
+      },
+      {
+        "id": "1905",
+        "title": "MODIFICATIONS TO ACI 318",
+        "level": "section"
+      },
+      {
+        "id": "1903",
+        "title": "SPECIFICATIONS FOR TESTS AND MATERIALS",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "2",
+    "title": "DEFINITIONS",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "202",
+        "title": "DEFINITIONS",
+        "level": "section"
+      },
+      {
+        "id": "201",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "201",
+        "title": "GENERAL",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "27",
+    "title": "ELECTRICAL",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "2702",
+        "title": "EMERGENCY AND STANDBY POWER SYSTEMS",
+        "level": "section"
+      },
+      {
+        "id": "2701",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2701",
+        "title": "GENERAL",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "30",
+    "title": "ELEVATORS AND CONVEYING SYSTEMS",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "3004",
+        "title": "CONVEYING SYSTEMS",
+        "level": "section"
+      },
+      {
+        "id": "3006",
+        "title": "ELEVATOR LOBBIES AND",
+        "level": "section"
+      },
+      {
+        "id": "3003",
+        "title": "EMERGENCY OPERATIONS",
+        "level": "section"
+      },
+      {
+        "id": "3007",
+        "title": "FIRE SERVICE ACCESS ELEVATOR",
+        "level": "section"
+      },
+      {
+        "id": "3001",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "3001",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "3002",
+        "title": "HOISTWAY ENCLOSURES",
+        "level": "section"
+      },
+      {
+        "id": "3005",
+        "title": "MACHINE ROOMS",
+        "level": "section"
+      },
+      {
+        "id": "3008",
+        "title": "OCCUPANT EVACUATION ELEVATORS",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "32",
+    "title": "ENCROACHMENTS INTO THE PUBLIC RIGHT-OF-WAY",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "3202",
+        "title": "ENCROACHMENTS",
+        "level": "section"
+      },
+      {
+        "id": "3201",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "3201",
+        "title": "GENERAL",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "13",
+    "title": "ENERGY EFFICIENCY",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "1301",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1301",
+        "title": "GENERAL",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "14",
+    "title": "EXTERIOR WALLS",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "1405",
+        "title": "COMBUSTIBLE MATERIALS ON",
+        "level": "section"
+      },
+      {
+        "id": "1407",
+        "title": "EXTERIOR INSULATION AND FINISH SYSTEMS",
+        "level": "section"
+      },
+      {
+        "id": "1401",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1401",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1408",
+        "title": "HIGH-PRESSURE DECORATIVE EXTERIOR-",
+        "level": "section"
+      },
+      {
+        "id": "1404",
+        "title": "INSTALLATION OF WALL COVERINGS",
+        "level": "section"
+      },
+      {
+        "id": "1403",
+        "title": "MATERIALS",
+        "level": "section"
+      },
+      {
+        "id": "1406",
+        "title": "METAL COMPOSITE MATERIALS (MCM)",
+        "level": "section"
+      },
+      {
+        "id": "1402",
+        "title": "PERFORMANCE REQUIREMENTS",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "7",
+    "title": "FIRE AND SMOKE PROTECTION FEATURES",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "722",
+        "title": "CALCULATED FIRE RESISTANCE",
+        "level": "section"
+      },
+      {
+        "id": "718",
+        "title": "CONCEALED SPACES",
+        "level": "section"
+      },
+      {
+        "id": "717",
+        "title": "DUCTS AND AIR TRANSFER OPENINGS",
+        "level": "section"
+      },
+      {
+        "id": "705",
+        "title": "EXTERIOR WALLS",
+        "level": "section"
+      },
+      {
+        "id": "707",
+        "title": "FIRE BARRIERS",
+        "level": "section"
+      },
+      {
+        "id": "708",
+        "title": "FIRE PARTITIONS",
+        "level": "section"
+      },
+      {
+        "id": "706",
+        "title": "FIRE WALLS",
+        "level": "section"
+      },
+      {
+        "id": "704",
+        "title": "FIRE-RESISTANCE RATING OF STRUCTURAL MEMBERS",
+        "level": "section"
+      },
+      {
+        "id": "703",
+        "title": "FIRE-RESISTANCE RATINGS AND FIRE TESTS",
+        "level": "section"
+      },
+      {
+        "id": "719",
+        "title": "FIRE-RESISTANCE REQUIREMENTS FOR PLASTER",
+        "level": "section"
+      },
+      {
+        "id": "711",
+        "title": "FLOOR AND ROOF ASSEMBLIES",
+        "level": "section"
+      },
+      {
+        "id": "701",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "701",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "715",
+        "title": "JOINTS AND VOIDS",
+        "level": "section"
+      },
+      {
+        "id": "702",
+        "title": "MULTIPLE-USE FIRE ASSEMBLIES",
+        "level": "section"
+      },
+      {
+        "id": "716",
+        "title": "OPENING PROTECTIVES",
+        "level": "section"
+      },
+      {
+        "id": "714",
+        "title": "PENETRATIONS",
+        "level": "section"
+      },
+      {
+        "id": "721",
+        "title": "PRESCRIPTIVE FIRE RESISTANCE",
+        "level": "section"
+      },
+      {
+        "id": "713",
+        "title": "SHAFT ENCLOSURES",
+        "level": "section"
+      },
+      {
+        "id": "709",
+        "title": "SMOKE BARRIERS",
+        "level": "section"
+      },
+      {
+        "id": "710",
+        "title": "SMOKE PARTITIONS",
+        "level": "section"
+      },
+      {
+        "id": "720",
+        "title": "THERMAL- AND SOUND-INSULATING MATERIALS",
+        "level": "section"
+      },
+      {
+        "id": "712",
+        "title": "VERTICAL OPENINGS",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "9",
+    "title": "FIRE PROTECTION AND LIFE SAFETY SYSTEMS",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "904",
+        "title": "ALTERNATIVE AUTOMATIC",
+        "level": "section"
+      },
+      {
+        "id": "903",
+        "title": "AUTOMATIC SPRINKLER SYSTEMS",
+        "level": "section"
+      },
+      {
+        "id": "915",
+        "title": "CARBON MONOXIDE DETECTION",
+        "level": "section"
+      },
+      {
+        "id": "908",
+        "title": "EMERGENCY ALARM SYSTEMS",
+        "level": "section"
+      },
+      {
+        "id": "914",
+        "title": "EMERGENCY RESPONDER SAFETY FEATURES",
+        "level": "section"
+      },
+      {
+        "id": "907",
+        "title": "FIRE ALARM AND DETECTION SYSTEMS",
+        "level": "section"
+      },
+      {
+        "id": "911",
+        "title": "FIRE COMMAND CENTER",
+        "level": "section"
+      },
+      {
+        "id": "912",
+        "title": "FIRE DEPARTMENT CONNECTIONS",
+        "level": "section"
+      },
+      {
+        "id": "902",
+        "title": "FIRE PUMP AND RISER ROOM SIZE",
+        "level": "section"
+      },
+      {
+        "id": "913",
+        "title": "FIRE PUMPS",
+        "level": "section"
+      },
+      {
+        "id": "916",
+        "title": "GAS DETECTION SYSTEMS",
+        "level": "section"
+      },
+      {
+        "id": "901",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "901",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "918",
+        "title": "IN-BUILDING EMERGENCY COMMUNICATIONS COVERAGE",
+        "level": "section"
+      },
+      {
+        "id": "917",
+        "title": "MASS NOTIFICATION SYSTEMS",
+        "level": "section"
+      },
+      {
+        "id": "906",
+        "title": "PORTABLE FIRE EXTINGUISHERS",
+        "level": "section"
+      },
+      {
+        "id": "910",
+        "title": "SMOKE AND HEAT REMOVAL",
+        "level": "section"
+      },
+      {
+        "id": "909",
+        "title": "SMOKE CONTROL SYSTEMS",
+        "level": "section"
+      },
+      {
+        "id": "905",
+        "title": "STANDPIPE SYSTEMS",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "5",
+    "title": "GENERAL BUILDING HEIGHTS AND AREAS",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "502",
+        "title": "BUILDING ADDRESS",
+        "level": "section"
+      },
+      {
+        "id": "506",
+        "title": "BUILDING AREA",
+        "level": "section"
+      },
+      {
+        "id": "504",
+        "title": "BUILDING HEIGHT AND NUMBER OF STORIES",
+        "level": "section"
+      },
+      {
+        "id": "501",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "501",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "503",
+        "title": "GENERAL BUILDING",
+        "level": "section"
+      },
+      {
+        "id": "509",
+        "title": "INCIDENTAL USES",
+        "level": "section"
+      },
+      {
+        "id": "505",
+        "title": "MEZZANINES AND EQUIPMENT PLATFORMS",
+        "level": "section"
+      },
+      {
+        "id": "508",
+        "title": "MIXED USE AND OCCUPANCY",
+        "level": "section"
+      },
+      {
+        "id": "510",
+        "title": "SPECIAL PROVISIONS",
+        "level": "section"
+      },
+      {
+        "id": "507",
+        "title": "UNLIMITED AREA BUILDINGS",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "24",
+    "title": "GLASS AND GLAZING",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "2401",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2401",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2403",
+        "title": "GENERAL REQUIREMENTS FOR GLASS",
+        "level": "section"
+      },
+      {
+        "id": "2407",
+        "title": "GLASS IN HANDRAILS AND GUARDS",
+        "level": "section"
+      },
+      {
+        "id": "2409",
+        "title": "GLASS IN WALKWAYS,",
+        "level": "section"
+      },
+      {
+        "id": "2408",
+        "title": "GLAZING IN ATHLETIC FACILITIES",
+        "level": "section"
+      },
+      {
+        "id": "2402",
+        "title": "GLAZING REPLACEMENT",
+        "level": "section"
+      },
+      {
+        "id": "2406",
+        "title": "SAFETY GLAZING",
+        "level": "section"
+      },
+      {
+        "id": "2405",
+        "title": "SLOPED GLAZING AND SKYLIGHTS",
+        "level": "section"
+      },
+      {
+        "id": "2404",
+        "title": "WIND, SNOW, SEISMIC AND",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "25",
+    "title": "GYPSUM BOARD, GYPSUM PANEL PRODUCTS AND PLASTER",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "2513",
+        "title": "EXPOSED AGGREGATE PLASTER",
+        "level": "section"
+      },
+      {
+        "id": "2501",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2501",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2506",
+        "title": "GYPSUM BOARD AND",
+        "level": "section"
+      },
+      {
+        "id": "2508",
+        "title": "GYPSUM CONSTRUCTION",
+        "level": "section"
+      },
+      {
+        "id": "2503",
+        "title": "INSPECTION",
+        "level": "section"
+      },
+      {
+        "id": "2511",
+        "title": "INTERIOR PLASTER",
+        "level": "section"
+      },
+      {
+        "id": "2510",
+        "title": "LATHING AND FURRING FOR CEMENT PLASTER",
+        "level": "section"
+      },
+      {
+        "id": "2507",
+        "title": "LATHING AND PLASTERING",
+        "level": "section"
+      },
+      {
+        "id": "2502",
+        "title": "PERFORMANCE",
+        "level": "section"
+      },
+      {
+        "id": "2514",
+        "title": "REINFORCED GYPSUM CONCRETE",
+        "level": "section"
+      },
+      {
+        "id": "2505",
+        "title": "SHEAR WALL CONSTRUCTION",
+        "level": "section"
+      },
+      {
+        "id": "2509",
+        "title": "SHOWERS AND WATER CLOSETS",
+        "level": "section"
+      },
+      {
+        "id": "2504",
+        "title": "VERTICAL AND HORIZONTAL ASSEMBLIES",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "12",
+    "title": "INTERIOR ENVIRONMENT",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "1209",
+        "title": "ACCESS TO UNOCCUPIED SPACES",
+        "level": "section"
+      },
+      {
+        "id": "1207",
+        "title": "ENHANCED CLASSROOM ACOUSTICS",
+        "level": "section"
+      },
+      {
+        "id": "1201",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1201",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1208",
+        "title": "INTERIOR SPACE DIMENSIONS",
+        "level": "section"
+      },
+      {
+        "id": "1204",
+        "title": "LIGHTING",
+        "level": "section"
+      },
+      {
+        "id": "1206",
+        "title": "SOUND TRANSMISSION",
+        "level": "section"
+      },
+      {
+        "id": "1203",
+        "title": "TEMPERATURE CONTROL",
+        "level": "section"
+      },
+      {
+        "id": "1210",
+        "title": "TOILET AND BATHROOM REQUIREMENTS",
+        "level": "section"
+      },
+      {
+        "id": "1202",
+        "title": "VENTILATION",
+        "level": "section"
+      },
+      {
+        "id": "1205",
+        "title": "YARDS OR COURTS",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "8",
+    "title": "INTERIOR FINISHES",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "808",
+        "title": "ACOUSTICAL CEILING SYSTEMS",
+        "level": "section"
+      },
+      {
+        "id": "805",
+        "title": "COMBUSTIBLE MATERIALS IN TYPES I AND II CONSTRUCTION",
+        "level": "section"
+      },
+      {
+        "id": "806",
+        "title": "DECORATIVE MATERIALS AND TRIM",
+        "level": "section"
+      },
+      {
+        "id": "802",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "807",
+        "title": "INSULATION",
+        "level": "section"
+      },
+      {
+        "id": "804",
+        "title": "INTERIOR FLOOR FINISH",
+        "level": "section"
+      },
+      {
+        "id": "801",
+        "title": "SCOPE",
+        "level": "section"
+      },
+      {
+        "id": "801",
+        "title": "SCOPE",
+        "level": "section"
+      },
+      {
+        "id": "803",
+        "title": "WALL AND CEILING FINISHES",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "21",
+    "title": "MASONRY",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "2107",
+        "title": "ALLOWABLE STRESS DESIGN",
+        "level": "section"
+      },
+      {
+        "id": "2104",
+        "title": "CONSTRUCTION",
+        "level": "section"
+      },
+      {
+        "id": "2114",
+        "title": "DRY-STACK MASONRY",
+        "level": "section"
+      },
+      {
+        "id": "2109",
+        "title": "EMPIRICAL DESIGN OF ADOBE MASONRY",
+        "level": "section"
+      },
+      {
+        "id": "2101",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2101",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2110",
+        "title": "GLASS UNIT MASONRY",
+        "level": "section"
+      },
+      {
+        "id": "2113",
+        "title": "MASONRY CHIMNEYS",
+        "level": "section"
+      },
+      {
+        "id": "2103",
+        "title": "MASONRY CONSTRUCTION MATERIALS",
+        "level": "section"
+      },
+      {
+        "id": "2111",
+        "title": "MASONRY FIREPLACES",
+        "level": "section"
+      },
+      {
+        "id": "2112",
+        "title": "MASONRY HEATERS",
+        "level": "section"
+      },
+      {
+        "id": "2102",
+        "title": "NOTATIONS",
+        "level": "section"
+      },
+      {
+        "id": "2105",
+        "title": "QUALITY ASSURANCE",
+        "level": "section"
+      },
+      {
+        "id": "2106",
+        "title": "SEISMIC DESIGN",
+        "level": "section"
+      },
+      {
+        "id": "2108",
+        "title": "STRENGTH DESIGN OF MASONRY",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "10",
+    "title": "MEANS OF EGRESS",
+    "level": "chapter",
+    "sections": []
+  },
+  {
+    "id": "28",
+    "title": "MECHANICAL SYSTEMS",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "2801",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2801",
+        "title": "GENERAL",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "26",
+    "title": "PLASTIC",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "2613",
+        "title": "FIBER-REINFORCED POLYMER",
+        "level": "section"
+      },
+      {
+        "id": "2602",
+        "title": "FINISH AND TRIM",
+        "level": "section"
+      },
+      {
+        "id": "2603",
+        "title": "FOAM PLASTIC INSULATION",
+        "level": "section"
+      },
+      {
+        "id": "2601",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2601",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2604",
+        "title": "INTERIOR FINISH AND TRIM",
+        "level": "section"
+      },
+      {
+        "id": "2610",
+        "title": "LIGHT-TRANSMITTING",
+        "level": "section"
+      },
+      {
+        "id": "2608",
+        "title": "LIGHT-TRANSMITTING PLASTIC GLAZING",
+        "level": "section"
+      },
+      {
+        "id": "2611",
+        "title": "LIGHT-TRANSMITTING PLASTIC INTERIOR SIGNS",
+        "level": "section"
+      },
+      {
+        "id": "2609",
+        "title": "LIGHT-TRANSMITTING PLASTIC ROOF PANELS",
+        "level": "section"
+      },
+      {
+        "id": "2607",
+        "title": "LIGHT-TRANSMITTING PLASTIC WALL PANELS",
+        "level": "section"
+      },
+      {
+        "id": "2606",
+        "title": "LIGHT-TRANSMITTING PLASTICS",
+        "level": "section"
+      },
+      {
+        "id": "2612",
+        "title": "PLASTIC COMPOSITES",
+        "level": "section"
+      },
+      {
+        "id": "2605",
+        "title": "PLASTIC VENEER",
+        "level": "section"
+      },
+      {
+        "id": "2614",
+        "title": "REFLECTIVE PLASTIC CORE INSULATION",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "29",
+    "title": "PLUMBING SYSTEMS",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "2901",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2901",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2903",
+        "title": "INSTALLATION OF FIXTURES",
+        "level": "section"
+      },
+      {
+        "id": "2902",
+        "title": "MINIMUM PLUMBING FACILITIES",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "15",
+    "title": "ROOF ASSEMBLIES AND ROOFTOP STRUCTURES",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "1505",
+        "title": "FIRE CLASSIFICATION",
+        "level": "section"
+      },
+      {
+        "id": "1501",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1501",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1506",
+        "title": "MATERIALS",
+        "level": "section"
+      },
+      {
+        "id": "1504",
+        "title": "PERFORMANCE REQUIREMENTS",
+        "level": "section"
+      },
+      {
+        "id": "1507",
+        "title": "REQUIREMENTS FOR ROOF COVERINGS",
+        "level": "section"
+      },
+      {
+        "id": "1509",
+        "title": "ROOF COATINGS",
+        "level": "section"
+      },
+      {
+        "id": "1502",
+        "title": "ROOF DRAINAGE",
+        "level": "section"
+      },
+      {
+        "id": "1508",
+        "title": "ROOF INSULATION",
+        "level": "section"
+      },
+      {
+        "id": "1503",
+        "title": "WEATHER PROTECTION",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "33",
+    "title": "SAFEGUARDS DURING CONSTRUCTION",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "3312",
+        "title": "AUTOMATIC SPRINKLER SYSTEM",
+        "level": "section"
+      },
+      {
+        "id": "3302",
+        "title": "CONSTRUCTION SAFEGUARDS",
+        "level": "section"
+      },
+      {
+        "id": "3303",
+        "title": "DEMOLITION",
+        "level": "section"
+      },
+      {
+        "id": "3309",
+        "title": "FIRE EXTINGUISHERS",
+        "level": "section"
+      },
+      {
+        "id": "3314",
+        "title": "FIRE WATCH DURING CONSTRUCTON",
+        "level": "section"
+      },
+      {
+        "id": "3301",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "3301",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "3310",
+        "title": "MEANS OF EGRESS",
+        "level": "section"
+      },
+      {
+        "id": "3307",
+        "title": "PROTECTION OF ADJOINING PROPERTY",
+        "level": "section"
+      },
+      {
+        "id": "3306",
+        "title": "PROTECTION OF PEDESTRIANS",
+        "level": "section"
+      },
+      {
+        "id": "3305",
+        "title": "SANITARY",
+        "level": "section"
+      },
+      {
+        "id": "3304",
+        "title": "SITE WORK",
+        "level": "section"
+      },
+      {
+        "id": "3311",
+        "title": "STANDPIPES",
+        "level": "section"
+      },
+      {
+        "id": "3313",
+        "title": "WATER SUPPLY FOR FIRE PROTECTION",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "18",
+    "title": "SOILS AND FOUNDATIONS",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "1805",
+        "title": "DAMPPROOFING AND WATERPROOFING",
+        "level": "section"
+      },
+      {
+        "id": "1810",
+        "title": "DEEP FOUNDATIONS",
+        "level": "section"
+      },
+      {
+        "id": "1802",
+        "title": "DESIGN BASIS",
+        "level": "section"
+      },
+      {
+        "id": "1804",
+        "title": "EXCAVATION, GRADING AND FILL",
+        "level": "section"
+      },
+      {
+        "id": "1807",
+        "title": "FOUNDATION WALLS, RETAINING WALLS AND EMBEDDED POSTS AND POLES",
+        "level": "section"
+      },
+      {
+        "id": "1808",
+        "title": "FOUNDATIONS",
+        "level": "section"
+      },
+      {
+        "id": "1801",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1801",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1803",
+        "title": "GEOTECHNICAL INVESTIGATIONS",
+        "level": "section"
+      },
+      {
+        "id": "1806",
+        "title": "PRESUMPTIVE LOAD-BEARING VALUES OF SOILS",
+        "level": "section"
+      },
+      {
+        "id": "1809",
+        "title": "SHALLOW FOUNDATIONS",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "31",
+    "title": "SPECIAL CONSTRUCTION",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "3110",
+        "title": "AUTOMATIC VEHICULAR GATES",
+        "level": "section"
+      },
+      {
+        "id": "3105",
+        "title": "AWNINGS AND CANOPIES",
+        "level": "section"
+      },
+      {
+        "id": "3101",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "3101",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "3112",
+        "title": "GREENHOUSES",
+        "level": "section"
+      },
+      {
+        "id": "3115",
+        "title": "INTERMODAL SHIPPING CONTAINERS",
+        "level": "section"
+      },
+      {
+        "id": "3106",
+        "title": "MARQUEES",
+        "level": "section"
+      },
+      {
+        "id": "3102",
+        "title": "MEMBRANE STRUCTURES",
+        "level": "section"
+      },
+      {
+        "id": "3104",
+        "title": "PEDESTRIAN WALKWAYS AND TUNNELS",
+        "level": "section"
+      },
+      {
+        "id": "3114",
+        "title": "PUBLIC USE RESTROOM",
+        "level": "section"
+      },
+      {
+        "id": "3113",
+        "title": "RELOCATABLE BUILDINGS",
+        "level": "section"
+      },
+      {
+        "id": "3107",
+        "title": "SIGNS",
+        "level": "section"
+      },
+      {
+        "id": "3111",
+        "title": "SOLAR ENERGY SYSTEMS",
+        "level": "section"
+      },
+      {
+        "id": "3109",
+        "title": "SWIMMING POOLS, SWIMMING POOL",
+        "level": "section"
+      },
+      {
+        "id": "3108",
+        "title": "TELECOMMUNICATION",
+        "level": "section"
+      },
+      {
+        "id": "3103",
+        "title": "TEMPORARY STRUCTURES",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "4",
+    "title": "SPECIAL DETAILED REQUIREMENTS BASED ON USE AND OCCUPANCY",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "412",
+        "title": "AIRCRAFT-RELATED OCCUPANCIES",
+        "level": "section"
+      },
+      {
+        "id": "422",
+        "title": "AMBULATORY CARE FACIILITIES",
+        "level": "section"
+      },
+      {
+        "id": "419",
+        "title": "ARTIFICIAL DECORATIVE VEGETATION",
+        "level": "section"
+      },
+      {
+        "id": "404",
+        "title": "ATRIUMS",
+        "level": "section"
+      },
+      {
+        "id": "413",
+        "title": "COMBUSTIBLE STORAGE",
+        "level": "section"
+      },
+      {
+        "id": "402",
+        "title": "COVERED MALL AND OPEN MALL BUILDINGS",
+        "level": "section"
+      },
+      {
+        "id": "417",
+        "title": "DRYING ROOMS",
+        "level": "section"
+      },
+      {
+        "id": "407",
+        "title": "GROUP I-2",
+        "level": "section"
+      },
+      {
+        "id": "408",
+        "title": "GROUP I-3",
+        "level": "section"
+      },
+      {
+        "id": "415",
+        "title": "GROUPS H-1, H-2, H-3, H-4 AND H-5",
+        "level": "section"
+      },
+      {
+        "id": "420",
+        "title": "GROUPS I-1, R-1, R-2, R-3 AND R-4",
+        "level": "section"
+      },
+      {
+        "id": "414",
+        "title": "HAZARDOUS MATERIALS",
+        "level": "section"
+      },
+      {
+        "id": "403",
+        "title": "HIGH-RISE BUILDINGS",
+        "level": "section"
+      },
+      {
+        "id": "421",
+        "title": "HYDROGEN FUEL GAS ROOMS",
+        "level": "section"
+      },
+      {
+        "id": "425",
+        "title": "HYPERBARIC FACILITIES",
+        "level": "section"
+      },
+      {
+        "id": "409",
+        "title": "MOTION PICTURE PROJECTION ROOMS",
+        "level": "section"
+      },
+      {
+        "id": "406",
+        "title": "MOTOR-VEHICLE-RELATED OCCUPANCIES",
+        "level": "section"
+      },
+      {
+        "id": "418",
+        "title": "ORGANIC COATINGS",
+        "level": "section"
+      },
+      {
+        "id": "424",
+        "title": "PLAY STRUCTURES",
+        "level": "section"
+      },
+      {
+        "id": "401",
+        "title": "SCOPE",
+        "level": "section"
+      },
+      {
+        "id": "401",
+        "title": "SCOPE",
+        "level": "section"
+      },
+      {
+        "id": "411",
+        "title": "SPECIAL AMUSEMENT AREAS",
+        "level": "section"
+      },
+      {
+        "id": "416",
+        "title": "SPRAY APPLICATION OF FLAMMABLE FINISHES",
+        "level": "section"
+      },
+      {
+        "id": "410",
+        "title": "STAGES, PLATFORMS AND",
+        "level": "section"
+      },
+      {
+        "id": "423",
+        "title": "STORM SHELTERS",
+        "level": "section"
+      },
+      {
+        "id": "405",
+        "title": "UNDERGROUND BUILDINGS",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "17",
+    "title": "SPECIAL INSPECTIONS AND TESTS",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "1707",
+        "title": "ALTERNATIVE TEST PROCEDURE",
+        "level": "section"
+      },
+      {
+        "id": "1703",
+        "title": "APPROVALS",
+        "level": "section"
+      },
+      {
+        "id": "1706",
+        "title": "DESIGN STRENGTHS OF MATERIALS",
+        "level": "section"
+      },
+      {
+        "id": "1701",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1701",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1708",
+        "title": "IN-SITU LOAD TESTS",
+        "level": "section"
+      },
+      {
+        "id": "1702",
+        "title": "NEW MATERIALS",
+        "level": "section"
+      },
+      {
+        "id": "1709",
+        "title": "PRECONSTRUCTION LOAD TESTS",
+        "level": "section"
+      },
+      {
+        "id": "1705",
+        "title": "REQUIRED SPECIAL INSPECTIONS AND TESTS",
+        "level": "section"
+      },
+      {
+        "id": "1704",
+        "title": "SPECIAL INSPECTIONS AND TESTS, CONTRACTOR RESPONSIBILITY AND STRUCTURAL",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "22",
+    "title": "STEEL",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "2210",
+        "title": "COLD-FORMED STEEL",
+        "level": "section"
+      },
+      {
+        "id": "2211",
+        "title": "COLD-FORMED STEEL LIGHT-FRAME CONSTRUCTION",
+        "level": "section"
+      },
+      {
+        "id": "2206",
+        "title": "COMPOSITE STRUCTURAL STEEL AND CONCRETE STRUCTURES",
+        "level": "section"
+      },
+      {
+        "id": "2204",
+        "title": "CONNECTIONS",
+        "level": "section"
+      },
+      {
+        "id": "2201",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2201",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2202",
+        "title": "IDENTIFICATION OF STEEL FOR STRUCTURAL PURPOSES",
+        "level": "section"
+      },
+      {
+        "id": "2203",
+        "title": "PROTECTION OF STEEL FOR STRUCTURAL PURPOSES",
+        "level": "section"
+      },
+      {
+        "id": "2208",
+        "title": "STEEL CABLE STRUCTURES",
+        "level": "section"
+      },
+      {
+        "id": "2207",
+        "title": "STEEL JOISTS",
+        "level": "section"
+      },
+      {
+        "id": "2209",
+        "title": "STEEL STORAGE RACKS",
+        "level": "section"
+      },
+      {
+        "id": "2205",
+        "title": "STRUCTURAL STEEL",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "16",
+    "title": "STRUCTURAL DESIGN",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "1614",
+        "title": "ATMOSPHERIC ICE LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1603",
+        "title": "CONSTRUCTION DOCUMENTS",
+        "level": "section"
+      },
+      {
+        "id": "1606",
+        "title": "DEAD LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1613",
+        "title": "EARTHQUAKE LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1612",
+        "title": "FLOOD LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1601",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1601",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "1604",
+        "title": "GENERAL DESIGN REQUIREMENTS",
+        "level": "section"
+      },
+      {
+        "id": "1607",
+        "title": "LIVE LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1605",
+        "title": "LOAD COMBINATIONS",
+        "level": "section"
+      },
+      {
+        "id": "1602",
+        "title": "NOTATIONS",
+        "level": "section"
+      },
+      {
+        "id": "1611",
+        "title": "RAIN LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1608",
+        "title": "SNOW LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1610",
+        "title": "SOIL LOADS AND HYDROSTATIC PRESSURE",
+        "level": "section"
+      },
+      {
+        "id": "1616",
+        "title": "STRUCTURAL INTEGRITY",
+        "level": "section"
+      },
+      {
+        "id": "1615",
+        "title": "TSUNAMI LOADS",
+        "level": "section"
+      },
+      {
+        "id": "1609",
+        "title": "WIND LOADS",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "6",
+    "title": "TYPES OF CONSTRUCTION",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "603",
+        "title": "COMBUSTIBLE MATERIAL IN TYPES I AND II CONSTRUCTION",
+        "level": "section"
+      },
+      {
+        "id": "602",
+        "title": "CONSTRUCTION CLASSIFICATION",
+        "level": "section"
+      },
+      {
+        "id": "601",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "601",
+        "title": "GENERAL",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "3",
+    "title": "USE AND OCCUPANCY CLASSIFICATION",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "303",
+        "title": "ASSEMBLY GROUP A",
+        "level": "section"
+      },
+      {
+        "id": "304",
+        "title": "BUSINESS GROUP B",
+        "level": "section"
+      },
+      {
+        "id": "305",
+        "title": "EDUCATIONAL GROUP E",
+        "level": "section"
+      },
+      {
+        "id": "306",
+        "title": "FACTORY GROUP F",
+        "level": "section"
+      },
+      {
+        "id": "307",
+        "title": "HIGH-HAZARD GROUP H",
+        "level": "section"
+      },
+      {
+        "id": "308",
+        "title": "INSTITUTIONAL GROUP I",
+        "level": "section"
+      },
+      {
+        "id": "309",
+        "title": "MERCANTILE GROUP M",
+        "level": "section"
+      },
+      {
+        "id": "302",
+        "title": "OCCUPANCY CLASSIFICATION",
+        "level": "section"
+      },
+      {
+        "id": "310",
+        "title": "RESIDENTIAL GROUP R",
+        "level": "section"
+      },
+      {
+        "id": "301",
+        "title": "SCOPE",
+        "level": "section"
+      },
+      {
+        "id": "301",
+        "title": "SCOPE",
+        "level": "section"
+      },
+      {
+        "id": "313",
+        "title": "STATE REGULATED CARE FACILITIES (SRCF)",
+        "level": "section"
+      },
+      {
+        "id": "311",
+        "title": "STORAGE GROUP S",
+        "level": "section"
+      },
+      {
+        "id": "312",
+        "title": "UTILITY AND MISCELLANEOUS GROUP U",
+        "level": "section"
+      }
+    ]
+  },
+  {
+    "id": "23",
+    "title": "WOOD",
+    "level": "chapter",
+    "sections": [
+      {
+        "id": "2306",
+        "title": "ALLOWABLE STRESS DESIGN",
+        "level": "section"
+      },
+      {
+        "id": "2302",
+        "title": "DESIGN REQUIREMENTS",
+        "level": "section"
+      },
+      {
+        "id": "2301",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2301",
+        "title": "GENERAL",
+        "level": "section"
+      },
+      {
+        "id": "2304",
+        "title": "GENERAL CONSTRUCTION REQUIREMENTS",
+        "level": "section"
+      },
+      {
+        "id": "2305",
+        "title": "GENERAL DESIGN REQUIREMENTS FOR",
+        "level": "section"
+      },
+      {
+        "id": "2307",
+        "title": "LOAD AND RESISTANCE FACTOR DESIGN",
+        "level": "section"
+      },
+      {
+        "id": "2303",
+        "title": "MINIMUM STANDARDS AND QUALITY",
+        "level": "section"
+      }
+    ]
+  }
+]

@@ -1,15 +1,15 @@
 {
-  "conversation_id": "test_session_ad300865-29f0-4d8e-bb1d-048d4a443af8",
+  "conversation_id": "test_session_fb008eaa-a476-4278-95a7-aed9edd89b5c",
   "full_history": [
     {
-      "id": "d03c6a6e-e929-480e-a7aa-655ddc6ac822",
+      "id": "a6036287-db66-42b9-b775-8c3e398818ac",
       "role": "user",
-      "content": "Hello"
+      "content": "What is section 1604.5?"
     },
     {
-      "id": "f5148e72-4c5c-45fc-9ecf-cb16844e821e",
+      "id": "bf27f985-6f63-4714-9f5f-f95b1524c62f",
       "role": "assistant",
-      "content": "I was unable to generate a response to your query."
+      "content": null
     }
   ],
   "structured_memory": {

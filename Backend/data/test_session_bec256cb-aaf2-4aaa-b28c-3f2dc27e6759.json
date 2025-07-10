@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test_session_bec256cb-aaf2-4aaa-b28c-3f2dc27e6759",
+  "full_history": [
+    {
+      "id": "08ad6d05-2da5-4600-8639-71213c9fa479",
+      "role": "user",
+      "content": "What is the difference between the live load requirements for a residential balcony and a commercial parking garage?"
+    },
+    {
+      "id": "a1576cac-a70f-4aaf-8a83-3ec6d0665903",
+      "role": "assistant",
+      "content": "The live load requirement for a residential balcony is 40 psf or 1.5 times the live load of the area it serves (not to exceed 100 psf), while a commercial parking garage designed for passenger vehicles has a live load requirement of 2,250 pounds per wheel or a uniformly distributed load as specified in Table 2.3.1 (not provided in context).\n\nResidential balconies are designed for a live load of 40 psf  as per one source, but other sources clarify that the minimum uniform live load is 1.5 times the live load for the area served, not to exceed 100 psf. [UpCodes 1616.5.1.2 Item 5; IBC 2018 1607.5]  This accounts for the expected occupancy, furnishings, and potential activities on a balcony.\n\nCommercial parking garages, specifically those accommodating passenger vehicles with no more than nine passengers, are designed for a concentrated load of 2,250 pounds per wheel for mechanical parking structures without slabs or decks. [IBC 2018 1607.1 a (2)]  Alternatively, uniformly distributed live loads may apply depending on the structure and vehicle types, as referenced in Table 2.3.1, though the table itself is not available in the provided context.  This significantly higher load requirement compared to a residential balcony reflects the weight and concentrated impact of vehicles."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

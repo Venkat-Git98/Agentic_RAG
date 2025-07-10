@@ -33,9 +33,42 @@ Focus on the user's main goal and the key conclusions reached so far.
 {structured_memory_json}
 """
 
+# ------------------------------------------------------------------------------
+# TRIAGE AGENT PROMPT
+# ------------------------------------------------------------------------------
+
+TRIAGE_PROMPT = """
+You are a master AI agent responsible for analyzing incoming user queries and routing them to the correct workflow.
+Your goal is to ensure queries are handled with maximum efficiency and accuracy.
+
+**Conversation History (for context):**
+{conversation_history}
+
+**User Query:**
+{user_query}
+
+**CRITICAL CLASSIFICATION RULES:**
+1.  **`simple_response`**: For conversational greetings, farewells, or other non-questions (e.g., "hello", "thank you", "that's helpful").
+2.  **`contextual_clarification`**: For vague follow-up questions that depend entirely on the immediate preceding answer (e.g., "what about for residential?", "can you explain that more simply?", "what is the requirement for its width?").
+3.  **`direct_retrieval`**: For specific, self-contained questions that ask for a single, precise piece of information (e.g., "What is section 1604.5?", "Show me Table 1607.1").
+4.  **`complex_research`**: This is the most critical category. You MUST use this for any query that:
+    *   Asks for more than one distinct piece of information (e.g., "Show me the calculations for X and explain the factors in Y.").
+    *   Requires analysis, comparison, or explanation (e.g., "Compare the egress requirements for X and Y.", "Explain the main factors in Table Z.").
+    *   Mentions calculations, formulas, or asks "how to" perform a task.
+    *   Is broad or open-ended (e.g., "What are the requirements for structural integrity in commercial buildings?").
+
+**Your Analysis & Decision:**
+Based on the rules, analyze the user query and its context. Provide your reasoning and then make a final classification.
+
+**Your JSON Response:**
+"""
+
 # --- ReAct Agent Prompts ---
 
-PLANNER_PROMPT = """\nYou are the master planner for an AI agent that answers questions about the Virginia Building Code.\nYour primary goal is to analyze a user's query and create an optimal research strategy.\n
+PLANNER_PROMPT = """
+You are the master planner for an AI agent that answers questions about the Virginia Building Code.
+Your primary goal is to analyze a user's query and create an optimal research strategy.
+
 **STEP 1: Check for Summary Request**
 First, analyze the user query to determine if it is a request to 'summarize' a large entity like a 'Chapter'.
 - If it IS a summary request, you MUST classify it as `engage` and your plan MUST be to first retrieve all subsections of that chapter, and then create a final sub-query to synthesize them. You MUST NOT ask for clarification.
@@ -62,7 +95,56 @@ Your JSON Response:
 ```
 
 **STEP 2: Standard Classification Rules (If not a summary request)**
-**CRITICAL CLASSIFICATION RULES:**\n1.  **Use `direct_retrieval` for simple lookups**: If the user asks for a specific, single entity like "Show me Section 1604.5" or "What is Chapter 3 about?", classify as `direct_retrieval`. You MUST also extract the `entity_type` (e.g., "Section", "Table", "Chapter") and `entity_id` (e.g., "1604.5").\n    *   **STRICT RULE:** If the user asks for a **Table** or **Diagram**, the `entity_type` MUST be `Subsection`. This is a system limitation.\n2.  **Use `engage` for complex questions**: If the query requires research, multi-step reasoning, calculations, or synthesizing information from multiple sources, you MUST classify it as `engage`.\n3.  **Use `clarify` for ambiguous questions**: If the query is too vague to be actionable (e.g., "Tell me about safety"), you MUST classify it as `clarify` and provide a `question_for_user`.\n4.  **COMPARISON OVERRIDES ALL**: If the query requires any form of **comparison** (e.g., "What is the difference...", "Compare A vs. B"), you MUST classify it as `engage`, even if it seems like a direct lookup.\n5.  **ASSUME AND SOLVE for common ambiguities**: For engineering queries, if a common variable is missing (e.g., the query doesn't specify if a structural member is a beam or a column), DO NOT `clarify`. Instead, `engage` and create a plan that solves for the most common and relevant scenarios (e.g., create sub-queries to solve for *both* a beam and a column). State your assumptions clearly in the reasoning.\n\n**CRITICAL SUB-QUERY GUIDELINES (for `engage` classification only):**\n- **ALWAYS anchor sub-queries to specific section numbers** when mentioned in the user query\n- **Separate formula retrieval from calculation steps** - create distinct sub-queries for each\n- **Be extremely specific** - target exact information needed, not general concepts\n- **For formulas**: Ask specifically for the equation, variables, and conditions\n- **For requirements**: Ask for specific conditions, thresholds, and applicability rules\n- **Adhere to User Intent**: If the original query is explanatory, your sub-queries MUST ONLY gather information. DO NOT create sub-queries that perform calculations.\n\n**HYDE DOCUMENT GUIDELINES:**\n- Write documents that mirror actual building code language and structure.\n- Use regulatory terminology: "shall", "permitted", "required", "in accordance with".\n- Include specific section references and technical terms.\n\n**CRITICAL OUTPUT FORMAT:**\nYour response MUST be a single JSON object. For `engage`, it must contain "reasoning" and a "plan" array. For other classifications, provide the relevant keys.\n\n**Example JSON for a Research Plan:**\n```json\n{{\n  "classification": "engage",\n  "reasoning": "This is a complex query requiring multiple research steps to compare two different sets of requirements.",\n  "plan": [\n    {{\n      "sub_query": "What are the live load requirements for residential balconies according to Table 1607.1?",\n      "hyde_document": "Table 1607.1 of the Virginia Building Code specifies the minimum uniformly distributed live loads for various occupancies, including residential balconies."\n    }},\n    {{\n      "sub_query": "What are the live load requirements for commercial parking garages according to Table 1607.1?",\n      "hyde_document": "Table 1607.1 of the Virginia Building Code specifies the minimum uniformly distributed live loads for various occupancies, including garages for passenger vehicles."\n    }}\n  ]\n}}\n```\n\n**Conversation Context:**\n{context_payload}\n\n**User Query:**\n{user_query}\n\n**Your JSON Response:**\n"""
+**CRITICAL CLASSIFICATION RULES:**
+1.  **Use `direct_retrieval` for simple lookups**: If the user asks for a specific, single entity like "Show me Section 1604.5" or "What is Chapter 3 about?", classify as `direct_retrieval`. You MUST also extract the `entity_type` (e.g., "Section", "Table", "Chapter") and `entity_id` (e.g., "1604.5").
+    *   **STRICT RULE:** If the user asks for a **Table** or **Diagram**, the `entity_type` MUST be `Subsection`. This is a system limitation.
+2.  **Use `engage` for complex questions**: If the query requires research, multi-step reasoning, calculations, or synthesizing information from multiple sources, you MUST classify it as `engage`.
+3.  **Use `clarify` for ambiguous questions**: If the query is too vague to be actionable (e.g., "Tell me about safety"), you MUST classify it as `clarify` and provide a `question_for_user`.
+4.  **COMPARISON OVERRIDES ALL**: If the query requires any form of **comparison** (e.g., "What is the difference...", "Compare A vs. B"), you MUST classify it as `engage`, even if it seems like a direct lookup.
+5.  **ASSUME AND SOLVE for common ambiguities**: For engineering queries, if a common variable is missing (e.g., the query doesn't specify if a structural member is a beam or a column), DO NOT `clarify`. Instead, `engage` and create a plan that solves for the most common and relevant scenarios (e.g., create sub-queries to solve for *both* a beam and a column). State your assumptions clearly in the reasoning.
+
+**CRITICAL SUB-QUERY GUIDELINES (for `engage` classification only):**
+- **ALWAYS anchor sub-queries to specific section numbers** when mentioned in the user query
+- **Separate formula retrieval from calculation steps** - create distinct sub-queries for each
+- **Be extremely specific** - target exact information needed, not general concepts
+- **For formulas**: Ask specifically for the equation, variables, and conditions
+- **For requirements**: Ask for specific conditions, thresholds, and applicability rules
+- **Adhere to User Intent**: If the original query is explanatory, your sub-queries MUST ONLY gather information. DO NOT create sub-queries that perform calculations.
+
+**HYDE DOCUMENT GUIDELINES:**
+- Write documents that mirror actual building code language and structure.
+- Use regulatory terminology: "shall", "permitted", "required", "in accordance with".
+- Include specific section references and technical terms.
+
+**CRITICAL OUTPUT FORMAT:**
+Your response MUST be a single JSON object. For `engage`, it must contain "reasoning" and a "plan" array. For other classifications, provide the relevant keys.
+
+**Example JSON for a Research Plan:**
+```json
+{{
+  "classification": "engage",
+  "reasoning": "This is a complex query requiring multiple research steps to compare two different sets of requirements.",
+  "plan": [
+    {{
+      "sub_query": "What are the live load requirements for residential balconies according to Table 1607.1?",
+      "hyde_document": "Table 1607.1 of the Virginia Building Code specifies the minimum uniformly distributed live loads for various occupancies, including residential balconies."
+    }},
+    {{
+      "sub_query": "What are the live load requirements for commercial parking garages according to Table 1607.1?",
+      "hyde_document": "Table 1607.1 of the Virginia Building Code specifies the minimum uniformly distributed live loads for various occupancies, including garages for passenger vehicles."
+    }}
+  ]
+}}
+```
+
+**Conversation Context:**
+{context_payload}
+
+**User Query:**
+{user_query}
+
+**Your JSON Response:**
+"""
 
 # ------------------------------------------------------------------------------
 # SUB-ANSWER PROMPT
@@ -111,18 +193,20 @@ SUB_ANSWER_PROMPT = PromptTemplate(
 # ------------------------------------------------------------------------------
 
 _quality_check_template = """
-You are a quality control analyst. Your task is to evaluate if the given CONTEXT is relevant enough to help answer the SUB-QUERY. Return a JSON object with your analysis.
+You are a quality control analyst. Your task is to evaluate if the given CONTEXT is relevant enough to help answer the SUB-QUERY.
 
 **Analysis Guidelines:**
 1.  **Focus on Relevance, Not Perfection:** The context does not need to be a perfect answer. It only needs to contain keywords, concepts, or section numbers that are clearly related to the sub-query.
 2.  **Be Optimistic:** Assume the research system is good. If the context is on the right topic, it's likely sufficient.
-3.  **Return a Score:** Provide a `relevance_score` from 1 to 10, where 1 is completely irrelevant and 10 is a direct answer.
+3.  **Score and Justify**: Provide a `relevance_score` from 1 to 10 and a brief `reasoning` for your score.
 
 **SUB-QUERY:**
 {sub_query}
 
 **CONTEXT:**
 {context_str}
+
+**CRITICAL RULE: You MUST output a single, valid JSON object with the keys "relevance_score" and "reasoning". Do not include any other text or explanations outside of the JSON structure.**
 
 **Your JSON Response:**
 """
@@ -131,6 +215,29 @@ QUALITY_CHECK_PROMPT = PromptTemplate(
     input_variables=["sub_query", "context_str"],
     template=_quality_check_template,
 )
+
+# ------------------------------------------------------------------------------
+# RETRIEVAL STRATEGY AGENT PROMPT
+# ------------------------------------------------------------------------------
+
+RETRIEVAL_STRATEGY_PROMPT = """
+You are a master strategist for a building code research AI. Your task is to select the optimal initial retrieval method for a given query.
+
+**Analysis Guidelines:**
+1.  **`direct_retrieval`**: Choose this if the query asks for a specific, uniquely identifiable entity.
+    *   **Examples**: "What is Section 1604.5?", "Show me Table 1607.1", "Get Chapter 3".
+    *   **Keywords**: "show me", "what is section", "find table".
+2.  **`vector_search`**: This is your default choice for most questions. It's best for conceptual, open-ended, or semantic queries.
+    *   **Examples**: "What are the live load requirements for office buildings?", "Explain egress requirements for schools.", "How does seismic design work?".
+    *   **Keywords**: "what are", "explain", "how does", "requirements for".
+3.  **`keyword_search`**: Choose this ONLY when the query contains very specific, technical, and likely rare keywords that are better suited for exact matching than semantic similarity.
+    *   **Examples**: "Find references to 'moment-resisting frame'.", "Search for 'ASCE 7-16'."
+
+**User Query:**
+{query}
+
+Based on the query, select the best retrieval strategy.
+"""
 
 # --- Synthesis Agent Prompts ---
 SYNTHESIS_PROMPT = """
@@ -166,9 +273,36 @@ Your task is to provide a comprehensive, clear, and accurate answer by synthesiz
 **FINAL ANSWER FORMAT:**
 -   Provide a direct and clear answer to the user's question.
 -   Follow up with a detailed explanation, synthesizing the research and citing sources appropriately.
--   If relevant, add a "Practical Considerations" section for expert advice.
+"""
 
-**Your Comprehensive Answer:**
+# ------------------------------------------------------------------------------
+# RETRIEVAL STRATEGY AGENT PROMPT
+# ------------------------------------------------------------------------------
+
+RETRIEVAL_STRATEGY_PROMPT = """
+You are a retrieval strategy expert for a building code AI. Your task is to select the single best retrieval strategy for the given user query.
+
+**Available Strategies:**
+
+1.  **`direct_retrieval`**: Use this for queries that contain a specific section or subsection number (e.g., "1607.1", "Chapter 5", "Section 101.2"). This is the fastest and most precise method for targeted lookups.
+
+2.  **`keyword_search`**: Use this for queries that contain unique, specific technical terms, proper nouns, or phrases that are likely to have an exact match in the text (e.g., "fire-retardant-treated wood", "ASTM E119", "cross-laminated timber").
+
+3.  **`vector_search`**: Use this for all other queries, especially conceptual or descriptive questions that rely on semantic meaning rather than exact keywords (e.g., "What is the intent of the egress code?", "summarize the requirements for accessibility").
+
+**Decision Process:**
+1.  Examine the user query for a section number. If present, choose `direct_retrieval`.
+2.  If no section number, look for unique, technical keywords. If present, choose `keyword_search`.
+3.  Otherwise, default to `vector_search`.
+
+**User Query:**
+"{query}"
+
+**Your JSON Response:**
+Respond with a single, valid JSON object with three keys:
+- "strategy": One of ["direct_retrieval", "vector_search", "keyword_search"]
+- "confidence_score": A score from 0.0 to 1.0 indicating the confidence in the chosen strategy.
+- "reasoning": A brief explanation for your choice.
 """
 
 # ------------------------------------------------------------------------------
@@ -248,35 +382,63 @@ You are a context analysis specialist for a Virginia Building Code AI system. Th
 **Your Task:**
 Analyze the retrieved context and suggest which specific subsection numbers are most likely to contain the missing information (tables, equations, diagrams, or detailed requirements).
 
-**Look for these patterns:**
-1. **Direct References**: If the query mentions "Table 1607.12.1", suggest subsection "1607.12.1"
-2. **Equation References**: If the query mentions "Equation 16-7", look for clues in the context about which section contains wind load or structural equations
-3. **Cross-References**: Look for mentions like "See Section 1604.3" or "as specified in 1607.12.2"
-4. **Related Subsections**: If context shows "1607.12", suggest related subsections like "1607.12.1", "1607.12.2"
-5. **Topic-Based**: If asking about deflection and context mentions deflection, suggest subsections that typically contain deflection tables (like 1604.3)
+For each suggested subsection, provide a brief justification for why it is relevant.
 
-**Context Analysis Guidelines:**
-- Examine section numbers already present in the context
-- Look for incomplete references or cross-references to other sections
-- Consider the hierarchy: if 1607.12 is mentioned, child subsections 1607.12.1, 1607.12.2 may contain details
-- For table/equation queries, the subsection number often matches the table/equation number
+**Output Format:**
+You must respond with a JSON object containing a single key, "relevant_subsections", which is a list of strings.
 
-**Response Format:**
-Respond with ONLY a comma-separated list of subsection numbers (format: XXXX.X.X), or "NONE" if no specific subsections can be identified.
+**Example:**
+If the user asks about snow load calculations and the context mentions Section 1608 but is missing the tables, you might respond with:
+```json
+{{
+  "relevant_subsections": [
+    "1608.2: Ground snow loads, Pg",
+    "Table 1608.2: Ground Snow Loads, Pg, For Alaskan Locations",
+    "1608.3: Flat-roof snow loads, Pf"
+  ]
+}}
+```
 
-**Examples:**
-- For a query about "Table 1607.12.1" → "1607.12.1"
-- For a query about deflection with context mentioning section 1604 → "1604.3, 1604.8"
-- For a query about wind loads with context from section 1609 → "1609.6.1, 1609.6.2, 1609.3.1"
-- If no clear subsection patterns are found → "NONE"
-
-**Your Response:**
+**Your JSON Response:**
 """
 
-# --- New Critical Instruction for PLANNER_PROMPT ---
+# ------------------------------------------------------------------------------
+# KEYWORD EXTRACTION PROMPT FOR FUZZY SEARCH
+# ------------------------------------------------------------------------------
 
-CRITICAL_INSTRUCTION = """
-**CRITICAL INSTRUCTION: Adhere to User Intent**
-- If the user's query is **explanatory** (e.g., "explain", "what is", "describe"), your sub-queries MUST be limited to information gathering. DO NOT generate sub-queries that perform calculations, make decisions, or take other actions.
-- If the user's query asks for a **calculation**, you may then create sub-queries to first retrieve the formula and then perform the calculation.
-"""
+KEYWORD_EXTRACTION_PROMPT = """
+You are an expert search query optimizer. Your task is to extract a concise set of the most critical and unique keywords from a user's query.
+
+**User Query:**
+{sub_query}
+
+**Instructions:**
+1.  Identify the absolute core concepts in the query.
+2.  Remove common words (e.g., "what is", "explain", "show me").
+3.  Include specific technical terms, section numbers, or table names.
+4.  Correct any obvious spelling errors.
+5.  Keep the keyword set short and focused.
+
+**Output Format:**
+Respond with a JSON object containing a single key, "keywords", which is a list of strings.
+
+**Example 1:**
+*   Query: "Show me the calculations for structoral integrity in Chapter 16 of the Virginia code, and explain the main factors in the associated tables."
+*   Response:
+    ```json
+    {{
+      "keywords": ["structural integrity", "Chapter 16", "calculation", "tables"]
+    }}
+    ```
+
+**Example 2:**
+*   Query: "What are the live load requirments for resedential balconies according to Table 1607.1?"
+*   Response:
+    ```json
+    {{
+      "keywords": ["live load", "residential balconies", "Table 1607.1"]
+    }}
+    ```
+
+**Your JSON Response:**
+""" 

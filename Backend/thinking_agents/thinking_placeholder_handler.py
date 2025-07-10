@@ -248,7 +248,7 @@ class ThinkingPlaceholderHandler(BaseLangGraphAgent, ThinkingMixin):
             return suggestions
     
     def _prepare_placeholder_state_updates_with_thinking(self, placeholder_context: Dict, partial_answer: str, 
-                                                        enhancement_suggestions: Dict, state: AgentState) -> Dict[str, Any]:
+                                                       enhancement_suggestions: Dict, state: AgentState) -> Dict[str, Any]:
         """Prepare final state updates with thinking process."""
         
         with self.thinking_logger.synthesis_block("Final State Preparation"):
@@ -284,21 +284,20 @@ class ThinkingPlaceholderHandler(BaseLangGraphAgent, ThinkingMixin):
             self.thinking_logger.success("✅ State updates prepared successfully")
             
             return state_updates
-            
+    
     def _format_available_research_with_thinking(self, research_results: List[Dict]) -> str:
         """Format available research for the prompt, showing thinking."""
         
         with self.thinking_logger.analysis_block("Formatting Available Research"):
-            
             if not research_results:
                 self.thinking_logger.note("No research results to format.")
                 return "No specific research information was found."
-            
+        
             formatted_texts = []
             for i, result in enumerate(research_results, 1):
                 sub_query = result.get('sub_query', f'Result {i}')
                 answer = result.get('answer', 'No answer provided.')
-                
+            
                 # Skip placeholders in the available research context
                 if "PLACEHOLDER:" in answer:
                     self.thinking_logger.note(f"Skipping placeholder content for sub-query: '{sub_query}'")
@@ -312,7 +311,7 @@ class ThinkingPlaceholderHandler(BaseLangGraphAgent, ThinkingMixin):
             if not formatted_texts:
                 self.thinking_logger.warning("All research results were placeholders; no available info.")
                 return "All research conducted resulted in placeholders, indicating significant information gaps."
-            
+        
             return "\n".join(formatted_texts)
     
     def _parse_json_response_with_thinking(self, response: str) -> Dict[str, Any]:
@@ -320,12 +319,12 @@ class ThinkingPlaceholderHandler(BaseLangGraphAgent, ThinkingMixin):
         
         with self.thinking_logger.analysis_block("Parsing LLM JSON Response"):
             self.thinking_logger.think("Attempting to parse JSON from LLM response...")
-            
+        
             try:
                 # Use a more robust method to find the JSON block
                 first_brace = response.find('{')
                 last_brace = response.rfind('}')
-                
+            
                 if first_brace == -1 or last_brace == -1 or last_brace < first_brace:
                     raise json.JSONDecodeError("Could not find a valid JSON object.", response, 0)
                 
@@ -336,7 +335,7 @@ class ThinkingPlaceholderHandler(BaseLangGraphAgent, ThinkingMixin):
                 self.thinking_logger.review(f"Parsed keys: {list(parsed_json.keys())}")
                 
                 return parsed_json
-            
+                
             except json.JSONDecodeError as e:
                 self.thinking_logger.problem(f"JSON parsing failed: {e}")
                 self.thinking_logger.review(f"Problematic response: {response[:200]}...")
@@ -353,7 +352,7 @@ class ThinkingPlaceholderHandler(BaseLangGraphAgent, ThinkingMixin):
                 "critical_gaps": missing_aspects or ["general information"],
                 "enhancement_priority": "high"
             }
-            
+    
     def _create_fallback_partial_answer_with_thinking(self, user_query: str, available_info: str) -> str:
         """Create fallback partial answer with thinking."""
         

@@ -87,6 +87,11 @@ EMBEDDING_MODEL = "models/embedding-001"
 # Set to False if reranker is not performing well for building code documents
 USE_RERANKER = os.environ.get("USE_RERANKER", "False").lower() == "true"
 
+# Controls whether to use parallel execution for sub-queries in ResearchOrchestrator
+# If True: Sub-queries are processed concurrently for faster execution (default)
+# If False: Sub-queries are processed sequentially (for debugging/troubleshooting)
+USE_PARALLEL_EXECUTION = os.environ.get("USE_PARALLEL_EXECUTION", "True").lower() == "true"
+
 # --- Calculation Configuration ---
 # Controls whether to use Docker for calculations
 # If True: All calculations run in secure Docker containers (recommended for production)
@@ -117,5 +122,5 @@ except redis.exceptions.ConnectionError as e:
     raise ValueError(f"Failed to connect to Redis: {e}") from e
 
 logging.info(f"Model configuration: T1='{TIER_1_MODEL_NAME}', T2='{TIER_2_MODEL_NAME}', Memory='{MEMORY_ANALYSIS_MODEL}'")
-logging.info(f"Research configuration: USE_RERANKER={USE_RERANKER}")
+logging.info(f"Research configuration: USE_RERANKER={USE_RERANKER}, USE_PARALLEL_EXECUTION={USE_PARALLEL_EXECUTION}")
 logging.info(f"Calculation configuration: USE_DOCKER={USE_DOCKER}") 
