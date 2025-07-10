@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test_session_d7be2da1-ec19-44c4-95f7-5d8a0188788e",
+  "full_history": [
+    {
+      "id": "841d78db-2ec2-4906-a425-49d6ccf78049",
+      "role": "user",
+      "content": "I'm designing a new multi-story hospital, which is obviously a critical facility. I need to understand the special structural integrity rules that apply to this type of high-risk building. Specifically, for a cast-in-place concrete frame, what are the fundamental requirements for tying the structure together to ensure stability, particularly concerning the connection of floors and beams to the columns?"
+    },
+    {
+      "id": "c6442e74-b780-409e-8dcf-8270d91e6507",
+      "role": "assistant",
+      "content": "I cannot provide an answer to the user's query regarding the specific requirements for cast-in-place concrete frame construction in a multi-story hospital in Virginia. All of the research queries related to the Virginia Building Code and critical facilities returned errors due to exceeding usage limits.  Therefore, I lack the necessary information to address the requirements for structural integrity, connection of floors and beams to columns, concrete mix design, or special inspections."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

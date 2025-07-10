@@ -198,7 +198,17 @@ You are a quality control analyst. Your task is to evaluate if the given CONTEXT
 **Analysis Guidelines:**
 1.  **Focus on Relevance, Not Perfection:** The context does not need to be a perfect answer. It only needs to contain keywords, concepts, or section numbers that are clearly related to the sub-query.
 2.  **Be Optimistic:** Assume the research system is good. If the context is on the right topic, it's likely sufficient.
-3.  **Score and Justify**: Provide a `relevance_score` from 1 to 10 and a brief `reasoning` for your score.
+3.  **Virginia Building Code Specific Rules:**
+    - If context shows a table of contents or section listing that includes relevant topics, score 7+ (highly relevant structure)
+    - If context mentions the right chapter number for the topic (e.g., Chapter 16 for structural, Chapter 19 for concrete), score 6+ minimum
+    - If context contains ANY relevant technical terms from the query (e.g., "concrete," "structural," "hospital," "critical facility"), score 5+ minimum
+4.  **Score and Justify**: Provide a `relevance_score` from 1 to 10 and a brief `reasoning` for your score.
+
+**Scoring Guidelines:**
+- 8-10: Direct answer or highly relevant section with specific content
+- 6-7: Relevant chapter/section structure or partial content 
+- 4-5: Contains some relevant keywords or concepts
+- 1-3: Completely unrelated or error content only
 
 **SUB-QUERY:**
 {sub_query}

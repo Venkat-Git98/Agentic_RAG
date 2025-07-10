@@ -165,37 +165,61 @@ class RetrievalStrategyAgent(BaseLangGraphAgent):
         """
         Handle strategy selection for non-mathematical content using the standard LLM-based approach.
         """
-        # Enhanced prompt that includes mathematical awareness
-        ENHANCED_RETRIEVAL_STRATEGY_PROMPT = """
-You are a retrieval strategy expert for a building code AI with enhanced mathematical content capabilities.
-Your task is to select the single best retrieval strategy for the given user query.
+        STRATEGY_SELECTION_PROMPT = """
+You are an expert retrieval strategist for the Virginia Building Code database. Your task is to select the optimal retrieval method for answering building code queries.
 
-**Available Strategies:**
+**Available Retrieval Methods:**
 
-1.  **`direct_retrieval`**: Use this for queries that contain a specific section or subsection number (e.g., "1607.1", "Chapter 5", "Section 101.2"). This is the fastest and most precise method for targeted lookups.
+1. **direct_subsection_lookup** - Best for:
+   - Queries asking about specific sections/chapters (e.g., "Section 1613", "Chapter 19")
+   - Technical requirements for specific building elements
+   - Structural design requirements, concrete specifications, seismic design
+   - Questions that sound like they should have specific code sections
+   - Examples: "concrete frame requirements", "hospital structural requirements", "seismic design for hospitals"
 
-2.  **`keyword_search`**: Use this for queries that contain unique, specific technical terms, proper nouns, or phrases that are likely to have an exact match in the text (e.g., "fire-retardant-treated wood", "ASTM E119", "cross-laminated timber").
+2. **vector_search** - Best for:
+   - General conceptual queries without clear section references
+   - Broad exploratory questions
+   - When direct lookup seems unlikely to find specific sections
 
-3.  **`vector_search`**: Use this for all other queries, especially conceptual or descriptive questions that rely on semantic meaning rather than exact keywords (e.g., "What is the intent of the egress code?", "summarize the requirements for accessibility").
+3. **keyword_retrieval** - Best for:
+   - Simple keyword-based searches
+   - When vector search might be too sophisticated
 
-**Enhanced Decision Process:**
-1.  Examine the user query for section numbers. If present, choose `direct_retrieval`.
-2.  If no section number, look for unique, technical keywords. If present, choose `keyword_search`.
-3.  Otherwise, default to `vector_search`.
-4.  Consider the query's intent: is it asking for specific facts (keyword) or conceptual understanding (vector)?
+**Query Enhancement Strategy:**
+For building code queries, you should also enhance the original query by:
+- Adding relevant technical terms
+- Specifying the most likely chapter context
+- Including building code terminology
 
-**User Query:**
-"{query}"
+**Important Guidelines:**
+- **STRONGLY PREFER direct_subsection_lookup** for any query involving:
+  * Hospitals, critical facilities, structural requirements
+  * Concrete construction, frames, connections
+  * Seismic design, earthquake requirements
+  * Specific building types with special requirements
+- For structural queries, Virginia Building Code typically uses:
+  * Chapter 16: Structural Design
+  * Chapter 19: Concrete
+  * Section 1613: Earthquake Loads
+  * Chapter 31: Special Construction (for critical facilities)
 
-**Your JSON Response:**
-Respond with a single, valid JSON object with three keys:
-- "strategy": One of ["direct_retrieval", "vector_search", "keyword_search"]
-- "confidence_score": A score from 0.0 to 1.0 indicating the confidence in the chosen strategy.
-- "reasoning": A brief explanation for your choice.
-"""
+**Query to analyze:** "{query}"
+
+**Your response format:**
+```json
+{{
+  "tool": "direct_subsection_lookup|vector_search|keyword_retrieval",
+  "confidence": 0.XX,
+  "reasoning": "Brief explanation of why this method is optimal",
+  "enhanced_query": "Enhanced version of the query with building code context and technical terms"
+}}
+```
+
+Focus on the structural context and building code chapter organization to make the best choice."""
 
         try:
-            prompt = ChatPromptTemplate.from_template(ENHANCED_RETRIEVAL_STRATEGY_PROMPT)
+            prompt = ChatPromptTemplate.from_template(STRATEGY_SELECTION_PROMPT)
             chain = prompt | self.model
             
             response_ai_message = await chain.ainvoke({"query": query})
@@ -208,20 +232,20 @@ Respond with a single, valid JSON object with three keys:
                 return {"strategy": {"tool": "vector_search", "query": query}, "retrieval_strategy": "vector_search"}
             
             strategy_data = json.loads(json_match.group(0))
-            strategy = strategy_data.get("strategy", "vector_search")
-            confidence = strategy_data.get("confidence_score", 0.7)
+            strategy = strategy_data.get("tool", "vector_search")
+            confidence = strategy_data.get("confidence", 0.7)
             reasoning = strategy_data.get("reasoning", "Standard strategy selection")
             
             # Validate strategy
-            valid_strategies = ["direct_retrieval", "vector_search", "keyword_search"]
+            valid_strategies = ["direct_subsection_lookup", "vector_search", "keyword_retrieval"]
             if strategy not in valid_strategies:
                 self.logger.warning(f"Invalid strategy '{strategy}', defaulting to vector_search")
                 strategy = "vector_search"
             
             # Map strategy to tool
             strategy_tool_map = {
-                "direct_retrieval": "direct_subsection_lookup",
-                "keyword_search": "keyword_retrieval", 
+                "direct_subsection_lookup": "direct_subsection_lookup",
+                "keyword_retrieval": "keyword_retrieval", 
                 "vector_search": "vector_search"
             }
             
@@ -229,10 +253,13 @@ Respond with a single, valid JSON object with three keys:
             
             self.logger.info(f"LLM selected retrieval strategy: {strategy} (confidence: {confidence:.2f})")
             
+            # Use enhanced query if provided, otherwise use original
+            enhanced_query = strategy_data.get("enhanced_query", query)
+            
             return {
                 "strategy": {
                     "tool": tool,
-                    "query": query,
+                    "query": enhanced_query,
                     "enhanced_mode": False,
                     "mathematical_priority": False
                 },

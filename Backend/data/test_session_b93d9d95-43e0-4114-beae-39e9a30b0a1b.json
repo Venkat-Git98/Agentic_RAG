@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test_session_b93d9d95-43e0-4114-beae-39e9a30b0a1b",
+  "full_history": [
+    {
+      "id": "55333146-448e-4555-8a14-c424c742be85",
+      "role": "user",
+      "content": "What are the specific requirements for cast-in-place concrete frames in multi-story buildings under the Virginia Building Code?"
+    },
+    {
+      "id": "9609cf4f-670e-4946-a6b9-44ef82a2acd8",
+      "role": "assistant",
+      "content": "I cannot provide an answer to the query regarding the specific requirements for cast-in-place concrete frames in multi-story buildings under the Virginia Building Code. The research attempts to gather information on material specifications, design and construction requirements, fire-resistance ratings, and specific provisions for multi-story buildings, but all research attempts failed due to exceeding usage limits.  Therefore, I am missing the necessary information from the Virginia Building Code to answer the question."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

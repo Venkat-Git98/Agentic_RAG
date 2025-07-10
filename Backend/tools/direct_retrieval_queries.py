@@ -37,9 +37,9 @@ RETURN c.title AS title
 # Fetches a Chapter and lists all its Sections for a high-level overview.
 GET_CHAPTER_OVERVIEW_BY_ID = """
 MATCH (c:Chapter {uid: $uid})-[:CONTAINS]->(s:Section)
+WITH c, s ORDER BY s.number
 RETURN c.title AS chapter_title, c.number AS chapter_number,
        COLLECT({title: s.title, number: s.number, uid: s.uid}) AS sections
-ORDER BY s.number
 """
 
 # Fetches a Section and lists all its Subsections.

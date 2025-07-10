@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test_session_32101dd7-c6a0-42ea-925c-f8ce2e6a5481",
+  "full_history": [
+    {
+      "id": "b8c734ca-de81-484c-afbd-519fab4d3557",
+      "role": "user",
+      "content": "\\What is the scope of seismic design requirements in Section 1613.1 of the Virginia Building Code?\" --timeout 30"
+    },
+    {
+      "id": "6c9a2e66-5307-486c-b513-d09a8eec5b2d",
+      "role": "assistant",
+      "content": "Section 1613.1 of the Virginia Building Code defines the scope of seismic design requirements.  Generally, all structures and their nonstructural components must be designed and constructed to withstand earthquakes according to ASCE 7 Chapters 11, 12, 13, 15, 17, and 18 [1613.1]. The seismic design category can be determined following either Section 1613 or ASCE 7 [1613.1].\n\nHowever, there are exceptions to this general requirement [1613.1]:\n\n1.  Detached one- and two-family dwellings in Seismic Design Categories A, B, or C, or where the mapped short-period spectral response acceleration, *S<sub>S</sub>*, is less than 0.4g.\n2.  The seismic force-resisting system of wood-frame buildings complying with Section 2308.\n3.  Agricultural storage structures with only incidental human occupancy.\n4.  Structures requiring special consideration not covered by the code or ASCE 7, such as bridges, towers, hydraulic structures, buried utilities, and nuclear reactors, for which other regulations provide seismic criteria.\n5.  References within ASCE 7 to Chapter 14 are not applicable, except as specifically required by the Virginia Building Code."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

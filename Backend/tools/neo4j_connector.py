@@ -274,35 +274,39 @@ class Neo4jConnector:
         all of its children (other Passages, Math, and Tables).
 
         If the node is a Table, it retrieves the table and its parent subsection.
+        
+        Enhanced to handle both Subsection and Section parent structures.
         """
-        # This new query first finds the ultimate parent of any given node
-        # before gathering all of its descendants, ensuring full context.
+        # Enhanced query that handles both Subsection and Section parent structures
         gold_standard_query = """
         MATCH (start_node {uid: $uid})
-        // Find the top-level Subsection parent of the starting node.
-        // This handles cases where we start in a child node (Passage, etc.)
-        CALL (start_node) {
-            MATCH (s:Subsection)
-            WHERE (start_node:Subsection AND s=start_node) OR (s)-[:HAS_CHUNK|CONTAINS*]->(start_node)
-            WITH s ORDER BY size(s.uid) ASC LIMIT 1
-            RETURN s as parent
-        }
-
-        // From the true parent, get all DESCENDANTS (other subsections, passages, tables, math, etc.)
-        OPTIONAL MATCH (parent)-[:HAS_CHUNK|CONTAINS*0..]->(descendant)
+        
+        // Try to find Subsection parent first (preferred structure)
+        OPTIONAL MATCH (s:Subsection)
+        WHERE (start_node:Subsection AND s=start_node) OR (s)-[:HAS_CHUNK|CONTAINS*]->(start_node)
+        WITH start_node, s ORDER BY size(s.uid) ASC LIMIT 1
+        
+        // If no Subsection parent found, try Section parent (legacy structure)
+        OPTIONAL MATCH (sec:Section)
+        WHERE s IS NULL AND ((start_node:Section AND sec=start_node) OR (sec)-[:HAS_CHUNK|CONTAINS*]->(start_node))
+        WITH start_node, COALESCE(s, sec) as final_parent
+        WHERE final_parent IS NOT NULL
+        
+        // From the parent, get all DESCENDANTS (other subsections, passages, tables, math, etc.)
+        OPTIONAL MATCH (final_parent)-[:HAS_CHUNK|CONTAINS*0..]->(descendant)
 
         // From those descendants, find any nodes they explicitly REFERENCE.
-        WITH parent, COLLECT(DISTINCT descendant) AS descendants
+        WITH final_parent, COLLECT(DISTINCT descendant) AS descendants
         UNWIND descendants AS d
         OPTIONAL MATCH (d)-[:REFERENCES]->(referenced_node)
         WHERE referenced_node:Table OR referenced_node:Diagram OR referenced_node:Math
 
         // Collect all unique nodes we've found
-        WITH parent, descendants, COLLECT(DISTINCT referenced_node) AS referenced_nodes
+        WITH final_parent, descendants, COLLECT(DISTINCT referenced_node) AS referenced_nodes
         // Combine the descendants and referenced nodes into a single list
-        WITH parent, descendants + referenced_nodes AS all_nodes
+        WITH final_parent, descendants + referenced_nodes AS all_nodes
         UNWIND all_nodes as node
-        RETURN parent, COLLECT(DISTINCT node) AS child_nodes
+        RETURN final_parent as parent, COLLECT(DISTINCT node) AS child_nodes
         """
         # Execute the query
         with Neo4jConnector.get_driver().session(database="neo4j") as session:
@@ -310,7 +314,9 @@ class Neo4jConnector:
             record = result.single()
 
         if not record or not record["parent"]:
-            return {"primary_item": {}, "supplemental_context": {}}
+            # Fallback: if still no parent found, return just the original node
+            logging.warning(f"No parent found for {uid}, using fallback to original node")
+            return Neo4jConnector._get_fallback_context(uid)
 
         # Format the data into a structured dictionary
         parent_node = record["parent"]
@@ -395,6 +401,61 @@ class Neo4jConnector:
                 content_map["diagrams"].append(formatted_child)
 
         return {"primary_item": parent_data, "supplemental_context": content_map}
+
+    @staticmethod
+    def _get_fallback_context(uid: str) -> Dict[str, Any]:
+        """
+        Fallback method when no parent structure is found.
+        Returns just the original node as both primary and supplemental content.
+        """
+        query = """
+        MATCH (n {uid: $uid})
+        RETURN n
+        """
+        
+        try:
+            with Neo4jConnector.get_driver().session(database="neo4j") as session:
+                result = session.run(query, uid=uid)
+                record = result.single()
+                
+                if record and record['n']:
+                    node = record['n']
+                    
+                    # Format the node
+                    props = {
+                        'uid': node.get('uid'),
+                        'text': node.get('text'),
+                        'title': node.get('title', ''),
+                        'number': node.get('number', ''),
+                        'type': list(node.labels)[0] if node.labels else 'Unknown'
+                    }
+                    
+                    # If it's a passage, include it in supplemental context
+                    if 'Passage' in node.labels:
+                        return {
+                            "primary_item": props,
+                            "supplemental_context": {
+                                "passages": [props],
+                                "tables": [],
+                                "mathematical_content": [],
+                                "diagrams": []
+                            }
+                        }
+                    else:
+                        return {
+                            "primary_item": props,
+                            "supplemental_context": {
+                                "passages": [],
+                                "tables": [],
+                                "mathematical_content": [],
+                                "diagrams": []
+                            }
+                        }
+        except Exception as e:
+            logging.error(f"Error in fallback context for {uid}: {e}")
+        
+        # Ultimate fallback
+        return {"primary_item": {}, "supplemental_context": {}}
 
     @staticmethod
     def get_node_by_uid(uid: str) -> Node | None:
@@ -777,31 +838,134 @@ class Neo4jConnector:
     @staticmethod
     def get_enhanced_subsection_context(uid: str) -> Dict[str, Any]:
         """
-        Enhanced subsection retrieval that explicitly includes Math, Diagram, and Table nodes.
-        
-        Args:
-            uid: The subsection UID (e.g., "1607.12.1")
-            
-        Returns:
-            Dictionary containing enhanced context with structured mathematical content
+        Enhanced subsection context retrieval that explicitly includes Math, Diagram, and Table nodes.
+        This provides comprehensive context for mathematical content analysis.
         """
         try:
-            records = Neo4jConnector.execute_query(GET_ENHANCED_SUBSECTION_CONTEXT, {"uid": uid})
-            if not records:
+            with Neo4jConnector.get_driver().session(database="neo4j") as session:
+                result = session.run(GET_ENHANCED_SUBSECTION_CONTEXT, uid=uid)
+                record = result.single()
+
+            if not record or not record["parent"]:
                 return {}
-            
-            record = records[0]
-            return {
-                "parent": dict(record.get("parent", {})),
-                "content_nodes": [dict(node) for node in record.get("content_nodes", [])],
-                "math_nodes": [dict(node) for node in record.get("math_nodes", [])],
-                "diagram_nodes": [dict(node) for node in record.get("diagram_nodes", [])],
-                "table_nodes": [dict(node) for node in record.get("table_nodes", [])],
-                "referenced_math": [dict(node) for node in record.get("referenced_math", [])],
-                "referenced_tables": [dict(node) for node in record.get("referenced_tables", [])]
+
+            # Extract data from the record
+            parent_node = record["parent"]
+            content_nodes = record.get("content_nodes", [])
+            math_nodes = record.get("math_nodes", [])
+            diagram_nodes = record.get("diagram_nodes", [])
+            table_nodes = record.get("table_nodes", [])
+            referenced_math = record.get("referenced_math", [])
+            referenced_tables = record.get("referenced_tables", [])
+
+            def format_node(n: Node) -> Dict[str, Any]:
+                if not n:
+                    return None
+                
+                props = {
+                    'uid': n.get('uid'),
+                    'text': n.get('text'),
+                    'title': n.get('title'),
+                    'number': n.get('number'),
+                    'type': list(n.labels)[0] if n.labels else 'Unknown'
+                }
+                
+                if 'Table' in n.labels:
+                    props['html_repr'] = n.get('html_repr', n.get('text'))
+                    props['headers'] = n.get('headers', [])
+                    props['rows'] = n.get('rows', [])
+                    props['title'] = n.get('title', '')
+                    props['table_id'] = n.get('table_id', '')
+                elif 'Math' in n.labels:
+                    props['latex'] = n.get('latex')
+                elif 'Diagram' in n.labels:
+                    props['path'] = n.get('path')
+                    props['description'] = n.get('description', '')
+                    
+                return props
+
+            parent_data = format_node(parent_node)
+
+            # Organize all content by type
+            content_map = {
+                "passages": [format_node(node) for node in content_nodes if node],
+                "tables": [format_node(node) for node in table_nodes if node] + [format_node(node) for node in referenced_tables if node],
+                "mathematical_content": [format_node(node) for node in math_nodes if node] + [format_node(node) for node in referenced_math if node],
+                "diagrams": [format_node(node) for node in diagram_nodes if node]
             }
+
+            # Filter out None values
+            for key in content_map:
+                content_map[key] = [item for item in content_map[key] if item is not None]
+
+            return {
+                "primary_item": parent_data,
+                "supplemental_context": content_map
+            }
+            
         except Exception as e:
-            logging.error(f"Failed to get enhanced subsection context for '{uid}': {e}")
+            logging.error(f"Error getting enhanced subsection context for {uid}: {e}")
+            return {}
+
+    @staticmethod
+    def get_chapter_overview_by_id(chapter_id: str) -> Dict[str, Any]:
+        """
+        Get a chapter overview by chapter ID, listing all sections in the chapter.
+        This is used for chapter-level direct retrieval.
+        
+        Args:
+            chapter_id: The chapter number (e.g., "19", "16")
+            
+        Returns:
+            Dictionary with chapter information and list of sections
+        """
+        try:
+            with Neo4jConnector.get_driver().session(database="neo4j") as session:
+                result = session.run(GET_CHAPTER_OVERVIEW_BY_ID, uid=chapter_id)
+                record = result.single()
+
+            if not record:
+                logging.warning(f"No chapter found with ID: {chapter_id}")
+                return {}
+
+            # Extract data from the record
+            chapter_title = record.get("chapter_title", f"Chapter {chapter_id}")
+            chapter_number = record.get("chapter_number", chapter_id)
+            sections = record.get("sections", [])
+
+            # Format the chapter overview
+            formatted_sections = []
+            for section in sections:
+                formatted_sections.append({
+                    'uid': section.get('uid'),
+                    'title': section.get('title'),
+                    'number': section.get('number'),
+                    'type': 'Section'
+                })
+
+            # Format as a context block similar to other retrieval methods
+            chapter_overview = {
+                'uid': chapter_id,
+                'title': chapter_title,
+                'number': chapter_number,
+                'type': 'Chapter',
+                'text': f"Chapter {chapter_number}: {chapter_title}\n\nThis chapter contains {len(formatted_sections)} sections:\n" + 
+                       '\n'.join([f"- Section {s['number']}: {s['title']}" for s in formatted_sections])
+            }
+
+            return {
+                "primary_item": chapter_overview,
+                "supplemental_context": {
+                    "passages": [],
+                    "tables": [],
+                    "mathematical_content": [],
+                    "diagrams": [],
+                    "sections": formatted_sections
+                }
+            }
+            
+        except Exception as e:
+            logging.error(f"Error getting chapter overview for {chapter_id}: {e}")
             return {}
     
     @staticmethod
