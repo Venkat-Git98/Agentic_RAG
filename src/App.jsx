@@ -694,7 +694,7 @@ export default function App() {
                     setIsPanelOpen={setIsPanelOpen}
                 />
             );
-            case 'architecture': return <ArchitectureTab />;
+            case 'architecture': return <ArchitectureTab onNodeClick={onNodeClick} />;
             default: return null;
         }
     };
