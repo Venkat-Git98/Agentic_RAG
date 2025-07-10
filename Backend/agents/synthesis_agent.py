@@ -1,143 +1,103 @@
 """
-Synthesis Agent for LangGraph workflow.
+Synthesis Agent for the LangGraph workflow.
 
-This agent integrates the sophisticated synthesis logic from the original
-SynthesisTool, handling the combination of multiple sub-answers into a
-comprehensive, well-structured, and cited final response.
+This agent synthesizes the final answer from multiple sub-query answers.
 """
 
-import os
-import json
-from typing import Dict, Any, List
+import logging
 from datetime import datetime
+from typing import Dict, Any, List
 
-# Add parent directories to path for imports
 from .base_agent import BaseLangGraphAgent
 from state import AgentState
 from state_keys import (
-    USER_QUERY, ORIGINAL_QUERY, SUB_QUERY_ANSWERS, FINAL_ANSWER,
-    SYNTHESIS_METADATA, SOURCE_CITATIONS, CONFIDENCE_SCORE,
-    CURRENT_STEP, WORKFLOW_STATUS, INTERMEDIATE_OUTPUTS, QUALITY_METRICS
+    USER_QUERY, SUB_QUERY_ANSWERS, FINAL_ANSWER, SYNTHESIS_METADATA,
+    SOURCE_CITATIONS, CONFIDENCE_SCORE, CURRENT_STEP, INTERMEDIATE_OUTPUTS
 )
-
-# Import the original synthesis tool
 from tools.synthesis_tool import SynthesisTool
+from prompts import CALCULATION_SYNTHESIS_PROMPT
+
 
 class SynthesisAgent(BaseLangGraphAgent):
     """
-    Synthesis Agent for comprehensive final answer generation.
-    
-    This agent leverages the existing SynthesisTool implementation while
-    adapting it to the LangGraph workflow. It handles:
-    - Combining multiple sub-query answers
-    - Creating well-structured responses
-    - Proper citation and source attribution
-    - Quality assessment and confidence scoring
+    Synthesis Agent responsible for generating the final answer from research results.
     """
     
     def __init__(self):
-        """Initialize the Synthesis Agent with Tier 1 model for high-quality synthesis."""
+        """Initialize the Synthesis Agent."""
         super().__init__(model_tier="tier_1", agent_name="SynthesisAgent")
-        
-        # Initialize the original synthesis tool
         self.synthesis_tool = SynthesisTool()
-        
         self.logger.info("Synthesis Agent initialized successfully")
     
     async def execute(self, state: AgentState) -> Dict[str, Any]:
         """
-        Execute the synthesis logic using the original SynthesisTool.
+        Execute the synthesis process.
         
         Args:
             state: Current workflow state
             
         Returns:
-            Dictionary containing synthesis results
+            Dictionary containing the final answer and metadata
         """
-        user_query = state[USER_QUERY]
-        # Use the original_query if available, otherwise fall back to the current user_query.
-        # This is crucial for contextual understanding in conversational follow-ups.
-        original_query = state.get(ORIGINAL_QUERY, user_query)
-        sub_query_answers = state.get(SUB_QUERY_ANSWERS, [])
-        
-        if not sub_query_answers:
-            self.logger.error("No sub-query answers provided to synthesis agent")
-            return {
-                "error_state": {
-                    "agent": self.agent_name,
-                    "error_type": "MissingSubAnswers",
-                    "error_message": "No sub-query answers provided for synthesis",
-                    "timestamp": "now"
-                },
-                "current_step": "error",
-                "workflow_status": "failed"
-            }
-        
-        self.logger.info(f"Synthesizing final answer from {len(sub_query_answers)} sub-answers for original query: '{original_query[:100]}'")
+        self.logger.info(f"Synthesizing final answer from {len(state.get(SUB_QUERY_ANSWERS, []))} sub-answers for original query: '{state.get(USER_QUERY, '')[:100]}'")
         
         try:
-            # Execute the original synthesis tool, passing the original query for context
-            synthesis_result = await self._execute_synthesis(original_query, user_query, sub_query_answers)
+            # Execute synthesis
+            synthesis_result = await self._execute_synthesis(
+                original_query=state[USER_QUERY],
+                current_query=state[USER_QUERY],
+                sub_query_answers=state.get(SUB_QUERY_ANSWERS, [])
+            )
             
-            # Process and format the results for LangGraph state
+            # Process the synthesis result
             return await self._process_synthesis_result(synthesis_result, state)
             
         except Exception as e:
-            self.logger.error(f"Error in synthesis execution: {e}")
+            self.logger.error(f"Error in synthesis execution: {e}", exc_info=True)
             return {
-                "error_state": {
-                    "agent": self.agent_name,
-                    "error_type": type(e).__name__,
-                    "error_message": str(e),
-                    "timestamp": "now"
-                },
-                "current_step": "error",
-                "workflow_status": "failed"
+                FINAL_ANSWER: f"I apologize, but I encountered an error while synthesizing the final answer: {str(e)}",
+                SYNTHESIS_METADATA: {"error": str(e)},
+                SOURCE_CITATIONS: [],
+                CONFIDENCE_SCORE: 0.0
             }
     
     async def _execute_synthesis(self, original_query: str, current_query: str, sub_query_answers: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        Executes the synthesis using the original tool logic.
+        Execute the synthesis using the synthesis tool.
         
         Args:
-            original_query: The query that initiated the research.
-            current_query: The most recent user query (could be a follow-up).
-            sub_query_answers: List of sub-query answers to synthesize
+            original_query: The original user query
+            current_query: The current query (usually same as original)
+            sub_query_answers: List of sub-query answers
             
         Returns:
-            Synthesis results from the synthesis tool
+            Dictionary containing the synthesis result
         """
-        # Execute the original synthesis tool
-        synthesis_result = self.synthesis_tool(
+        return self.synthesis_tool(
             original_query=original_query,
             current_query=current_query,
             sub_answers=sub_query_answers
         )
-        
-        return synthesis_result
     
     async def _process_synthesis_result(self, synthesis_result: Dict[str, Any], state: AgentState) -> Dict[str, Any]:
         """
-        Processes the result from the synthesis tool and formats for LangGraph.
+        Process the synthesis result and create the final output.
         
         Args:
-            synthesis_result: Result from the synthesis tool
+            synthesis_result: Result from synthesis tool
             state: Current workflow state
             
         Returns:
-            Formatted synthesis output for state update
+            Dictionary containing processed synthesis output
         """
         final_answer = synthesis_result.get("final_answer", "")
+        sub_query_answers = state.get(SUB_QUERY_ANSWERS, [])
         
-        if not final_answer:
-            self.logger.warning("No final answer generated by synthesis tool")
-            final_answer = "I was unable to generate a comprehensive answer based on the available information."
+        # Extract citations
+        citations = self._extract_citations(final_answer, sub_query_answers)
         
-        # Extract citations and sources
-        source_citations = self._extract_citations(final_answer, state.get(SUB_QUERY_ANSWERS, []))
-        
-        # Calculate synthesis quality metrics
-        synthesis_metadata = self._calculate_synthesis_metadata(final_answer, state.get(SUB_QUERY_ANSWERS, []))
+        # Calculate synthesis metadata
+        synthesis_metadata = self._calculate_synthesis_metadata(final_answer, sub_query_answers)
         
         # Calculate confidence score
         confidence_score = self._calculate_confidence_score(synthesis_metadata, state)
@@ -147,50 +107,46 @@ class SynthesisAgent(BaseLangGraphAgent):
         return {
             FINAL_ANSWER: final_answer,
             SYNTHESIS_METADATA: synthesis_metadata,
-            SOURCE_CITATIONS: source_citations,
-            CONFIDENCE_SCORE: confidence_score,
-            CURRENT_STEP: "memory_update",
-            WORKFLOW_STATUS: "running"
+            SOURCE_CITATIONS: citations,
+            CONFIDENCE_SCORE: confidence_score
         }
     
     def _extract_citations(self, final_answer: str, sub_query_answers: List[Dict[str, Any]]) -> List[str]:
         """
-        Extracts and validates source citations from the final answer.
+        Extract citations from the final answer and sub-query answers.
         
         Args:
             final_answer: The synthesized final answer
-            sub_query_answers: Original sub-query answers
+            sub_query_answers: List of sub-query answers
             
         Returns:
-            List of unique source citations
+            List of unique citations
         """
-        citations = []
+        citations = set()
         
-        # Extract sources from sub-query answers
-        for sub_answer in sub_query_answers:
-            sources = sub_answer.get("sources_used", [])
-            citations.extend(sources)
+        # Extract citations from sub-query answers
+        for answer in sub_query_answers:
+            sources = answer.get("sources_used", [])
+            if isinstance(sources, list):
+                citations.update(sources)
         
-        # Remove duplicates while preserving order
-        unique_citations = []
-        seen = set()
-        for citation in citations:
-            if citation not in seen:
-                unique_citations.append(citation)
-                seen.add(citation)
+        # Simple citation extraction from final answer
+        import re
+        section_refs = re.findall(r'Section\s+\d+\.?\d*\.?\d*', final_answer)
+        citations.update(section_refs)
         
-        return unique_citations
+        return list(citations)
     
     def _calculate_synthesis_metadata(self, final_answer: str, sub_query_answers: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        Calculates comprehensive metadata for the synthesis process.
+        Calculate metadata about the synthesis process.
         
         Args:
             final_answer: The synthesized final answer
-            sub_query_answers: Original sub-query answers
+            sub_query_answers: List of sub-query answers
             
         Returns:
-            Synthesis metadata dictionary
+            Dictionary containing synthesis metadata
         """
         # Basic metrics
         answer_length = len(final_answer)
@@ -330,7 +286,7 @@ class EnhancedSynthesisAgent(SynthesisAgent):
     async def _try_enhanced_synthesis(self, state: AgentState) -> Dict[str, Any]:
         """Tries to apply an enhanced synthesis strategy based on the state."""
         if state.get("math_calculation_needed"):
-            self.logger.info("Applying 'Calculation' synthesis strategy.")
+            self.logger.info("🧮 Applying enhanced 'Calculation' synthesis strategy.")
             return await self._enhance_calculation_synthesis(state)
         
         # Other strategies can be added here
@@ -342,91 +298,24 @@ class EnhancedSynthesisAgent(SynthesisAgent):
     async def _enhance_calculation_synthesis(self, state: AgentState) -> Dict[str, Any]:
         """
         Enhanced synthesis for queries requiring calculations.
-        This prompt instructs the LLM to perform the math.
+        Uses the specialized CALCULATION_SYNTHESIS_PROMPT to ensure mathematical calculations are performed.
         """
         user_query = state[USER_QUERY]
         sub_query_answers = state.get(SUB_QUERY_ANSWERS, [])
 
-        # Construct the sub-answers string separately to avoid f-string syntax limitations.
+        # Construct the sub-answers string
         sub_answers_text = "".join([
             f"Sub-Query: {ans.get('sub_query', 'N/A')}\nAnswer: {ans.get('answer', 'N/A')}\n\n"
             for ans in sub_query_answers
         ])
 
-        prompt = f"""
-        You are a Virginia Building Code expert and a skilled technical analyst.
-        Your task is to provide a comprehensive answer to the user's query, which requires performing mathematical calculations.
-
-        **USER QUERY:**
-        {user_query}
-
-        **RESEARCHED CONTEXT & SUB-ANSWERS:**
-        ---
-        {sub_answers_text}
-        ---
-
-        **INSTRUCTIONS:**
-        1.  **Synthesize and Calculate**: Review all the provided context to understand the problem.
-        2.  **Identify Formulas**: Extract the necessary formulas and variables from the context.
-        3.  **Perform the Calculation**: Using the data and formulas, perform the mathematical calculations step-by-step. Show your work clearly.
-        4.  **State Assumptions**: If any values are not explicitly provided, state reasonable assumptions (e.g., "Assuming a standard tributary area of X...").
-        5.  **Provide the Final Answer**: Give a clear, numerical answer to the user's question based on your calculation.
-        6.  **Cite Sources**: Reference the relevant building code sections (e.g., "According to Section 1607.12...").
-        7.  **Do Not Hedge**: Provide a confident, definitive answer. Do not say you cannot perform calculations. You are the expert.
-
-        **FINAL ANSWER FORMAT:**
-        - Start with a clear statement of the final calculated value.
-        - Provide a "Methodology" section explaining how you arrived at the answer.
-        - Show the formula used, the values substituted, and the step-by-step calculation.
-        - Conclude with any necessary context or explanations based on the code.
-
-        **Your Comprehensive Answer:**
-        """
+        # Use the specialized calculation prompt
+        prompt = CALCULATION_SYNTHESIS_PROMPT.format(
+            original_user_query=user_query,
+            sub_answers_text=sub_answers_text
+        )
         
+        self.logger.info("🧮 Executing calculation synthesis with enhanced mathematical instructions")
         response_text = await self.generate_content_async(prompt)
+        
         return {"final_answer": response_text}
-
-    async def _enhance_comparison_synthesis(self, state: AgentState) -> Dict[str, Any]:
-        """Enhanced synthesis for comparison queries."""
-        result = await super().execute(state)
-        
-        if result.get("final_answer"):
-            enhanced_answer = self._format_comparison_answer(result["final_answer"])
-            result["final_answer"] = enhanced_answer
-            result["synthesis_metadata"]["enhanced_for"] = "comparison"
-        
-        return result
-    
-    def _format_comparison_answer(self, answer: str) -> str:
-        """Formats answer for comparison queries with clear contrast structure."""
-        return f"**Comparative Analysis:**\n\n{answer}\n\n*Note: This comparison is based on the Virginia Building Code requirements.*"
-    
-    async def _enhance_compliance_synthesis(self, state: AgentState) -> Dict[str, Any]:
-        """Enhances synthesis for compliance queries."""
-        result = await super().execute(state)
-        
-        if result.get("final_answer"):
-            enhanced_answer = self._format_compliance_answer(result["final_answer"])
-            result["final_answer"] = enhanced_answer
-            result["synthesis_metadata"]["enhanced_for"] = "compliance"
-        
-        return result
-    
-    def _format_compliance_answer(self, answer: str) -> str:
-        """Formats answer for compliance queries with clear regulatory structure."""
-        return f"**Compliance Requirements:**\n\n{answer}\n\n*Note: Compliance must be verified with local building officials and current code editions.*"
-    
-    async def _enhance_procedural_synthesis(self, state: AgentState) -> Dict[str, Any]:
-        """Enhances synthesis for procedural queries."""
-        result = await super().execute(state)
-        
-        if result.get("final_answer"):
-            enhanced_answer = self._format_procedural_answer(result["final_answer"])
-            result["final_answer"] = enhanced_answer
-            result["synthesis_metadata"]["enhanced_for"] = "procedural"
-        
-        return result
-    
-    def _format_procedural_answer(self, answer: str) -> str:
-        """Formats answer for procedural queries with clear step-by-step structure."""
-        return f"**Step-by-Step Procedure:**\n\n{answer}\n\n*Note: Follow all steps in sequence and verify compliance with local building requirements.*"

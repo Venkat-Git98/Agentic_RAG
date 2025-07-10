@@ -9,7 +9,7 @@ from .base_agent import BaseLangGraphAgent
 from .triage_agent import TriageAgent
 from .planning_agent import PlanningAgent
 from .research_orchestrator import ResearchOrchestrator
-from .synthesis_agent import SynthesisAgent
+from .synthesis_agent import SynthesisAgent, EnhancedSynthesisAgent
 from .memory_agent import MemoryAgent
 from .error_handler import ErrorHandler
 from .contextual_answering_agent import ContextualAnsweringAgent
@@ -24,6 +24,7 @@ __all__ = [
     "PlanningAgent",
     "ResearchOrchestrator",
     "SynthesisAgent",
+    "EnhancedSynthesisAgent",
     "MemoryAgent",
     "ErrorHandler",
     "ContextualAnsweringAgent",

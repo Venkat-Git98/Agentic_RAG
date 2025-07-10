@@ -24,9 +24,9 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 # Local imports
 from state import AgentState, create_initial_state
 from agents import (
-    TriageAgent, PlanningAgent, ResearchOrchestrator, 
-    SynthesisAgent, MemoryAgent, ErrorHandler,
-    ContextualAnsweringAgent, HydeAgent, RetrievalStrategyAgent
+    TriageAgent, ContextualAnsweringAgent, PlanningAgent, HydeAgent,
+    ResearchOrchestrator, EnhancedSynthesisAgent, MemoryAgent, ErrorHandler,
+    RetrievalStrategyAgent
 )
 from thinking_agents import (
     ThinkingValidationAgent,
@@ -63,7 +63,7 @@ class ThinkingAgenticWorkflow:
         workflow.add_node("planning", CognitiveFlowAgentWrapper(PlanningAgent(), self.cognitive_flow_logger))
         workflow.add_node("hyde_generation", CognitiveFlowAgentWrapper(HydeAgent(), self.cognitive_flow_logger))
         workflow.add_node("research", CognitiveFlowAgentWrapper(ResearchOrchestrator(self.llm), self.cognitive_flow_logger))
-        workflow.add_node("synthesis", CognitiveFlowAgentWrapper(SynthesisAgent(), self.cognitive_flow_logger))
+        workflow.add_node("synthesis", CognitiveFlowAgentWrapper(EnhancedSynthesisAgent(), self.cognitive_flow_logger))
         workflow.add_node("memory_update", CognitiveFlowAgentWrapper(MemoryAgent(), self.cognitive_flow_logger))
         workflow.add_node("error_handler", CognitiveFlowAgentWrapper(ErrorHandler(), self.cognitive_flow_logger))
         

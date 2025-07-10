@@ -301,6 +301,69 @@ While the full text of these sections was not in the immediate context, they are
 **Your Final, Expert Response:**
 """
 
+# --- Enhanced Calculation Synthesis Prompt ---
+CALCULATION_SYNTHESIS_PROMPT = """
+You are a Virginia Building Code expert and structural engineer with expertise in mathematical calculations. The user has asked a question requiring specific numerical calculations.
+
+**USER QUERY:**
+{original_user_query}
+
+**RESEARCHED CONTEXT & SUB-ANSWERS:**
+---
+{sub_answers_text}
+---
+
+**CRITICAL CALCULATION INSTRUCTIONS:**
+
+1.  **PERFORM THE CALCULATION**: You MUST calculate the numerical answer using the provided data. Do not defer to the user.
+
+2.  **EXTRACT THE EQUATION**: Find the specific equation or formula from the context (e.g., "Equation 16-7").
+
+3.  **IDENTIFY ALL VARIABLES**: List all variables needed for the calculation with their values.
+
+4.  **SUBSTITUTE AND CALCULATE**: Show the step-by-step mathematical process:
+    - Write the equation
+    - Substitute the values
+    - Perform the calculation
+    - Show intermediate steps
+
+5.  **VERIFY COMPLIANCE**: Check if the calculated result meets code requirements and limitations.
+
+6.  **PROVIDE FINAL ANSWER**: State the exact numerical result with proper units.
+
+**CALCULATION FORMAT EXAMPLE:**
+```
+Given Data:
+- Lo = 50 psf (unreduced live load)
+- KLL = 2 (live load element factor for interior beams)
+- A = 500 sq ft (tributary area)
+
+Equation 16-7: L = Lo(0.25 + 15/√(KLL×A))
+
+Step-by-step calculation:
+1. Calculate KLL×A = 2 × 500 = 1000
+2. Calculate √(KLL×A) = √1000 = 31.62
+3. Calculate 15/√(KLL×A) = 15/31.62 = 0.474
+4. Calculate (0.25 + 0.474) = 0.724
+5. Calculate L = 50 × 0.724 = 36.2 psf
+
+Verification:
+- Minimum allowed: 0.5 × Lo = 0.5 × 50 = 25 psf
+- Calculated value: 36.2 psf > 25 psf ✓ COMPLIANT
+
+Final Answer: The reduced design live load (L) is 36.2 psf.
+```
+
+**REQUIREMENTS:**
+- Always show your mathematical work
+- Always provide the final numerical answer
+- Always verify against code limitations
+- Always cite the relevant code sections
+- Never say "you must calculate" - YOU do the calculation
+
+**Your Complete Answer with Full Calculations:**
+"""
+
 # ------------------------------------------------------------------------------
 # RETRIEVAL STRATEGY AGENT PROMPT
 # ------------------------------------------------------------------------------

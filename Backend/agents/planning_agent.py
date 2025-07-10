@@ -5,13 +5,14 @@ This agent uses a focused PlanningTool to decompose a complex query into a
 series of logical, targeted sub-queries for research.
 """
 
+import re
 from typing import Dict, Any
 
 from .base_agent import BaseLangGraphAgent
 from state import AgentState
 from state_keys import (
     USER_QUERY, CONTEXT_PAYLOAD, CURRENT_STEP, RESEARCH_PLAN,
-    PLANNING_REASONING, INTERMEDIATE_OUTPUTS
+    PLANNING_REASONING, INTERMEDIATE_OUTPUTS, MATH_CALCULATION_NEEDED
 )
 from tools.planning_tool import PlanningTool
 
@@ -25,6 +26,32 @@ class PlanningAgent(BaseLangGraphAgent):
         """Initialize the Planning Agent."""
         super().__init__(model_tier="tier_1", agent_name="PlanningAgent")
         self.planning_tool = PlanningTool()
+    
+    def _detect_calculation_query(self, query: str) -> bool:
+        """
+        Detect if query requires mathematical calculations.
+        
+        Args:
+            query: The user query to analyze
+            
+        Returns:
+            True if the query requires calculations, False otherwise
+        """
+        calculation_patterns = [
+            r'calculate|compute|equation|formula',
+            r'what is the.*value|final.*load|reduced.*load',
+            r'equation\s+\d+[-\.]?\d*|formula\s+\d+[-\.]?\d*',
+            r'psf|sq\s*ft|tributary\s*area|live\s*load',
+            r'apply.*equation|using.*equation|with.*equation',
+            r'step[-\s]*by[-\s]*step|show.*work|perform.*calculation'
+        ]
+        
+        for pattern in calculation_patterns:
+            if re.search(pattern, query, re.IGNORECASE):
+                self.logger.info(f"Calculation query detected with pattern: {pattern}")
+                return True
+        
+        return False
     
     async def execute(self, state: AgentState) -> Dict[str, Any]:
         """
@@ -41,6 +68,11 @@ class PlanningAgent(BaseLangGraphAgent):
         
         self.logger.info(f"Generating research plan for query: '{user_query[:100]}...'")
         
+        # Detect if this is a calculation query
+        is_calculation_query = self._detect_calculation_query(user_query)
+        if is_calculation_query:
+            self.logger.info("🧮 Calculation query detected - will use enhanced synthesis")
+        
         try:
             # The planning tool is now specialized and only returns a plan and reasoning.
             planning_result = self.planning_tool(
@@ -50,10 +82,21 @@ class PlanningAgent(BaseLangGraphAgent):
             
             self.logger.info(f"Successfully generated a research plan with {len(planning_result.get('plan', []))} steps.")
             
-            return {
+            result = {
                 PLANNING_REASONING: planning_result.get("reasoning"),
                 RESEARCH_PLAN: planning_result.get("plan", [])
             }
+            
+            # Add calculation flag if detected
+            if is_calculation_query:
+                result[MATH_CALCULATION_NEEDED] = True
+                result["calculation_context"] = {
+                    "equation_detected": True,
+                    "variables_needed": True,
+                    "numerical_result_required": True
+                }
+            
+            return result
             
         except Exception as e:
             self.logger.error(f"Critical error in planning tool execution: {e}", exc_info=True)
