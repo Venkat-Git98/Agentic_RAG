@@ -185,12 +185,12 @@ Your response MUST be a single JSON object with EXACTLY these keys:
             
             if "plan" not in plan_result or "reasoning" not in plan_result:
                 raise ValueError("LLM response is missing required 'plan' or 'reasoning' keys.")
-                return plan_result
+
+            self.logger.info(f"Successfully generated a research plan with {len(plan_result.get('plan', []))} steps.")
+            return plan_result
         except Exception as e:
-            self.logger.error(f"Error during planning tool execution: {e}", exc_info=True)
-            if response_text:
-                self.logger.error(f"Response text that caused error: {response_text}")
-            # Fallback to a safe plan
+            self.logger.error(f"Error processing LLM response for planning: {e}\nRaw response:\n{response_text}")
+            # Fallback to a simple plan
             return {
                 "reasoning": f"An error occurred during planning: {e}. Falling back to a simple plan.",
                 "plan": [query] # Fallback to using the original query as a single sub-query

@@ -283,7 +283,7 @@ class Neo4jConnector:
         
         // Try to find Subsection parent first (preferred structure)
         OPTIONAL MATCH (s:Subsection)
-        WHERE (start_node:Subsection AND s=start_node) OR (s)-[:HAS_CHUNK|CONTAINS*]->(start_node)
+            WHERE (start_node:Subsection AND s=start_node) OR (s)-[:HAS_CHUNK|CONTAINS*]->(start_node)
         WITH start_node, s ORDER BY size(s.uid) ASC LIMIT 1
         
         // If no Subsection parent found, try Section parent (legacy structure)
@@ -291,7 +291,7 @@ class Neo4jConnector:
         WHERE s IS NULL AND ((start_node:Section AND sec=start_node) OR (sec)-[:HAS_CHUNK|CONTAINS*]->(start_node))
         WITH start_node, COALESCE(s, sec) as final_parent
         WHERE final_parent IS NOT NULL
-        
+
         // From the parent, get all DESCENDANTS (other subsections, passages, tables, math, etc.)
         OPTIONAL MATCH (final_parent)-[:HAS_CHUNK|CONTAINS*0..]->(descendant)
 
