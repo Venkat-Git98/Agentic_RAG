@@ -320,7 +320,7 @@ class ThinkingPlaceholderHandler(BaseLangGraphAgent, ThinkingMixin):
         with self.thinking_logger.analysis_block("Parsing LLM JSON Response"):
             self.thinking_logger.think("Attempting to parse JSON from LLM response...")
         
-            try:
+        try:
                 # Use a more robust method to find the JSON block
                 first_brace = response.find('{')
                 last_brace = response.rfind('}')
@@ -336,7 +336,7 @@ class ThinkingPlaceholderHandler(BaseLangGraphAgent, ThinkingMixin):
                 
                 return parsed_json
                 
-            except json.JSONDecodeError as e:
+        except json.JSONDecodeError as e:
                 self.thinking_logger.problem(f"JSON parsing failed: {e}")
                 self.thinking_logger.review(f"Problematic response: {response[:200]}...")
                 return None

@@ -37,15 +37,15 @@ class BaseLangGraphAgent(ABC):
     
     def __init__(self, model_tier: str = "tier_2", agent_name: Optional[str] = None):
         """
-        Initializes the agent with a specific model tier and name.
+        Initializes the agent with a specific model tier and a name for logging.
         
         Args:
-            model_tier: "tier_1" for high-capability model (e.g., Gemini Pro 1.5),
-                        "tier_2" for faster, cost-effective model (e.g., Gemini Flash 1.5)
-            agent_name: A descriptive name for the agent.
+            model_tier: "tier_1" for primary models, "tier_2" for faster/cheaper models.
+            agent_name: An optional name for the agent, used for logging purposes. 
+                        If not provided, the class name is used.
         """
         self.agent_name = agent_name or self.__class__.__name__
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(self.agent_name)
 
         # Use ChatGoogleGenerativeAI for LangChain compatibility
         model_name = TIER_1_MODEL_NAME if model_tier == "tier_1" else TIER_2_MODEL_NAME

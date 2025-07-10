@@ -180,7 +180,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             
         except Exception as e:
             self.logger.error(f"Error in parallel research orchestration: {e}")
-            return {
+        return {
                 "error_state": {
                     "agent": self.agent_name,
                     "error_type": type(e).__name__,
@@ -1085,7 +1085,7 @@ Only return the JSON array, no other text.
                                 # Validate the context quality
                                 validation_result = await self._validate_context_quality(query, formatted_context)
                                 relevance_score = validation_result.get("relevance_score", 1)
-                                is_relevant = relevance_score >= 4
+                                is_relevant = relevance_score >= 6
                                 
                                 if is_relevant:
                                     return formatted_context
@@ -1185,9 +1185,9 @@ Only return the JSON array, no other text.
             validation_result = result.get("validation_result", {"relevance_score": 1, "reasoning": "No validation result"})
             
             # Convert relevance_score to is_relevant boolean
-            # Score >= 4 is considered relevant (adjusted threshold for direct retrieval)
+            # Score >= 6 is considered relevant
             relevance_score = validation_result.get("relevance_score", 1)
-            is_relevant = relevance_score >= 4
+            is_relevant = relevance_score >= 6
             
             return {
                 "is_relevant": is_relevant,

@@ -107,7 +107,7 @@ class ThinkingAgenticWorkflow:
     
     def _route_after_triage(self, state: AgentState) -> Literal["planning", "contextual_answering", "finish", "error"]:
         """Route after triage based on the new, sophisticated classification."""
-        if state.get("error_state"): 
+        if state.get("error_state"):
             return "error"
         classification = state.get("triage_classification")
         if classification == "simple_response": 
@@ -120,7 +120,7 @@ class ThinkingAgenticWorkflow:
 
     def _route_after_contextual_answering(self, state: AgentState) -> Literal["finish", "planning", "error"]:
         """Routes after the contextual answering agent attempts a response."""
-        if state.get("error_state"): 
+        if state.get("error_state"):
             return "error"
         return "finish" if state.get("contextual_answer_success") else "planning"
     

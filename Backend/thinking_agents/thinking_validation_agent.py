@@ -128,9 +128,9 @@ class ThinkingValidationAgent(BaseLangGraphAgent):
         except Exception as e:
             self.logger.error(f"Error during context validation: {e}")
             # Fallback to a neutral validation result in case of error
-            return {
+        return {
                 "validation_result": {
                     "relevance_score": 5,
                     "reasoning": f"Defaulted due to error: {e}"
                 }
-            } 
+        } 
