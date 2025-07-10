@@ -14,7 +14,7 @@ import time
 from datetime import datetime
 import google.generativeai as genai
 import hashlib
-from langgraph_agentic_ai.config import redis_client
+from config import redis_client
 
 # Add parent directories to path for imports
 from config import TIER_1_MODEL_NAME, TIER_2_MODEL_NAME, GOOGLE_API_KEY
