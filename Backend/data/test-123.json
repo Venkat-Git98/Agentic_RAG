@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test-123",
+  "full_history": [
+    {
+      "id": "f81d405d-0975-494b-a758-c75f64e468e1",
+      "role": "user",
+      "content": "What are the fire safety requirements for a new single-family home in Fairfax County?"
+    },
+    {
+      "id": "3f4576e4-1d4f-4902-be08-fcff18faede3",
+      "role": "assistant",
+      "content": "Based on my review of the Virginia Building Code, I've identified the key areas you'll need to consult regarding fire safety requirements for new single-family homes in Fairfax County.  Remember, local amendments can significantly impact these requirements, so verifying with Fairfax County is crucial.\n\nHere's a breakdown of the relevant sections and why they're important:\n\n* **Section 1402.4 - Fire Resistance:** This subsection directly addresses fire resistance requirements for exterior walls, referencing Chapter 7 for opening protection specifics.  This is critical for preventing fire spread from outside or between units.  You'll need to review this section in conjunction with Chapter 7 to ensure compliance. [1402.4]\n\n* **Chapter 7 - Fire and Smoke Protection Features:**  As referenced by 1402.4, this chapter likely contains details on fire-rated doors, windows, and other opening protectives needed to maintain the integrity of fire-resistant walls.  Pay close attention to any specific requirements for single-family homes.\n\n* **Chapters related to \"Specific Use and Occupancy,\" \"Residential Structures,\" and \"Local Amendments (Fairfax County)\"**:  While the specific content wasn't available in the current research, these are essential areas to investigate.  They will contain critical details regarding fireplaces, chimneys, smoke detectors, fire alarms, and any county-specific regulations that supersede the state code.  Fairfax County may have additional fire safety requirements beyond the base Virginia Building Code.\n\nThe research was unable to access information about the chapters related to specific use and occupancy, residential structures, and Fairfax County local amendments due to an API key error. This information is critical for a complete understanding of the requirements.\n\nI recommend you prioritize obtaining the content of these missing chapters. Specifically, look for sections within those chapters pertaining to single-family dwellings.  These sections will likely detail requirements for smoke alarms, fire suppression systems (if any), egress requirements, and any Fairfax County specific amendments. Once you have this information, cross-reference it with the requirements in Section 1402.4 and Chapter 7 to ensure a comprehensive understanding of all applicable fire safety regulations.  Contacting Fairfax County directly is also highly recommended to confirm any local amendments or interpretations of the code."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

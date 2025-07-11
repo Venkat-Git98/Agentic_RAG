@@ -58,15 +58,39 @@ class KeywordRetrievalTool(BaseTool):
         "Input should be a natural language query."
     )
 
-    def __init__(self, llm_model_name: str = TIER_2_MODEL_NAME, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.llm = ChatGoogleGenerativeAI(model=llm_model_name, temperature=0.0)
-        self.parser = JsonOutputParser(pydantic_object=LuceneQuery)
-        self.prompt = ChatPromptTemplate.from_messages([
-            ("system", LUCENE_PROMPT),
-            ("user", "{user_query}")
-        ])
-        self.chain = self.prompt | self.llm | self.parser
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+    @property
+    def llm(self):
+        """Lazy initialization of LLM to avoid Pydantic issues."""
+        if not hasattr(self, '_llm_instance'):
+            self._llm_instance = ChatGoogleGenerativeAI(model=TIER_2_MODEL_NAME, temperature=0.0)
+        return self._llm_instance
+    
+    @property
+    def parser(self):
+        """Lazy initialization of parser to avoid Pydantic issues."""
+        if not hasattr(self, '_parser_instance'):
+            self._parser_instance = JsonOutputParser(pydantic_object=LuceneQuery)
+        return self._parser_instance
+    
+    @property
+    def prompt(self):
+        """Lazy initialization of prompt to avoid Pydantic issues."""
+        if not hasattr(self, '_prompt_instance'):
+            self._prompt_instance = ChatPromptTemplate.from_messages([
+                ("system", LUCENE_PROMPT),
+                ("user", "{user_query}")
+            ])
+        return self._prompt_instance
+    
+    @property
+    def chain(self):
+        """Lazy initialization of chain to avoid Pydantic issues."""
+        if not hasattr(self, '_chain_instance'):
+            self._chain_instance = self.prompt | self.llm | self.parser
+        return self._chain_instance
 
     def _generate_lucene_query_from_llm(self, query: str) -> str:
         """
@@ -108,9 +132,9 @@ class KeywordRetrievalTool(BaseTool):
             logging.error(f"Full-text search failed: {e}")
             return []
 
-    def __call__(self, query: str) -> str:
+    def _run(self, query: str, run_manager: CallbackManagerForToolRun = None) -> str:
         """
-        The main entry point for the tool.
+        The main entry point for the tool (required by BaseTool).
         """
         # Step 1: Generate a structured Lucene query from the natural language input
         lucene_query = self._generate_lucene_query_from_llm(query)
@@ -133,4 +157,10 @@ class KeywordRetrievalTool(BaseTool):
         final_context = "\n\n---\n\n".join(formatted_results)
         logging.info(f"Keyword search completed. Returning {len(final_context)} characters of context.")
         
-        return final_context 
+        return final_context
+
+    def __call__(self, query: str) -> str:
+        """
+        Backwards compatibility method.
+        """
+        return self._run(query) 
