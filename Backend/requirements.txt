@@ -18,6 +18,6 @@ google-generativeai
 cohere
 langchain_cohere
 tavily-python
-pandas
+pandas 
 aiofiles
 python-multipart 
