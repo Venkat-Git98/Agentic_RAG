@@ -1222,12 +1222,13 @@ Only return the JSON array, no other text.
         """Safely call a tool function with error handling."""
         try:
             # Handle both sync and async tool functions
-            if asyncio.iscoroutinefunction(tool_func):
+            # Check if it's a coroutine function, or if it's an object with an async __call__ method
+            if asyncio.iscoroutinefunction(tool_func) or (hasattr(tool_func, '__call__') and asyncio.iscoroutinefunction(tool_func.__call__)):
                 return await tool_func(*args, **kwargs)
             else:
                 return tool_func(*args, **kwargs)
         except Exception as e:
-            self.logger.error(f"Tool call failed for {tool_func.__name__}: {e}")
+            self.logger.error(f"Tool call failed for {getattr(tool_func, '__name__', str(tool_func))}: {e}")
             return f"Tool execution failed: {e}"
 
     def _is_context_sufficient(self, context: str) -> bool:

@@ -77,13 +77,13 @@ class KeywordRetrievalTool(BaseTool):
         ])
         self.chain = self.prompt | self.llm | self.parser
 
-    def _generate_lucene_query_from_llm(self, query: str) -> str:
+    async def _generate_lucene_query_from_llm(self, query: str) -> str:
         """
         Uses an LLM to convert a natural language query into a structured Lucene query.
         """
         logging.info(f"Generating Lucene query for: '{query}'")
         try:
-            result = self.chain.invoke({"user_query": query})
+            result = await self.chain.ainvoke({"user_query": query})
             logging.info(f"LLM generated Lucene query: {result['query']} (Reasoning: {result['reasoning']})")
             return result['query']
         except Exception as e:
@@ -121,14 +121,21 @@ class KeywordRetrievalTool(BaseTool):
         """
         Use the tool. This is the abstract method required by BaseTool.
         """
-        return self.__call__(query)
+        # Since _run is expected to be sync by BaseTool, we need to run the async method
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            return loop.run_until_complete(self.__call__(query))
+        except RuntimeError:
+            # If no event loop is running, create a new one
+            return asyncio.run(self.__call__(query))
 
-    def __call__(self, query: str) -> str:
+    async def __call__(self, query: str) -> str:
         """
-        The main entry point for the tool.
+        The main entry point for the tool (now async).
         """
         # Step 1: Generate a structured Lucene query from the natural language input
-        lucene_query = self._generate_lucene_query_from_llm(query)
+        lucene_query = await self._generate_lucene_query_from_llm(query)
         if not lucene_query:
             return "Could not generate a valid search query."
 
