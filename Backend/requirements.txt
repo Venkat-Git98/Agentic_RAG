@@ -4,13 +4,13 @@ langgraph
 langchain
 langchain-core
 langchain-openai
+langchain-google-genai
 python-dotenv
 redis
 docker
 neo4j
 tiktoken
 sentence-transformers
-scikit-learn
 numpy
 thefuzz[speedup]
 pydantic
@@ -18,4 +18,6 @@ google-generativeai
 cohere
 langchain_cohere
 tavily-python
-pandas 
+pandas
+aiofiles
+python-multipart 
