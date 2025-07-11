@@ -84,9 +84,15 @@ app = FastAPI(
 )
 
 # --- CORS Configuration ---
-# This is necessary to allow the frontend (running on a different port)
+# This is necessary to allow the frontend (running on a different domain)
 # to communicate with the backend.
-origins = ["*"]
+origins = [
+    "http://localhost:3000",  # Local development
+    "http://localhost:5173",  # Vite dev server
+    "https://phenomenal-puffpuff-a9bba5.netlify.app",  # Your specific Netlify URL
+    "https://*.netlify.app",  # Netlify deployments
+    "https://netlify.app",    # Netlify domains
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -115,7 +121,7 @@ async def stream_logs_and_query(user_query: str, thread_id: str) -> AsyncGenerat
             level="ERROR", 
             message="AI system not initialized.",
             timestamp=datetime.now().isoformat()
-        ).json()
+        ).model_dump_json()
         yield f"event: log\ndata: {error_message}\n\n"
         return
 
@@ -137,7 +143,7 @@ async def stream_logs_and_query(user_query: str, thread_id: str) -> AsyncGenerat
                     message=log_record.getMessage()
                 )
                 
-                yield f"event: log\ndata: {log_msg.json()}\n\n"
+                yield f"event: log\ndata: {log_msg.model_dump_json()}\n\n"
             except asyncio.TimeoutError:
                 # No log message, just continue to check if the task is done.
                 continue
@@ -155,7 +161,7 @@ async def stream_logs_and_query(user_query: str, thread_id: str) -> AsyncGenerat
             message=f"An unexpected error occurred during processing: {str(e)}",
             timestamp=datetime.now().isoformat()
         )
-        yield f"event: log\ndata: {error_message.json()}\n\n"
+        yield f"event: log\ndata: {error_message.model_dump_json()}\n\n"
     finally:
         # CRITICAL: Remove the handler to prevent log duplication in subsequent requests.
         root_logger.removeHandler(queue_handler)
@@ -290,4 +296,9 @@ async def get_history(userId: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import os
+    
+    # Use Railway's PORT environment variable, default to 8000 for local development
+    port = int(os.environ.get("PORT", 8000))
+    
+    uvicorn.run(app, host="0.0.0.0", port=port)

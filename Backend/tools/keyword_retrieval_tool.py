@@ -1,9 +1,10 @@
 import logging
 import re
 from typing import List, Dict, Any
-from langchain_core.pydantic_v1 import BaseModel, Field
+from langchain_core.tools import BaseTool
+from langchain_core.callbacks import CallbackManagerForToolRun
+from pydantic import BaseModel, Field
 
-from react_agent.base_tool import BaseTool
 from tools.neo4j_connector import Neo4jConnector
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -50,8 +51,8 @@ class KeywordRetrievalTool(BaseTool):
     A tool to perform an optimized, relevance-scored keyword search against the 
     Neo4j database using its native full-text search capabilities.
     """
-    name = "keyword_search"
-    description = (
+    name: str = "keyword_search"
+    description: str = (
         "Performs a relevance-scored keyword search for a query within the knowledge base. "
         "Useful for finding specific terms or concepts when semantic search is too broad. "
         "Input should be a natural language query."
