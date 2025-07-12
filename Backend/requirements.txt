@@ -23,4 +23,4 @@ requests==2.31.0
 pandas 
 aiofiles
 python-multipart 
-langsmith==0.1.66 
+langsmith==0.1.75 
