@@ -55,7 +55,16 @@ class LangGraphAgenticAI:
         Yields:
             A stream of dictionaries representing parts of the response.
         """
-        initial_state = create_initial_state(user_query, "", None, debug_mode=self.debug)
+        # Create ConversationManager for this thread
+        conversation_manager = ConversationManager(thread_id, redis_client)
+        
+        # Add the user message to conversation history
+        conversation_manager.add_user_message(user_query)
+        
+        # Get context payload from conversation manager
+        context_payload = conversation_manager.get_contextual_payload()
+        
+        initial_state = create_initial_state(user_query, context_payload, conversation_manager, debug_mode=self.debug)
 
         config = {
             "configurable": {
@@ -70,6 +79,9 @@ class LangGraphAgenticAI:
 
         async def _run_workflow():
             """Task to run the agent workflow and push results to the queue."""
+            # Inject conversation manager into agents that need it
+            self._inject_conversation_manager(conversation_manager)
+            
             # The CognitiveFlowAgentWrapper is now responsible for putting all
             # cognitive messages (thinking and reasoning) on the queue. This
             # loop simply needs to watch for the final answer to know when to stop.
@@ -96,6 +108,24 @@ class LangGraphAgenticAI:
         
         # Ensure the workflow task is complete
         await workflow_task
+
+    def _inject_conversation_manager(self, conversation_manager):
+        """Inject conversation manager into agents that need it."""
+        # Get the workflow from the thinking workflow
+        workflow = self.workflow.workflow
+        
+        # Inject into memory agent
+        if hasattr(workflow, 'nodes') and 'memory_update' in workflow.nodes:
+            memory_node = workflow.nodes['memory_update']
+            # The node is wrapped in CognitiveFlowAgentWrapper, so we need to access the inner agent
+            if hasattr(memory_node, 'agent'):
+                # Check if it's wrapped in CognitiveFlowAgentWrapper
+                if hasattr(memory_node.agent, 'agent'):
+                    # It's wrapped, access the inner agent
+                    memory_node.agent.agent._workflow_conversation_manager = conversation_manager
+                else:
+                    # It's not wrapped, access directly
+                    memory_node.agent._workflow_conversation_manager = conversation_manager
 
 
 async def interactive_main():
