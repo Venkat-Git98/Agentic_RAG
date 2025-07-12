@@ -10,9 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@egjs/hammerjs": "^2.0.17",
     "@tailwindcss/typography": "^0.5.16",
+    "component-emitter": "^2.0.0",
     "d3-force": "^3.0.0",
     "framer-motion": "^11.2.10",
+    "keycharm": "^0.4.0",
     "lucide-react": "^0.395.0",
     "mermaid": "^11.8.1",
     "react": "^18.2.0",
@@ -20,7 +23,10 @@
     "react-markdown": "^10.1.0",
     "react-zoom-pan-pinch": "^3.7.0",
     "remark-gfm": "^4.0.1",
-    "vis-network": "^9.1.9"
+    "uuid": "^11.1.0",
+    "vis-data": "^7.1.10",
+    "vis-network": "^9.1.9",
+    "vis-util": "^5.0.7"
   },
   "devDependencies": {
     "@types/react": "^18.2.66",

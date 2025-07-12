@@ -4,8 +4,9 @@ import { ChevronDown, Send, LoaderCircle, Database, Cog, CheckCircle2, XCircle, 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import VisNetwork from './VisNetwork';
-import { DataSet } from 'vis-network/standalone/esm/vis-network.min.js';
+import { DataSet } from 'vis-data';
 import ArchitectureTab from './ArchitectureTab';
+import ThinkingStream from './ThinkingStream'; // Import the new component
 
 const getOrCreateUserId = () => {
     let userId = localStorage.getItem('agentic-compliance-user-id');
@@ -13,7 +14,7 @@ const getOrCreateUserId = () => {
         userId = crypto.randomUUID();
         localStorage.setItem('agentic-compliance-user-id', userId);
     }
-    console.log('User ID:', userId);
+    console.log('🔍 User ID for history:', userId);
     return userId;
 };
 
@@ -69,16 +70,20 @@ const useChat = ({ onFinish, onFirstSubmit }) => {
   
               if (response.ok) {
                   const historyData = await response.json();
-                  // Check for the nested 'data' property as per the API spec
-                  if (historyData && historyData.data && historyData.data.length > 0) {
+                  
+                  // Handle the backend's response format
+                  if (historyData.success && historyData.data && historyData.data.length > 0) {
+                      console.log(`Loaded ${historyData.message_count} messages from history`);
                       setMessages(historyData.data);
                   } else {
+                      console.log('No history found or empty response:', historyData.message || 'No data');
                       setMessages([
                           { id: '1', role: 'assistant', content: "Welcome. I am an AI specializing in Virginia's building code regulations. Ask me anything from permit requirements to complex compliance scenarios.", logs: [], thinkingTime: null }
                       ]);
                   }
               } else {
-                   setMessages([
+                  console.error('History fetch failed with status:', response.status);
+                  setMessages([
                       { id: '1', role: 'assistant', content: "Welcome. I am an AI specializing in Virginia's building code regulations. Ask me anything from permit requirements to complex compliance scenarios.", logs: [], thinkingTime: null }
                   ]);
               }
@@ -434,12 +439,25 @@ const ChatTab = ({ exampleQueries }) => {
             <div className="flex flex-col flex-1 bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-700/50 m-4 overflow-hidden">
                 <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 fancy-scrollbar">
                     <AnimatePresence initial={false}>
-                        {messages.map(m => (
+                        {isHistoryLoading && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                className="flex items-center justify-center py-8"
+                            >
+                                <div className="flex items-center space-x-3 text-gray-400">
+                                    <LoaderCircle className="w-5 h-5 animate-spin" />
+                                    <span className="text-sm">Loading chat history...</span>
+                                </div>
+                            </motion.div>
+                        )}
+                        {!isHistoryLoading && messages.map(m => (
                             <ChatMessage key={m.id} message={m} />
                         ))}
                     </AnimatePresence>
                     
-                    {isChatEmpty && <InitialPrompts prompts={initialPrompts} onPromptClick={handlePromptClick} />}
+                    {isChatEmpty && !isHistoryLoading && <InitialPrompts prompts={initialPrompts} onPromptClick={handlePromptClick} />}
                 </div>
                 <div className="p-4 border-t border-gray-700/50 bg-gray-900/20">
                     <form onSubmit={handleSubmit} className="relative">
@@ -765,81 +783,107 @@ export default function App() {
 } 
 
 const ChatMessage = ({ message }) => {
-    const { role, content, logs, thinkingTime } = message;
-    const isUser = role === 'user';
-    const Icon = isUser ? User : Atom;
-    const [isThinkingOpen, setIsThinkingOpen] = useState(false);
+  const [showThinking, setShowThinking] = useState(false);
+  const { role, content, logs, thinkingTime } = message;
+  const isAssistant = role === 'assistant';
+  const isGenerating = isAssistant && !thinkingTime && content === '';
+  const hasLogs = logs && logs.length > 0;
+  const isUser = role === 'user';
+  const Icon = isUser ? User : Atom;
 
-    const hasLogs = !isUser && logs && logs.length > 0;
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
+  };
 
-    return (
-        <motion.div
+  return (
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="mb-6"
+    >
+      <div className={`flex items-start gap-4 ${isUser ? 'justify-end' : ''}`}>
+        {!isUser && (
+          <div className="w-9 h-9 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
+            <Icon className="w-5 h-5 text-gray-300" />
+          </div>
+        )}
+
+        <div className={`w-full max-w-[85%] ${isUser ? 'order-1' : ''}`}>
+          <motion.div
             layout
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className={`flex items-start gap-3 ${isUser ? 'justify-end' : ''}`}
-        >
-            {!isUser && (
-                <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center flex-shrink-0 mt-1">
-                    <Icon className="w-5 h-5 text-gray-400" />
-                </div>
-            )}
-            <div className={`flex flex-col w-full ${isUser ? 'items-end' : 'items-start'}`}>
-                <div className={`p-4 rounded-lg max-w-[85%] ${isUser ? 'bg-cyan-600/80' : 'bg-gray-700/60'}`}>
-                     {isUser ? (
-                        <p className="text-white whitespace-pre-wrap">{content}</p>
-                    ) : (
-                        <div className="prose prose-sm prose-invert max-w-none">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {content || ''}
-                            </ReactMarkdown>
-                            {!content && <LoaderCircle className="animate-spin" />}
-                        </div>
-                    )}
-                </div>
-                {hasLogs && (
-                    <div className="mt-2 w-full max-w-[85%] flex items-center gap-4">
-                        <button
-                            onClick={() => setIsThinkingOpen(!isThinkingOpen)}
-                            className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition-colors"
-                        >
-                            <BrainCircuit className="w-4 h-4 text-cyan-400" />
-                            <span>Show thinking</span>
-                            <ChevronDown className={`w-4 h-4 transition-transform ${isThinkingOpen ? 'transform rotate-180' : ''}`} />
-                        </button>
-                        {thinkingTime && (
-                            <span className="text-xs text-gray-500">
-                                Thought for {thinkingTime.toFixed(1)}s
-                            </span>
-                        )}
-                        <AnimatePresence>
-                            {isThinkingOpen && (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0, y: -10 }}
-                                    animate={{ opacity: 1, height: 'auto', y: 0 }}
-                                    exit={{ opacity: 0, height: 0, y: -10 }}
-                                    transition={{ duration: 0.3 }}
-                                    className="mt-2 pl-4 border-l-2 border-gray-700/50"
-                                >
-                                    <div className="space-y-4 pt-2">
-                                        {logs.map((log, index) => (
-                                            <LogEntry
-                                                key={log.id}
-                                                log={log}
-                                                isLast={index === logs.length - 1}
-                                            />
-                                        ))}
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-                )}
+            className={`px-4 py-3 rounded-2xl ${
+              isUser
+                ? 'bg-blue-600 text-white rounded-br-none'
+                : 'bg-gray-700 text-gray-200 rounded-bl-none'
+            }`}
+          >
+            <ReactMarkdown
+              className="prose prose-sm prose-invert max-w-none"
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline" />,
+              }}
+            >
+              {content || (isAssistant ? '...' : '')}
+            </ReactMarkdown>
+          </motion.div>
+
+          {isAssistant && !isGenerating && thinkingTime && (
+            <div className="mt-2 text-xs text-gray-500 flex items-center">
+              <BrainCircuit className="w-4 h-4 mr-1.5" />
+              <span>Thinking time: {thinkingTime.toFixed(2)}s</span>
+              {hasLogs && (
+                <button
+                  onClick={() => setShowThinking(!showThinking)}
+                  className="ml-4 font-medium text-gray-400 hover:text-white transition-colors flex items-center"
+                >
+                  {showThinking ? 'Hide Thinking' : 'Show Thinking'}
+                  <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${showThinking ? 'rotate-180' : ''}`} />
+                </button>
+              )}
             </div>
-        </motion.div>
-    );
-}; 
+          )}
+        </div>
+
+        {isUser && (
+          <div className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 order-2">
+            <Icon className="w-5 h-5 text-white" />
+          </div>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {isGenerating && hasLogs && <ThinkingStream logs={logs} />}
+      </AnimatePresence>
+      
+      <AnimatePresence>
+        {showThinking && hasLogs && (
+           <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="pl-12 mt-2"
+          >
+             <div className="bg-gray-800/50 border border-gray-700 rounded-lg">
+                <pre className="p-4 text-xs text-gray-300 whitespace-pre-wrap font-mono overflow-x-auto">
+                  {logs.map((log, i) => (
+                    <div key={i} className="flex items-start py-1">
+                      <LogIcon level={log.level} />
+                      <span className="ml-2 flex-1">
+                        {typeof log.message === 'string' ? log.message : JSON.stringify(log.message, null, 2)}
+                      </span>
+                    </div>
+                  ))}
+                </pre>
+            </div>
+           </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
 
 const InitialPrompts = ({ prompts, onPromptClick }) => (
     <div className="w-full">
