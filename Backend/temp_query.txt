@@ -1,0 +1,1 @@
+I am designing an office building with interior beams, each supporting a tributary area of 500 square feet. The unreduced live load (Lo) for offices is 50 psf. According to Section 1607.12.1, am I permitted to reduce the live load for these beams? If so, what is the final reduced design live load (L) in psf after apply

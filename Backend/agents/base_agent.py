@@ -73,6 +73,7 @@ class BaseLangGraphAgent(ABC):
         execution_successful = True
         error_message = None
         output_data = None
+        updated_state = state  # Initialize updated_state with the original state
         
         try:
             self.logger.info(f"Starting execution of {self.agent_name}")
@@ -102,7 +103,7 @@ class BaseLangGraphAgent(ABC):
             execution_time_ms = (time.time() - start_time) * 1000
             
             updated_state = log_agent_execution(
-                state=updated_state if 'updated_state' in locals() else state,
+                state=updated_state,
                 agent_name=self.agent_name,
                 input_data=self._extract_input_summary(state),
                 output_data=output_data,
@@ -113,7 +114,6 @@ class BaseLangGraphAgent(ABC):
             
             # Update timing information
             if execution_successful:
-                updated_state = updated_state.copy()
                 if updated_state.get("performance_metrics") is not None:
                     updated_state["performance_metrics"][f"{self.agent_name}_execution_time_ms"] = execution_time_ms
         

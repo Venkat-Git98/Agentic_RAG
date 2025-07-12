@@ -254,42 +254,30 @@ Based on the sub-query and the detected mathematical context, write a concise, s
             return self.hyde_tool(sub_query)
 
     def _validate_agent_specific_state(self, state: AgentState) -> None:
-        """Validates state for this agent."""
-        if not isinstance(state.get(RESEARCH_PLAN), list):
-            raise ValueError("RESEARCH_PLAN must be a list of strings for the HydeAgent.")
+        """Validate that the research_plan is present in the state."""
+        if RESEARCH_PLAN not in state or not state[RESEARCH_PLAN]:
+            raise ValueError("research_plan is required for HydeAgent")
 
     def _apply_agent_specific_updates(self, state: AgentState, output_data: Dict[str, Any]) -> AgentState:
-        """Applies updates to the state with enhanced mathematical metadata tracking."""
-        updated_state = state.copy()
+        """Update the state with the HyDE results and mathematical metadata."""
+        state[RESEARCH_PLAN] = output_data[RESEARCH_PLAN]
         
-        # The output_data from execute IS the updated research plan
-        updated_plan = output_data.get(RESEARCH_PLAN, [])
-        updated_state[RESEARCH_PLAN] = updated_plan
+        # Initialize mathematical_metadata if it doesn't exist
+        if "mathematical_metadata" not in state or state["mathematical_metadata"] is None:
+            state["mathematical_metadata"] = {}
+            
+        state["mathematical_metadata"]["hyde_enhancement"] = output_data["hyde_mathematical_enhancement_stats"]
         
-        # Store mathematical enhancement statistics in state
-        if "hyde_mathematical_enhancement_stats" in output_data:
-            if "mathematical_metadata" not in updated_state:
-                updated_state["mathematical_metadata"] = {}
-            updated_state["mathematical_metadata"]["hyde_enhancement"] = output_data["hyde_mathematical_enhancement_stats"]
-
-        # Log a summary of the enhanced HyDE generation
-        intermediate_log = updated_state.get(INTERMEDIATE_OUTPUTS, [])
+        # Add a log entry to intermediate_outputs
+        intermediate_log = state.get("intermediate_outputs", [])
         if not isinstance(intermediate_log, list):
             intermediate_log = []
-        
-        math_stats = output_data.get("hyde_mathematical_enhancement_stats", {})
-        log_message = f"Generated {len(updated_plan)} hypothetical documents."
-        if math_stats.get("math_enhanced_count", 0) > 0:
-            log_message += f" {math_stats['math_enhanced_count']} enhanced with mathematical context."
         
         intermediate_log.append({
             "step": "hyde_generation",
             "agent": self.agent_name,
-            "log": log_message
+            "log": "Generated hypothetical documents for all sub-queries."
         })
-        updated_state[INTERMEDIATE_OUTPUTS] = intermediate_log
-
-        # The next step is to execute the research based on the enriched plan
-        updated_state[CURRENT_STEP] = "research"
-            
-        return updated_state 
+        state["intermediate_outputs"] = intermediate_log
+        
+        return state 

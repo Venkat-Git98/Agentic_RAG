@@ -24,6 +24,7 @@ import redis
 from main import LangGraphAgenticAI
 from knowledge_graph import get_knowledge_graph_service
 from config import REDIS_URL
+from main import ThinkingMode
 
 # --- Pydantic Models for API ---
 
@@ -31,24 +32,6 @@ class QueryRequest(BaseModel):
     """Request model for a user query."""
     user_query: str
     thread_id: str
-
-class LogMessage(BaseModel):
-    """Structured log message for streaming."""
-    level: str
-    message: str
-    timestamp: str
-
-# --- Custom Logging Handler ---
-
-class QueueHandler(logging.Handler):
-    """A custom logging handler that puts log records into an asyncio.Queue."""
-    def __init__(self, queue: asyncio.Queue):
-        super().__init__()
-        self.queue = queue
-
-    def emit(self, record: logging.LogRecord):
-        """Puts the log record into the queue."""
-        self.queue.put_nowait(record)
 
 # --- AI System Singleton ---
 # This dictionary will hold the AI system instance.
@@ -67,8 +50,8 @@ async def lifespan(app: FastAPI):
     
     # Initialize the AI system on startup. It will use the global redis_client from config.
     ai_system_instance["instance"] = LangGraphAgenticAI(
-        debug=True, 
-        detailed_thinking=True
+        debug=True,
+        thinking_detail_mode=ThinkingMode.DETAILED
     )
     print("AI System Initialized.")
     yield
@@ -107,65 +90,39 @@ app.add_middleware(
 
 async def stream_logs_and_query(user_query: str, thread_id: str) -> AsyncGenerator[str, None]:
     """
-    Runs the AI query and streams logs in real-time as Server-Sent Events.
+    Runs the AI query and streams thinking logs and the final result in real-time 
+    as Server-Sent Events.
     """
-    log_queue = asyncio.Queue()
-    queue_handler = QueueHandler(log_queue)
-    
-    # Add the handler to the root logger to capture all logs.
-    root_logger = logging.getLogger()
-    root_logger.addHandler(queue_handler)
-    
     ai_system = ai_system_instance.get("instance")
     if not ai_system:
-        error_message = LogMessage(
-            level="ERROR", 
-            message="AI system not initialized.",
-            timestamp=datetime.now().isoformat()
-        ).model_dump_json()
-        yield f"event: log\ndata: {error_message}\n\n"
+        error_message = {
+            "level": "ERROR", 
+            "message": "AI system not initialized.",
+            "timestamp": datetime.now().isoformat()
+        }
+        yield f"event: log\ndata: {json.dumps(error_message)}\n\n"
         return
 
     try:
-        # Run the AI query in a background task.
-        query_task = asyncio.create_task(
-            ai_system.query(user_query=user_query, thread_id=thread_id)
-        )
-        
-        # Concurrently stream logs and wait for the final result.
-        while not query_task.done():
-            try:
-                # Wait for a log message to appear in the queue.
-                log_record: logging.LogRecord = await asyncio.wait_for(log_queue.get(), timeout=0.1)
+        async for event in ai_system.get_response_stream(user_query, thread_id):
+            if "cognitive_message" in event:
+                log_msg = {
+                    "level": "INFO",
+                    "message": event["cognitive_message"],
+                    "timestamp": datetime.now().isoformat()
+                }
+                yield f"event: log\ndata: {json.dumps(log_msg)}\n\n"
+            elif "final_answer" in event:
+                result_data = {"result": event["final_answer"]}
+                yield f"event: result\ndata: {json.dumps(result_data)}\n\n"
                 
-                log_msg = LogMessage(
-                    timestamp=datetime.fromtimestamp(log_record.created).isoformat(),
-                    level=log_record.levelname,
-                    message=log_record.getMessage()
-                )
-                
-                yield f"event: log\ndata: {log_msg.model_dump_json()}\n\n"
-            except asyncio.TimeoutError:
-                # No log message, just continue to check if the task is done.
-                continue
-        
-        # Once the query is done, get the result.
-        final_answer = await query_task
-        
-        # Send the final answer as a 'result' event.
-        result_data = {"result": final_answer}
-        yield f"event: result\ndata: {json.dumps(result_data)}\n\n"
-
     except Exception as e:
-        error_message = LogMessage(
-            level="ERROR", 
-            message=f"An unexpected error occurred during processing: {str(e)}",
-            timestamp=datetime.now().isoformat()
-        )
-        yield f"event: log\ndata: {error_message.model_dump_json()}\n\n"
-    finally:
-        # CRITICAL: Remove the handler to prevent log duplication in subsequent requests.
-        root_logger.removeHandler(queue_handler)
+        error_message = {
+            "level": "ERROR", 
+            "message": f"An unexpected error occurred during processing: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }
+        yield f"event: log\ndata: {json.dumps(error_message)}\n\n"
 
 # --- API Endpoints ---
 

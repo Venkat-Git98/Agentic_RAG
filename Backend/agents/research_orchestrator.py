@@ -131,12 +131,14 @@ class ResearchOrchestrator(BaseLangGraphAgent):
         Returns:
             Dictionary containing research results and metadata for all sub-queries
         """
+        all_sub_answers = []
         try:
             # Create async tasks for all sub-queries
             tasks = []
             for i, plan_item in enumerate(research_plan):
                 sub_query = plan_item.get("sub_query")
                 if not sub_query:
+                    self.logger.warning(f"Skipping empty sub-query in research plan at index {i}.")
                     continue
                 
                 # Create an async task for each sub-query
@@ -157,30 +159,9 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             total_duration = time.time() - start_time
             self.logger.info(f"--- Parallel research phase complete in {total_duration:.2f}s. Generated {len(all_sub_answers)} sub-answers. ---")
             
-            # Handle any exceptions in the results
-            processed_answers = []
-            for i, result in enumerate(all_sub_answers):
-                if isinstance(result, Exception):
-                    sub_query = research_plan[i].get("sub_query", "Unknown query")
-                    self.logger.error(f"Exception in sub-query {i+1}: {result}")
-                    # Create a fallback answer for failed sub-queries
-                    processed_answers.append({
-                        "sub_query": sub_query,
-                        "answer": f"Error processing sub-query: {str(result)}",
-                        "sources_used": ["Error"],
-                        "retrieval_strategy": "error",
-                        "validation_score": 0.0,
-                        "is_relevant": False,
-                        "reasoning": f"Exception occurred: {str(result)}"
-                    })
-                else:
-                    processed_answers.append(result)
-            
-            return self._format_final_research_output(processed_answers)
-            
         except Exception as e:
-            self.logger.error(f"Error in parallel research orchestration: {e}")
-        return {
+            self.logger.error(f"Error during parallel research orchestration setup: {e}", exc_info=True)
+            return {
                 "error_state": {
                     "agent": self.agent_name,
                     "error_type": type(e).__name__,
@@ -190,6 +171,27 @@ class ResearchOrchestrator(BaseLangGraphAgent):
                 CURRENT_STEP: "error",
                 WORKFLOW_STATUS: "failed"
             }
+        
+        # Handle any exceptions in the results
+        processed_answers = []
+        for i, result in enumerate(all_sub_answers):
+            if isinstance(result, Exception):
+                sub_query = research_plan[i].get("sub_query", "Unknown query")
+                self.logger.error(f"Exception in sub-query {i+1} ('{sub_query}'): {result}", exc_info=True)
+                # Create a fallback answer for failed sub-queries
+                processed_answers.append({
+                    "sub_query": sub_query,
+                    "answer": f"Error processing sub-query: {str(result)}",
+                    "sources_used": ["Error"],
+                    "retrieval_strategy": "error",
+                    "validation_score": 0.0,
+                    "is_relevant": False,
+                    "reasoning": f"Exception occurred: {str(result)}"
+                })
+            else:
+                processed_answers.append(result)
+        
+        return self._format_final_research_output(processed_answers)
 
     async def _process_single_sub_query_async(self, sub_query: str, index: int, total: int, original_query: str) -> Dict[str, Any]:
         """
@@ -236,7 +238,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             
         except Exception as e:
             duration = time.time() - start_time
-            self.logger.error(f"Error processing sub-query {index+1} after {duration:.2f}s: {e}")
+            self.logger.error(f"Error processing sub-query {index+1} after {duration:.2f}s: {e}", exc_info=True)
             return {
                 "sub_query": sub_query,
                 "answer": f"Error processing sub-query: {str(e)}",
@@ -275,7 +277,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             return self._format_final_research_output(all_sub_answers)
             
         except Exception as e:
-            self.logger.error(f"Error in sequential research orchestration: {e}")
+            self.logger.error(f"Error in sequential research orchestration: {e}", exc_info=True)
             return {
                 "error_state": {
                     "agent": self.agent_name,
@@ -416,7 +418,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
                 self.logger.warning(f"Could not extract section ID from query: '{query}'")
                 
         except Exception as e:
-            self.logger.warning(f"Enhanced direct retrieval failed: {e}")
+            self.logger.warning(f"Enhanced direct retrieval failed: {e}", exc_info=True)
         
         self.logger.info("Enhanced direct retrieval insufficient. Falling back to vector search.")
         return await self._try_vector_search_fallback(query)
@@ -452,7 +454,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
                 else:
                     self.logger.info(f"No context returned for section {section}")
             except Exception as e:
-                self.logger.warning(f"Failed to retrieve context for section {section}: {e}")
+                self.logger.warning(f"Failed to retrieve context for section {section}: {e}", exc_info=True)
         
         # Strategy 2: Add any resolved equations directly
         if equation_analysis['resolved_equations']:
@@ -498,7 +500,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
                                     self.logger.info(f"Found {len(filtered_equations)} matching equations in chapter {chapter_num}")
                                     break
                     except Exception as e:
-                        self.logger.warning(f"Chapter-level retrieval failed for chapter {chapter_num}: {e}")
+                        self.logger.warning(f"Chapter-level retrieval failed for chapter {chapter_num}: {e}", exc_info=True)
         
         result = "\n\n---\n\n".join(combined_context) if combined_context else ""
         
@@ -754,7 +756,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
                 self.logger.info("Vector search successful")
                 return formatted_context
         except Exception as e:
-            self.logger.warning(f"Vector search failed: {e}")
+            self.logger.warning(f"Vector search failed: {e}", exc_info=True)
         
         # Fall back to keyword search using the proper KeywordRetrievalTool
         try:
@@ -764,7 +766,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
                 self.logger.info("Keyword search successful")
                 return context
         except Exception as e:
-            self.logger.warning(f"Keyword search failed: {e}")
+            self.logger.warning(f"Keyword search failed: {e}", exc_info=True)
 
         # Final fallback to web search
         self.logger.info("Keyword search insufficient. Falling back to web search.")
@@ -779,7 +781,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
                 self.logger.info("Keyword search successful")
                 return context
         except Exception as e:
-            self.logger.warning(f"Keyword search failed: {e}")
+            self.logger.warning(f"Keyword search failed: {e}", exc_info=True)
 
         self.logger.info("Keyword search insufficient. Falling back to web search.")
         return await self._try_web_search_fallback(query)
@@ -794,7 +796,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             if self._is_context_sufficient(formatted_context):
                 return formatted_context
         except Exception as e:
-            self.logger.error(f"Vector search fallback failed: {e}")
+            self.logger.error(f"Vector search fallback failed: {e}", exc_info=True)
         
         return await self._try_web_search_fallback(query)
 
@@ -821,7 +823,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             else:
                 self.logger.info("Vector search returned insufficient context")
         except Exception as e:
-            self.logger.warning(f"Vector search failed: {e}")
+            self.logger.warning(f"Vector search failed: {e}", exc_info=True)
         
         # Fall back to keyword search using the proper KeywordRetrievalTool
         try:
@@ -838,7 +840,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             else:
                 self.logger.info("Keyword search returned insufficient context")
         except Exception as e:
-            self.logger.warning(f"Keyword search failed: {e}")
+            self.logger.warning(f"Keyword search failed: {e}", exc_info=True)
 
         # NEW: Fall back to direct retrieval (table of contents lookup)
         try:
@@ -855,7 +857,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             else:
                 self.logger.info("Direct retrieval returned insufficient context")
         except Exception as e:
-            self.logger.warning(f"Direct retrieval failed: {e}")
+            self.logger.warning(f"Direct retrieval failed: {e}", exc_info=True)
 
         # Final fallback to web search
         self.logger.info("Step 4/4: All local retrieval methods failed validation. Falling back to web search.")
@@ -882,7 +884,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             else:
                 self.logger.info("Keyword search returned insufficient context")
         except Exception as e:
-            self.logger.warning(f"Keyword search failed: {e}")
+            self.logger.warning(f"Keyword search failed: {e}", exc_info=True)
 
         # NEW: Fall back to direct retrieval (table of contents lookup)
         try:
@@ -899,7 +901,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             else:
                 self.logger.info("Direct retrieval returned insufficient context")
         except Exception as e:
-            self.logger.warning(f"Direct retrieval failed: {e}")
+            self.logger.warning(f"Direct retrieval failed: {e}", exc_info=True)
 
         # Final fallback to web search
         self.logger.info("Step 3/3: All local retrieval methods failed validation. Falling back to web search.")
@@ -980,7 +982,7 @@ Only return the JSON array, no other text.
                 self.logger.warning(f"Failed to parse LLM response as JSON: {response_text}")
                 
         except Exception as e:
-            self.logger.warning(f"LLM section extraction failed: {e}")
+            self.logger.warning(f"LLM section extraction failed: {e}", exc_info=True)
         
         return []
     
@@ -1103,7 +1105,7 @@ Only return the JSON array, no other text.
                                     best_context = formatted_context
                                 
                         except Exception as e:
-                            self.logger.warning(f"Direct retrieval - Failed to retrieve section {section}: {e}")
+                            self.logger.warning(f"Direct retrieval - Failed to retrieve section {section}: {e}", exc_info=True)
                             continue
                     
                     # If we didn't find a great match but have some content, use it
@@ -1134,7 +1136,7 @@ Only return the JSON array, no other text.
             return "No direct retrieval patterns found"
                 
         except Exception as e:
-            self.logger.warning(f"Direct retrieval fallback failed: {e}")
+            self.logger.warning(f"Direct retrieval fallback failed: {e}", exc_info=True)
             return f"Direct retrieval error: {e}"
 
     def _get_embedding(self, text: str) -> List[float]:
@@ -1150,7 +1152,7 @@ Only return the JSON array, no other text.
             )
             return response['embedding']
         except Exception as e:
-            self.logger.error(f"Failed to generate embedding: {e}")
+            self.logger.error(f"Failed to generate embedding: {e}", exc_info=True)
             return []
 
     def _format_context_blocks(self, context_blocks) -> str:
@@ -1209,7 +1211,7 @@ Only return the JSON array, no other text.
                 return result['answer']
             return str(result)
         except Exception as e:
-            self.logger.error(f"Web search fallback failed: {e}")
+            self.logger.error(f"Web search fallback failed: {e}", exc_info=True)
             return f"Unable to retrieve relevant information for query: {query}"
 
     async def _optional_graph_expansion(self, query: str, context: str) -> str:
@@ -1228,7 +1230,7 @@ Only return the JSON array, no other text.
             else:
                 return tool_func(*args, **kwargs)
         except Exception as e:
-            self.logger.error(f"Tool call failed for {getattr(tool_func, '__name__', str(tool_func))}: {e}")
+            self.logger.error(f"Tool call failed for {getattr(tool_func, '__name__', str(tool_func))}: {e}", exc_info=True)
             return f"Tool execution failed: {e}"
 
     def _is_context_sufficient(self, context: str) -> bool:

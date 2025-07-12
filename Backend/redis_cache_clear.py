@@ -23,7 +23,7 @@ def clear_remote_redis_cache():
     try:
         # Connect to the Redis instance
         # The from_url method handles parsing the connection string.
-        client = redis.from_url(redis_url, ssl_cert_reqs="none")
+        client = redis.from_url(redis_url)
 
         # Check the connection
         client.ping()

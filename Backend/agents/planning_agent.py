@@ -84,6 +84,7 @@ class PlanningAgent(BaseLangGraphAgent):
             
             result = {
                 PLANNING_REASONING: planning_result.get("reasoning"),
+                "reasoning": planning_result.get("reasoning"), # Add this for the wrapper
                 RESEARCH_PLAN: planning_result.get("plan", [])
             }
             
@@ -103,6 +104,7 @@ class PlanningAgent(BaseLangGraphAgent):
             # Fallback to a basic plan if the tool fails catastrophically.
             return {
                 PLANNING_REASONING: f"Planning tool failed with error: {e}. Falling back to a single-step plan.",
+                "reasoning": f"Planning tool failed with error: {e}. Falling back to a single-step plan.", # Add this
                 RESEARCH_PLAN: [user_query]
             }
     

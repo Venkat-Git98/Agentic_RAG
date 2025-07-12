@@ -23,20 +23,26 @@ logger = logging.getLogger("MainApp")
 from conversation_manager import ConversationManager
 from thinking_workflow import ThinkingAgenticWorkflow, create_thinking_agentic_workflow
 from thinking_logger import ThinkingMode
+from cognitive_flow import CognitiveFlowLogger
 from config import redis_client
 from state import create_initial_state
 
 class LangGraphAgenticAI:
     """Main class for the LangGraph Agentic AI system."""
 
-    def __init__(self, debug: bool = False):
+    def __init__(self, debug: bool = False, thinking_detail_mode: ThinkingMode = ThinkingMode.SIMPLE):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info(f"🧠 LangGraph Agentic AI instance created (debug={debug}).")
         self.debug = debug
+        
+        self.cognitive_flow_queue = asyncio.Queue()
+        cognitive_flow_logger = CognitiveFlowLogger(self.cognitive_flow_queue)
+        
         self.workflow = create_thinking_agentic_workflow(
             debug=self.debug,
             thinking_mode=True,
-            thinking_detail_mode=ThinkingMode.SIMPLE
+            thinking_detail_mode=thinking_detail_mode,
+            cognitive_flow_logger=cognitive_flow_logger
         )
         self.app = self.workflow.app
 
@@ -49,7 +55,7 @@ class LangGraphAgenticAI:
         Yields:
             A stream of dictionaries representing parts of the response.
         """
-        initial_state = create_initial_state(user_query, "", None, thread_id)
+        initial_state = create_initial_state(user_query, "", None, debug_mode=self.debug)
 
         config = {
             "configurable": {
@@ -62,11 +68,40 @@ class LangGraphAgenticAI:
             }
         }
 
-        async for chunk in self.app.astream(initial_state, config=config):
-            if "final_answer" in chunk:
-                yield {"final_answer": chunk["final_answer"]}
-            elif "response" in chunk:
-                yield {"response": chunk["response"]}
+        async def _run_workflow():
+            """Task to run the agent workflow and push results to the queue."""
+            async for chunk in self.app.astream(initial_state, config=config):
+                for agent_name, agent_state in chunk.items():
+                    # Yield cognitive flow messages first
+                    if "cognitive_flow_messages" in agent_state and agent_state["cognitive_flow_messages"]:
+                        for msg in agent_state["cognitive_flow_messages"]:
+                            await self.cognitive_flow_queue.put({"cognitive_message": msg})
+                        # Clear the messages after yielding them to avoid re-sending
+                        agent_state["cognitive_flow_messages"] = []
+
+                    # Then yield final answer if present
+                    if agent_state and (final_answer := agent_state.get("final_answer")):
+                        await self.cognitive_flow_queue.put({"final_answer": final_answer})
+                        return # Stop workflow after final answer
+
+            # Signal the end of the stream
+            await self.cognitive_flow_queue.put(None)
+
+        # Start the workflow in a background task
+        workflow_task = asyncio.create_task(_run_workflow())
+
+        # Yield messages from the queue as they arrive
+        while True:
+            message = await self.cognitive_flow_queue.get()
+            if message is None:
+                break
+            yield message
+            if "final_answer" in message:
+                break
+        
+        # Ensure the workflow task is complete
+        await workflow_task
+
 
 async def interactive_main():
     """Async main execution function for interactive mode."""
@@ -84,10 +119,12 @@ async def interactive_main():
             print("AI: ", end="", flush=True)
 
             async for chunk in ai.get_response_stream(user_query, thread_id):
-                if chunk.get("final_answer"):
-                    response = chunk.get("final_answer")
+                if final_answer := chunk.get("final_answer"):
+                    response = final_answer
+                elif cognitive_message := chunk.get("cognitive_message"):
+                    print(f"\r  🤔 {cognitive_message}...", end="", flush=True)
 
-            print(f"\r{response}\n")
+            print(f"\r{response}     \n")
 
         except KeyboardInterrupt:
             print("\nExiting...")
@@ -116,9 +153,11 @@ def main():
         async def run_query():
             response = ""
             async for chunk in ai_system.get_response_stream(args.query, thread_id):
-                 if chunk.get("final_answer"):
-                    response = chunk.get("final_answer")
-            print(response)
+                if final_answer := chunk.get("final_answer"):
+                    response = final_answer
+                elif cognitive_message := chunk.get("cognitive_message"):
+                    print(f"  🤔 {cognitive_message}...")
+            print(f"\n{response}")
 
         asyncio.run(run_query())
     else:

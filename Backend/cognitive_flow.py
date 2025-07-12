@@ -9,6 +9,8 @@ from typing import Optional, Dict, Any, Literal, Coroutine, AsyncGenerator, List
 import asyncio
 from pydantic import BaseModel
 
+from state import AgentState # Import AgentState
+
 class CognitiveFlowEvent(BaseModel):
     """
     Represents a single event in the cognitive flow.
@@ -30,13 +32,19 @@ class CognitiveFlowLogger:
         """
         self.queue = queue
 
-    async def log_step(self, agent_name: str, status: Literal["WORKING", "DONE", "ERROR"], message: str):
+    async def log_step(self, agent_name: str, status: Literal["WORKING", "DONE", "ERROR"], message: str, state: Optional[AgentState] = None):
         """
-        Logs a single step in the cognitive flow.
+        Logs a single step in the cognitive flow and optionally updates the AgentState.
         """
-        event = CognitiveFlowEvent(
-            agent_name=agent_name,
-            status=status,
-            message=message
-        )
-        await self.queue.put(event.model_dump_json()) 
+        event_data = {
+            "agent_name": agent_name,
+            "status": status,
+            "message": message
+        }
+        await self.queue.put({"cognitive_message": event_data})
+
+        if state is not None:
+            # Ensure cognitive_flow_messages is initialized as a list
+            if "cognitive_flow_messages" not in state or not isinstance(state["cognitive_flow_messages"], list):
+                state["cognitive_flow_messages"] = []
+            state["cognitive_flow_messages"].append(event_data) 

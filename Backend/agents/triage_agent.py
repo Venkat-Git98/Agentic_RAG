@@ -69,6 +69,7 @@ class TriageAgent(BaseLangGraphAgent):
             TRIAGE_CLASSIFICATION: llm_classification.get("classification"),
             REWRITTEN_QUERY: llm_classification.get("rewritten_query", user_query),
             TRIAGE_REASONING: llm_classification.get("reasoning"),
+            "reasoning": llm_classification.get("reasoning"), # Add this for the wrapper
             "triage_confidence": llm_classification.get("confidence", 0.8),
             "direct_response": llm_classification.get("direct_response")
         }
@@ -108,9 +109,12 @@ class TriageAgent(BaseLangGraphAgent):
                     # Store the cached answer for future use and mark workflow as completed
                     await self._update_query_cache_usage(cache_key)
                     
+                    reasoning_message = f"Retrieved validated cached answer (score: {validation_result['relevance_score']}). Validation reasoning: {validation_result.get('reasoning', 'N/A')}"
+                    
                     return {
                         TRIAGE_CLASSIFICATION: "simple_response",
-                        TRIAGE_REASONING: f"Retrieved validated cached answer (score: {validation_result['relevance_score']})",
+                        TRIAGE_REASONING: reasoning_message,
+                        "reasoning": reasoning_message,
                         "triage_confidence": 0.95,
                         "direct_response": cached_answer["answer"],
                         FINAL_ANSWER: cached_answer["answer"],

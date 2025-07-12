@@ -133,6 +133,7 @@ class AgentState(TypedDict):
     debug_mode: bool
     intermediate_outputs: Optional[Dict[str, Any]]
     performance_metrics: Optional[Dict[str, Any]]
+    cognitive_flow_messages: List[Dict[str, Any]]
 
     # === Mathematical Enhancement Metadata ===
     mathematical_metadata: Optional[Dict[str, Any]] = Field(
@@ -226,7 +227,8 @@ def create_initial_state(
         debug_mode=debug_mode,
         intermediate_outputs={} if debug_mode else None,
         performance_metrics={} if debug_mode else None,
-        mathematical_metadata={} if debug_mode else None
+        mathematical_metadata={} if debug_mode else None,
+        cognitive_flow_messages=[]
     )
 
 def log_agent_execution(
