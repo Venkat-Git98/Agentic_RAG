@@ -18,7 +18,7 @@ thefuzz[speedup]
 pydantic
 google-generativeai
 cohere
-tavily-python==0.3.11
+tavily-python==0.3.9
 requests==2.31.0
 pandas 
 aiofiles
