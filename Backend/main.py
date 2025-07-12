@@ -70,20 +70,15 @@ class LangGraphAgenticAI:
 
         async def _run_workflow():
             """Task to run the agent workflow and push results to the queue."""
+            # The CognitiveFlowAgentWrapper is now responsible for putting all
+            # cognitive messages (thinking and reasoning) on the queue. This
+            # loop simply needs to watch for the final answer to know when to stop.
             async for chunk in self.app.astream(initial_state, config=config):
                 for agent_name, agent_state in chunk.items():
-                    # Yield cognitive flow messages first
-                    if "cognitive_flow_messages" in agent_state and agent_state["cognitive_flow_messages"]:
-                        for msg in agent_state["cognitive_flow_messages"]:
-                            await self.cognitive_flow_queue.put({"cognitive_message": msg})
-                        # Clear the messages after yielding them to avoid re-sending
-                        agent_state["cognitive_flow_messages"] = []
-
-                    # Then yield final answer if present
                     if agent_state and (final_answer := agent_state.get("final_answer")):
                         await self.cognitive_flow_queue.put({"final_answer": final_answer})
-                        return # Stop workflow after final answer
-
+                        return
+                        
             # Signal the end of the stream
             await self.cognitive_flow_queue.put(None)
 

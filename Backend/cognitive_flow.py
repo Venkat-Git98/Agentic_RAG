@@ -36,14 +36,16 @@ class CognitiveFlowLogger:
         """
         Logs a single step in the cognitive flow and optionally updates the AgentState.
         """
-        event_data = {
-            "agent_name": agent_name,
-            "status": status,
-            "message": message
-        }
-        await self.queue.put({"cognitive_message": event_data})
+        # Always put the string message on the queue for streaming
+        await self.queue.put({"cognitive_message": message})
 
         if state is not None:
+            # For the internal state, we can log the structured event
+            event_data = {
+                "agent_name": agent_name,
+                "status": status,
+                "message": message
+            }
             # Ensure cognitive_flow_messages is initialized as a list
             if "cognitive_flow_messages" not in state or not isinstance(state["cognitive_flow_messages"], list):
                 state["cognitive_flow_messages"] = []
