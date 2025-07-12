@@ -1,0 +1,39 @@
+[tool.poetry]
+name = "langgraph-agentic-ai-backend"
+version = "0.1.0"
+description = "Agentic AI backend using LangGraph"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "*"
+uvicorn = {version = "*", extras = ["standard"]}
+langgraph = "*"
+langchain = "*"
+langchain-core = "*"
+langchain-openai = "*"
+langchain-google-genai = "*"
+langchain-community = "*"
+langchain-text-splitters = "*"
+python-dotenv = "*"
+redis = "*"
+docker = "*"
+neo4j = "*"
+tiktoken = "*"
+sentence-transformers = "*"
+numpy = "*"
+thefuzz = {version = "*", extras = ["speedup"]}
+pydantic = "*"
+google-generativeai = "*"
+cohere = "*"
+tavily-python = "*"
+requests = "*"
+pandas = "*"
+aiofiles = "*"
+python-multipart = "*"
+langsmith = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api" 
