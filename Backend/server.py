@@ -7,6 +7,7 @@ allowing for real-time interaction and log streaming to a frontend.
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 from typing import Dict, Any, AsyncGenerator
 from datetime import datetime
@@ -262,37 +263,196 @@ async def get_history(userId: str):
         except Exception as e:
             logging.error(f"Error fetching history from Redis for userId '{userId}': {e}")
     
-    # Fallback to file-based storage
+    # If Redis fails or no data found, try file system fallback
     try:
-        import os
-        data_file = f"data/{userId}.json"
-        
-        if os.path.exists(data_file):
-            with open(data_file, 'r', encoding='utf-8') as f:
+        file_path = f"data/{userId}.json"
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            
             history = data.get('full_history', [])
             return {
                 "success": True,
-                "message": f"Retrieved {len(history)} messages from file storage",
+                "message": f"Retrieved {len(history)} messages from file system",
                 "user_id": userId,
                 "message_count": len(history),
-                "data": history,
-                "source": "file"
+                "data": history
             }
+    except Exception as e:
+        logging.error(f"Error fetching history from file for userId '{userId}': {e}")
+    
+    # If both methods fail
+    return {
+        "success": False,
+        "message": "No history found for this user",
+        "user_id": userId,
+        "message_count": 0,
+        "data": []
+    }
+
+@app.get("/query-cache/stats", summary="Get query cache statistics")
+async def get_query_cache_stats():
+    """
+    Get statistics about the query cache system.
+    
+    Returns:
+        Dictionary containing cache statistics and metrics
+    """
+    try:
+        redis_client = redis.from_url(REDIS_URL, decode_responses=True)
         
-        # No data found anywhere
+        if not redis_client:
+            raise HTTPException(status_code=503, detail="Redis not available")
+        
+        # Get basic cache statistics
+        total_stored = redis_client.get("query_cache:total_stored") or 0
+        
+        # Get all cache keys
+        cache_keys = redis_client.keys("query_cache:*")
+        active_cache_keys = [key for key in cache_keys if not key.endswith(":usage") and not key.endswith(":last_used")]
+        
+        # Get sample of cache entries for analysis
+        sample_entries = []
+        for key in active_cache_keys[:10]:  # Sample first 10
+            try:
+                cache_data = redis_client.get(key)
+                if cache_data:
+                    entry = json.loads(cache_data)
+                    usage_count = redis_client.get(f"{key}:usage") or 0
+                    sample_entries.append({
+                        "query": entry.get("query", "")[:100] + "..." if len(entry.get("query", "")) > 100 else entry.get("query", ""),
+                        "cached_at": entry.get("cached_at"),
+                        "confidence_score": entry.get("confidence_score"),
+                        "usage_count": int(usage_count),
+                        "answer_length": len(entry.get("answer", ""))
+                    })
+            except Exception as e:
+                logging.error(f"Error processing cache entry {key}: {e}")
+                continue
+        
+        # Calculate usage statistics
+        total_usage = sum(int(redis_client.get(f"{key}:usage") or 0) for key in active_cache_keys)
+        
         return {
-            "success": False,
-            "message": f"No chat history found for user {userId}",
-            "user_id": userId,
-            "message_count": 0,
-            "data": []
+            "success": True,
+            "statistics": {
+                "total_queries_cached": len(active_cache_keys),
+                "total_cache_hits": total_usage,
+                "total_stored_lifetime": int(total_stored),
+                "cache_hit_rate": f"{(total_usage / int(total_stored) * 100):.1f}%" if int(total_stored) > 0 else "N/A",
+                "average_confidence": sum(entry["confidence_score"] for entry in sample_entries) / len(sample_entries) if sample_entries else 0,
+                "sample_size": len(sample_entries)
+            },
+            "sample_entries": sample_entries,
+            "cache_health": {
+                "redis_connected": True,
+                "total_cache_keys": len(cache_keys),
+                "active_queries": len(active_cache_keys)
+            }
         }
         
     except Exception as e:
-        logging.error(f"Error fetching history from file for userId '{userId}': {e}")
-        raise HTTPException(status_code=500, detail="Could not retrieve chat history.")
+        logging.error(f"Error getting query cache stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving cache statistics: {str(e)}")
+
+@app.get("/query-cache/search", summary="Search query cache")
+async def search_query_cache(query: str = "", limit: int = 20):
+    """
+    Search for cached queries and their answers.
+    
+    Args:
+        query: Search term to filter cached queries (optional)
+        limit: Maximum number of results to return
+        
+    Returns:
+        List of matching cached query-answer pairs
+    """
+    try:
+        redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+        
+        if not redis_client:
+            raise HTTPException(status_code=503, detail="Redis not available")
+        
+        # Get all cache keys
+        cache_keys = redis_client.keys("query_cache:*")
+        active_cache_keys = [key for key in cache_keys if not key.endswith(":usage") and not key.endswith(":last_used")]
+        
+        results = []
+        for key in active_cache_keys[:limit]:  # Limit results
+            try:
+                cache_data = redis_client.get(key)
+                if cache_data:
+                    entry = json.loads(cache_data)
+                    cached_query = entry.get("query", "").lower()
+                    
+                    # Filter by search query if provided
+                    if query and query.lower() not in cached_query:
+                        continue
+                    
+                    usage_count = redis_client.get(f"{key}:usage") or 0
+                    results.append({
+                        "cache_key": key.replace("query_cache:", ""),
+                        "query": entry.get("query", ""),
+                        "answer": entry.get("answer", "")[:500] + "..." if len(entry.get("answer", "")) > 500 else entry.get("answer", ""),
+                        "confidence_score": entry.get("confidence_score"),
+                        "sources": entry.get("sources", []),
+                        "cached_at": entry.get("cached_at"),
+                        "usage_count": int(usage_count),
+                        "last_validated": entry.get("last_validated")
+                    })
+            except Exception as e:
+                logging.error(f"Error processing cache entry {key}: {e}")
+                continue
+        
+        # Sort by usage count descending
+        results.sort(key=lambda x: x["usage_count"], reverse=True)
+        
+        return {
+            "success": True,
+            "message": f"Found {len(results)} cached queries",
+            "search_query": query,
+            "results": results[:limit]
+        }
+        
+    except Exception as e:
+        logging.error(f"Error searching query cache: {e}")
+        raise HTTPException(status_code=500, detail=f"Error searching cache: {str(e)}")
+
+@app.delete("/query-cache/clear", summary="Clear query cache")
+async def clear_query_cache(confirm: bool = False):
+    """
+    Clear all cached queries from Redis.
+    
+    Args:
+        confirm: Must be True to actually clear the cache (safety measure)
+        
+    Returns:
+        Confirmation of cache clearing
+    """
+    if not confirm:
+        raise HTTPException(status_code=400, detail="Must set confirm=true to clear cache")
+    
+    try:
+        redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+        
+        if not redis_client:
+            raise HTTPException(status_code=503, detail="Redis not available")
+        
+        # Get all cache keys
+        cache_keys = redis_client.keys("query_cache:*")
+        
+        if cache_keys:
+            redis_client.delete(*cache_keys)
+            logging.info(f"Cleared {len(cache_keys)} query cache entries")
+        
+        return {
+            "success": True,
+            "message": f"Cleared {len(cache_keys)} query cache entries",
+            "cleared_keys": len(cache_keys)
+        }
+        
+    except Exception as e:
+        logging.error(f"Error clearing query cache: {e}")
+        raise HTTPException(status_code=500, detail=f"Error clearing cache: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

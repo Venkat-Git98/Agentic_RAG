@@ -2,9 +2,12 @@
 Synthesis Agent for the LangGraph workflow.
 
 This agent synthesizes the final answer from multiple sub-query answers.
+Enhanced with cross-user query caching storage.
 """
 
 import logging
+import hashlib
+import json
 from datetime import datetime
 from typing import Dict, Any, List
 
@@ -16,11 +19,13 @@ from state_keys import (
 )
 from tools.synthesis_tool import SynthesisTool
 from prompts import CALCULATION_SYNTHESIS_PROMPT
+from config import redis_client
 
 
 class SynthesisAgent(BaseLangGraphAgent):
     """
     Synthesis Agent responsible for generating the final answer from research results.
+    Enhanced with query caching storage for cross-user answer reuse.
     """
     
     def __init__(self):
@@ -50,7 +55,12 @@ class SynthesisAgent(BaseLangGraphAgent):
             )
             
             # Process the synthesis result
-            return await self._process_synthesis_result(synthesis_result, state)
+            result = await self._process_synthesis_result(synthesis_result, state)
+            
+            # 🔥 NEW: Store successful answer in query cache for future reuse
+            await self._store_query_cache(state.get(USER_QUERY, ""), result, state)
+            
+            return result
             
         except Exception as e:
             self.logger.error(f"Error in synthesis execution: {e}", exc_info=True)
@@ -110,6 +120,66 @@ class SynthesisAgent(BaseLangGraphAgent):
             SOURCE_CITATIONS: citations,
             CONFIDENCE_SCORE: confidence_score
         }
+    
+    async def _store_query_cache(self, user_query: str, synthesis_result: Dict[str, Any], state: AgentState):
+        """
+        Store the successful query-answer pair in Redis cache for cross-user reuse.
+        Only stores high-quality answers that meet caching criteria.
+        
+        Args:
+            user_query: Original user query
+            synthesis_result: Successful synthesis result  
+            state: Current workflow state
+        """
+        if not redis_client or not user_query.strip():
+            return
+            
+        try:
+            final_answer = synthesis_result.get(FINAL_ANSWER, "")
+            confidence_score = synthesis_result.get(CONFIDENCE_SCORE, 0.0)
+            
+            # 🎯 Cache Quality Criteria - only cache high-quality answers
+            should_cache = (
+                len(final_answer) > 100 and  # Substantial answer
+                confidence_score >= 0.7 and  # High confidence
+                not state.get("cache_hit", False) and  # Not already from cache
+                not state.get("error_state") and  # No errors occurred
+                "[Source:" in final_answer or "Section" in final_answer  # Has citations
+            )
+            
+            if not should_cache:
+                self.logger.debug(f"Answer doesn't meet caching criteria (length: {len(final_answer)}, confidence: {confidence_score})")
+                return
+            
+            # Create cache entry
+            query_hash = hashlib.sha256(user_query.lower().strip().encode()).hexdigest()
+            cache_key = f"query_cache:{query_hash}"
+            
+            cache_data = {
+                "query": user_query.strip(),
+                "answer": final_answer,
+                "confidence_score": confidence_score,
+                "sources": synthesis_result.get(SOURCE_CITATIONS, []),
+                "synthesis_metadata": synthesis_result.get(SYNTHESIS_METADATA, {}),
+                "cached_at": datetime.now().isoformat(),
+                "usage_count": 0,
+                "last_validated": datetime.now().isoformat()
+            }
+            
+            # Store in Redis with expiration (optional - remove expiration for permanent cache)
+            redis_client.set(cache_key, json.dumps(cache_data), ex=86400*30)  # 30 days expiration
+            
+            # Store usage tracking
+            usage_key = f"{cache_key}:usage"
+            redis_client.set(usage_key, 0)
+            
+            self.logger.info(f"✅ Stored high-quality answer in query cache (confidence: {confidence_score:.2f})")
+            
+            # Track cache statistics
+            redis_client.incr("query_cache:total_stored")
+            
+        except Exception as e:
+            self.logger.error(f"Error storing query cache: {e}")
     
     def _extract_citations(self, final_answer: str, sub_query_answers: List[Dict[str, Any]]) -> List[str]:
         """

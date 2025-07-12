@@ -8,7 +8,9 @@ the appropriate routing through the workflow.
 import os
 import json
 import re
+import hashlib
 from typing import Dict, Any
+from datetime import datetime
 
 from .base_agent import BaseLangGraphAgent
 from state import AgentState
@@ -18,6 +20,8 @@ from state_keys import (
     INTERMEDIATE_OUTPUTS, FINAL_ANSWER
 )
 from prompts import TRIAGE_PROMPT
+from config import redis_client
+from thinking_agents.thinking_validation_agent import ThinkingValidationAgent
 
 
 class TriageAgent(BaseLangGraphAgent):
@@ -26,15 +30,17 @@ class TriageAgent(BaseLangGraphAgent):
     
     This agent acts as a sophisticated router, determining the most efficient
     path for a user's query based on its content and conversational context.
+    Enhanced with cross-user query caching and validation.
     """
     
     def __init__(self):
         """Initialize the Triage Agent with Tier 2 model for fast classification."""
         super().__init__(model_tier="tier_2", agent_name="TriageAgent")
+        self.validation_agent = ThinkingValidationAgent()
     
     async def execute(self, state: AgentState) -> Dict[str, Any]:
         """
-        Execute the triage classification logic.
+        Execute the triage classification logic with query caching.
         
         Args:
             state: Current workflow state
@@ -46,6 +52,11 @@ class TriageAgent(BaseLangGraphAgent):
         context_payload = state.get("context_payload", "")
         
         self.logger.info(f"Triaging query: '{user_query[:100]}...'")
+        
+        # 🔍 NEW: Check for cached query-answer pairs first
+        cached_result = await self._check_query_cache(user_query, state)
+        if cached_result:
+            return cached_result
         
         # Use LLM for sophisticated classification
         llm_classification = await self._llm_classification(user_query, context_payload)
@@ -61,6 +72,113 @@ class TriageAgent(BaseLangGraphAgent):
             "triage_confidence": llm_classification.get("confidence", 0.8),
             "direct_response": llm_classification.get("direct_response")
         }
+    
+    async def _check_query_cache(self, user_query: str, state: AgentState) -> Dict[str, Any]:
+        """
+        Check if this query (or similar) has been answered before.
+        If found, validate the cached answer and return if valid.
+        
+        Args:
+            user_query: The user's question
+            state: Current workflow state
+            
+        Returns:
+            Dictionary with cached result if valid, None otherwise
+        """
+        if not redis_client:
+            return None
+            
+        try:
+            # Create query hash for exact matching
+            query_hash = hashlib.sha256(user_query.lower().strip().encode()).hexdigest()
+            cache_key = f"query_cache:{query_hash}"
+            
+            # Check for exact match first
+            cached_data = redis_client.get(cache_key)
+            if cached_data:
+                self.logger.info(f"🎯 EXACT QUERY CACHE HIT for: '{user_query[:50]}...'")
+                cached_answer = json.loads(cached_data)
+                
+                # Validate cached answer with ValidationAgent
+                validation_result = await self._validate_cached_answer(user_query, cached_answer["answer"])
+                
+                if validation_result["relevance_score"] >= 7:  # High confidence threshold
+                    self.logger.info(f"✅ Cached answer validated (score: {validation_result['relevance_score']}) - using cached result")
+                    
+                    # Store the cached answer for future use and mark workflow as completed
+                    await self._update_query_cache_usage(cache_key)
+                    
+                    return {
+                        TRIAGE_CLASSIFICATION: "simple_response",
+                        TRIAGE_REASONING: f"Retrieved validated cached answer (score: {validation_result['relevance_score']})",
+                        "triage_confidence": 0.95,
+                        "direct_response": cached_answer["answer"],
+                        FINAL_ANSWER: cached_answer["answer"],
+                        WORKFLOW_STATUS: "completed",
+                        "cache_hit": True,
+                        "cache_validation_score": validation_result["relevance_score"]
+                    }
+                else:
+                    self.logger.info(f"❌ Cached answer validation failed (score: {validation_result['relevance_score']}) - processing normally")
+            
+            # TODO: Add semantic similarity search for near-matches
+            # This would involve:
+            # 1. Generate embedding for current query
+            # 2. Search for similar cached queries using vector similarity
+            # 3. Validate any potential matches
+            
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Error checking query cache: {e}")
+            return None
+    
+    async def _validate_cached_answer(self, query: str, cached_answer: str) -> Dict[str, Any]:
+        """
+        Use ValidationAgent to assess if cached answer is still relevant.
+        
+        Args:
+            query: Original user query
+            cached_answer: Previously cached answer
+            
+        Returns:
+            Validation result with relevance score and reasoning
+        """
+        try:
+            validation_state = {
+                "query": query,
+                "context": cached_answer
+            }
+            
+            result = await self.validation_agent.execute(validation_state)
+            return result.get("validation_result", {
+                "relevance_score": 5,
+                "reasoning": "Validation failed - using neutral score"
+            })
+            
+        except Exception as e:
+            self.logger.error(f"Error validating cached answer: {e}")
+            return {
+                "relevance_score": 3,
+                "reasoning": f"Validation error: {str(e)}"
+            }
+    
+    async def _update_query_cache_usage(self, cache_key: str):
+        """
+        Update cache metadata to track usage statistics.
+        
+        Args:
+            cache_key: Redis key for the cached query
+        """
+        try:
+            usage_key = f"{cache_key}:usage"
+            redis_client.incr(usage_key)
+            redis_client.set(f"{cache_key}:last_used", json.dumps({
+                "timestamp": str(datetime.now()),
+                "status": "cache_hit_validated"
+            }))
+        except Exception as e:
+            self.logger.error(f"Error updating cache usage: {e}")
     
     async def _llm_classification(self, query: str, context_payload: str) -> Dict[str, Any]:
         """
