@@ -76,8 +76,7 @@ origins = [
     "https://phenomenal-puffpuff-a9bba5.netlify.app",  # Your specific Netlify URL
     "https://*.netlify.app",  # Netlify deployments
     "https://netlify.app", 
-    "https://vabuildingcode.netlify.app/",
-          # Netlify domains
+    "https://vabuildingcode.netlify.app",   # Netlify domains,
 ]
 
 app.add_middleware(
