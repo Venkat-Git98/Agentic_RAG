@@ -121,6 +121,29 @@ except redis.exceptions.ConnectionError as e:
     # with a non-functional Redis connection.
     raise ValueError(f"Failed to connect to Redis: {e}") from e
 
+# --- Tool Configuration ---
+# Set to True to use the parallel research tool for sub-queries
+USE_PARALLEL_RESEARCH = os.getenv("USE_PARALLEL_RESEARCH", "true").lower() == "true"
+
+# --- LangSmith Tracing and Monitoring ---
+# Set to "true" to enable LangSmith tracing for deep agent observability
+# This is the master switch for all LangSmith functionality.
+LANGCHAIN_TRACING_V2 = os.getenv("LANGCHAIN_TRACING_V2", "false").lower() == "true"
+
+# The API endpoint for LangSmith. This should not be changed.
+LANGCHAIN_ENDPOINT = os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")
+
+# Your personal LangSmith API key. Get this from the LangSmith settings page.
+LANGCHAIN_API_KEY = os.getenv("LANGCHAIN_API_KEY")
+
+# The name of the project in LangSmith where traces will be sent.
+# This helps organize runs, e.g., "Agentic-AI-Prod" vs. "Agentic-AI-Dev".
+LANGCHAIN_PROJECT = os.getenv("LANGCHAIN_PROJECT")
+
+
+# --- Knowledge Graph Configuration ---
+# ... existing code ...
+
 logging.info(f"Model configuration: T1='{TIER_1_MODEL_NAME}', T2='{TIER_2_MODEL_NAME}', Memory='{MEMORY_ANALYSIS_MODEL}'")
 logging.info(f"Research configuration: USE_RERANKER={USE_RERANKER}, USE_PARALLEL_EXECUTION={USE_PARALLEL_EXECUTION}")
 logging.info(f"Calculation configuration: USE_DOCKER={USE_DOCKER}") 
