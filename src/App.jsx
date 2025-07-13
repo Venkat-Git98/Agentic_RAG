@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { AnimatePresence, motion, useAnimation } from 'framer-motion';
-import { ChevronDown, Send, LoaderCircle, Database, Cog, CheckCircle2, XCircle, Search, User, Atom, MessagesSquare, BrainCircuit, Share2, GitBranch, Menu, AlertTriangle, Lightbulb, X, FileCheck, GitCompareArrows, Building2, Workflow } from 'lucide-react';
+import { ChevronDown, Send, LoaderCircle, Database, Cog, CheckCircle2, XCircle, Search, User, Atom, MessagesSquare, BrainCircuit, Share2, GitBranch, Menu, AlertTriangle, Lightbulb, X, FileCheck, GitCompareArrows, Building2, Workflow, PlusCircle, Users, Pencil } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import VisNetwork from './VisNetwork';
@@ -23,6 +23,88 @@ const icons = {
     GitCompareArrows,
     Building2,
 };
+
+// --- SESSION MANAGEMENT HOOK ---
+const useSessionManager = () => {
+    const [activeSessionId, setActiveSessionId] = useState(null);
+    const [sessions, setSessions] = useState([]); // Array of { id: string, name: string }
+
+    useEffect(() => {
+        // Migration logic from old format to new format
+        let storedSessions = JSON.parse(localStorage.getItem('agentic-compliance-sessions') || 'null');
+        const oldStoredIds = JSON.parse(localStorage.getItem('agentic-compliance-user-ids') || 'null');
+
+        if (!storedSessions && oldStoredIds) {
+            // Migrate from old format
+            storedSessions = oldStoredIds.map((id, index) => ({
+                id,
+                name: `Session ${index + 1}`
+            }));
+            localStorage.setItem('agentic-compliance-sessions', JSON.stringify(storedSessions));
+            localStorage.removeItem('agentic-compliance-user-ids'); // Clean up old key
+        } else if (!storedSessions) {
+            storedSessions = [];
+        }
+
+        let activeId = localStorage.getItem('agentic-compliance-active-user-id');
+
+        // If no sessions, create a new one.
+        if (storedSessions.length === 0) {
+            const newId = crypto.randomUUID();
+            const newSession = { id: newId, name: 'Default Session' };
+            storedSessions = [newSession];
+            activeId = newId;
+            localStorage.setItem('agentic-compliance-sessions', JSON.stringify(storedSessions));
+            localStorage.setItem('agentic-compliance-active-user-id', activeId);
+        }
+
+        // Validate activeId
+        if (!activeId || !storedSessions.some(s => s.id === activeId)) {
+            activeId = storedSessions[0].id;
+            localStorage.setItem('agentic-compliance-active-user-id', activeId);
+        }
+        
+        setActiveSessionId(activeId);
+        setSessions(storedSessions);
+    }, []);
+
+    const updateSessions = (newSessions) => {
+        setSessions(newSessions);
+        localStorage.setItem('agentic-compliance-sessions', JSON.stringify(newSessions));
+    };
+
+    const createNewSession = useCallback(() => {
+        const newId = crypto.randomUUID();
+        const newSession = {
+            id: newId,
+            name: `Session ${sessions.length + 1}`
+        };
+        const updatedSessions = [...sessions, newSession];
+        
+        updateSessions(updatedSessions);
+        localStorage.setItem('agentic-compliance-active-user-id', newId);
+        setActiveSessionId(newId);
+    }, [sessions]);
+
+    const switchSession = useCallback((sessionId) => {
+        if (sessions.some(s => s.id === sessionId)) {
+            localStorage.setItem('agentic-compliance-active-user-id', sessionId);
+            setActiveSessionId(sessionId);
+        } else {
+            console.error("Attempted to switch to a non-existent session ID:", sessionId);
+        }
+    }, [sessions]);
+
+    const renameSession = useCallback((sessionId, newName) => {
+        const updatedSessions = sessions.map(session =>
+            session.id === sessionId ? { ...session, name: newName } : session
+        );
+        updateSessions(updatedSessions);
+    }, [sessions]);
+
+    return { activeSessionId, sessions, createNewSession, switchSession, renameSession };
+};
+
 
 // --- MOCK DATA & HOOKS (Simulating a real backend) ---
 
@@ -56,16 +138,18 @@ const exampleQueries = [
   },
 ];
 
-const useChat = ({ onFinish, onFirstSubmit }) => {
+const useChat = ({ userId, onFinish, onFirstSubmit }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+    const hasFlashedWelcome = useRef(new Set());
   
     useEffect(() => {
       const fetchHistory = async () => {
-          const userId = getOrCreateUserId();
+          if (!userId) return;
           console.log('Fetching history for userId:', userId);
+          setIsHistoryLoading(true);
           
           try {
               const response = await fetch(`https://agenticrag-production.up.railway.app/history?userId=${encodeURIComponent(userId)}`);
@@ -80,10 +164,14 @@ const useChat = ({ onFinish, onFirstSubmit }) => {
                       console.log('Setting messages from history:', historyData.data);
                       setMessages(historyData.data);
                   } else {
-                      console.log('No history data found, showing welcome message');
-                      setMessages([
-                          { id: '1', role: 'assistant', content: "Welcome. I am an AI specializing in Virginia's building code regulations. Ask me anything from permit requirements to complex compliance scenarios.", logs: [], thinkingTime: null }
-                      ]);
+                      if (!hasFlashedWelcome.current.has(userId)) {
+                          setMessages([
+                              { id: '1', role: 'assistant', content: "Welcome. I am an AI specializing in Virginia's building code regulations. Ask me anything from permit requirements to complex compliance scenarios.", logs: [], thinkingTime: null }
+                          ]);
+                          hasFlashedWelcome.current.add(userId);
+                      } else {
+                          setMessages([]);
+                      }
                   }
               } else {
                   console.error('History response not ok. Status:', response.status);
@@ -109,7 +197,7 @@ const useChat = ({ onFinish, onFirstSubmit }) => {
       };
 
       fetchHistory();
-    }, []);
+    }, [userId]);
   
     const submitQuery = async (queryText) => {
       if (!queryText.trim() || isLoading) return;
@@ -127,8 +215,6 @@ const useChat = ({ onFinish, onFirstSubmit }) => {
       const assistantMessageId = (Date.now() + 1).toString();
       setMessages(prev => [...prev, { id: assistantMessageId, role: 'assistant', content: '', logs: [], thinkingTime: null }]);
       
-      const userId = getOrCreateUserId();
-  
       try {
         const response = await fetch('https://agenticrag-production.up.railway.app/query', {
           method: 'POST',
@@ -343,7 +429,7 @@ const knowledgeGraphEdgeOptions = {
 
 // --- TABS / MAIN VIEW COMPONENTS ---
 
-const ChatTab = ({ exampleQueries }) => {
+const ChatTab = ({ messages, input, handleInputChange, handleSubmit, isLoading, submitQuery, isHistoryLoading }) => {
     const chatContainerRef = useRef(null);
     const [isQueryLibraryOpen, setIsQueryLibraryOpen] = useState(false);
     const lightbulbControls = useAnimation();
@@ -367,11 +453,6 @@ const ChatTab = ({ exampleQueries }) => {
         };
         sequence();
     }, [lightbulbControls]);
-
-    const { messages, input, handleInputChange, handleSubmit, isLoading, submitQuery, isHistoryLoading } = useChat({
-        onFinish: () => {},
-        onFirstSubmit: triggerAnimation
-    });
 
     useEffect(() => {
         const fetchQueries = async () => {
@@ -609,6 +690,13 @@ const KnowledgeGraphTab = ({ nodes, edges, onNodeClick, handleSearch, isLoading,
 
 export default function App() {
     const [activeTab, setActiveTab] = useState('chat');
+    const { activeSessionId, sessions, createNewSession, switchSession, renameSession } = useSessionManager();
+
+    const { messages, input, handleInputChange, handleSubmit, isLoading, submitQuery, isHistoryLoading } = useChat({
+        userId: activeSessionId,
+        onFinish: () => {},
+        onFirstSubmit: () => {} // This can be re-wired if needed
+    });
 
     // State lifted from KnowledgeGraphTab
     const [graphNodes, setGraphNodes] = useState([]);
@@ -626,15 +714,13 @@ export default function App() {
     };
 
     const handleSearchGraph = useCallback(async (query) => {
-        if (!query) return;
+        if (!query || !activeSessionId) return;
 
         setIsLoadingGraph(true);
         setGraphError(null);
         
-        const userId = getOrCreateUserId();
-
         try {
-            const response = await fetch(`https://agenticrag-production.up.railway.app/api/knowledge-graph?query=${encodeURIComponent(query)}&userId=${encodeURIComponent(userId)}`);
+            const response = await fetch(`https://agenticrag-production.up.railway.app/api/knowledge-graph?query=${encodeURIComponent(query)}&userId=${encodeURIComponent(activeSessionId)}`);
             if (!response.ok) throw new Error(`API Error: ${response.status} - ${await response.text()}`);
             
             const graphData = await response.json();
@@ -668,7 +754,7 @@ export default function App() {
         } finally {
             setIsLoadingGraph(false);
         }
-    }, []);
+    }, [activeSessionId]);
 
     const handleSearchSubmit = (event) => {
         event.preventDefault();
@@ -697,7 +783,17 @@ export default function App() {
 
     const renderTabContent = () => {
         switch (activeTab) {
-            case 'chat': return <ChatTab exampleQueries={[]} />;
+            case 'chat': return (
+                <ChatTab 
+                    messages={messages}
+                    input={input}
+                    handleInputChange={handleInputChange}
+                    handleSubmit={handleSubmit}
+                    isLoading={isLoading}
+                    submitQuery={submitQuery}
+                    isHistoryLoading={isHistoryLoading}
+                />
+            );
             case 'graph': return (
                 <KnowledgeGraphTab
                     nodes={graphNodes}
@@ -729,7 +825,15 @@ export default function App() {
                    <TabButton id="graph" label="Knowledge Graph" icon={Share2} />
                    <TabButton id="architecture" label="Architecture" icon={GitBranch} />
                 </nav>
-                <div />
+                <div className="justify-self-end pr-4">
+                    <SessionControls 
+                        activeSessionId={activeSessionId}
+                        sessions={sessions}
+                        onSwitch={switchSession}
+                        onCreate={createNewSession}
+                        onRename={renameSession}
+                    />
+                </div>
             </header>
             <div className="flex-1 min-h-0">
                  <AnimatePresence mode="wait">
@@ -779,6 +883,136 @@ export default function App() {
         </main>
     );
 } 
+
+const SessionControls = ({ activeSessionId, sessions, onSwitch, onCreate, onRename }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const wrapperRef = useRef(null);
+    const [editingSessionId, setEditingSessionId] = useState(null);
+    const [editingName, setEditingName] = useState('');
+    const inputRef = useRef(null);
+
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [wrapperRef]);
+    
+    useEffect(() => {
+        if (editingSessionId && inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+        }
+    }, [editingSessionId]);
+
+    const handleStartEditing = (session) => {
+        setEditingSessionId(session.id);
+        setEditingName(session.name);
+    };
+
+    const handleFinishEditing = () => {
+        if (editingSessionId && editingName.trim()) {
+            onRename(editingSessionId, editingName.trim());
+        }
+        setEditingSessionId(null);
+        setEditingName('');
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            handleFinishEditing();
+        } else if (e.key === 'Escape') {
+            setEditingSessionId(null);
+            setEditingName('');
+        }
+    };
+
+    if (!activeSessionId) return null;
+
+    const activeSession = sessions.find(s => s.id === activeSessionId);
+
+    return (
+        <div className="flex items-center gap-3">
+             <button
+                onClick={onCreate}
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-gray-800/60 border border-gray-700 rounded-lg hover:bg-gray-700/80 transition-colors"
+                title="Start New Chat Session"
+            >
+                <PlusCircle size={16} />
+                New Chat
+            </button>
+            <div className="relative" ref={wrapperRef}>
+                <button
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="flex items-center gap-2 text-sm px-3 py-2 bg-gray-800/60 border border-gray-700 rounded-lg hover:bg-gray-700/80 transition-colors w-48"
+                >
+                    <Users size={16} />
+                    <span className="truncate flex-1 text-left">{activeSession ? activeSession.name : '...'}</span>
+                    <ChevronDown size={16} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                </button>
+                <AnimatePresence>
+                    {isOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="absolute right-0 mt-2 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-20"
+                        >
+                            <div className="p-2 space-y-1">
+                                {sessions.map(session => (
+                                    <div
+                                        key={session.id}
+                                        className={`w-full flex items-center justify-between text-left px-3 py-2 text-sm rounded-md transition-colors group ${
+                                            session.id === activeSessionId
+                                                ? 'bg-cyan-600 text-white'
+                                                : 'text-gray-300 hover:bg-gray-700/60'
+                                        }`}
+                                    >
+                                        {editingSessionId === session.id ? (
+                                            <input
+                                                ref={inputRef}
+                                                type="text"
+                                                value={editingName}
+                                                onChange={(e) => setEditingName(e.target.value)}
+                                                onBlur={handleFinishEditing}
+                                                onKeyDown={handleKeyDown}
+                                                className="bg-transparent w-full outline-none border-b border-cyan-400"
+                                            />
+                                        ) : (
+                                            <button
+                                                onClick={() => {
+                                                    onSwitch(session.id);
+                                                    setIsOpen(false);
+                                                }}
+                                                className="flex-1 truncate text-left"
+                                            >
+                                                {session.name}
+                                            </button>
+                                        )}
+
+                                        {editingSessionId !== session.id && (
+                                            <button
+                                                onClick={() => handleStartEditing(session)}
+                                                className="p-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white transition-opacity"
+                                                title="Rename session"
+                                            >
+                                                <Pencil size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </div>
+    );
+};
 
 const ChatMessage = ({ message }) => {
   const [showThinking, setShowThinking] = useState(false);
