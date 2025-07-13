@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test-session-a9864929-0eca-4b0f-9712-50aeb7000bfb",
+  "full_history": [
+    {
+      "id": "29ee0e35-506a-4443-8861-4c85f5771499",
+      "role": "user",
+      "content": "What are the fastening requirements for gypsum board in a 1-hour fire-rated wall assembly?"
+    },
+    {
+      "id": "fa51bbed-bb47-46ce-b633-bc646d546791",
+      "role": "assistant",
+      "content": "The fastening requirements for 1-hour fire-rated gypsum board wall assemblies are detailed within the Virginia Building Code, though the specific fastener spacing and type are not directly provided in the current research context.  However, I've identified the critical sections you must consult to find this precise information.  This is a standard process in code research, as fire-rated assemblies are precisely defined.\n\nHere are the key areas to investigate:\n\n*   **Chapter 7 of the International Building Code (IBC) - Fire-Resistance-Rated Construction:**  This chapter provides the overarching requirements for all fire-rated assemblies, including walls.  You'll find critical information on required fire resistance ratings for various wall types and construction classifications. Pay particular attention to tables within this chapter which often specify assembly requirements.  The provided research mentions IBC Section 711 which specifically covers Horizontal Assemblies and may provide relevant guidance if your assembly includes a horizontal component.\n*   **Chapter 25 of the IBC - Gypsum Board:** This chapter will detail the general installation requirements for gypsum board, including fastening.  Crucially, subsection 2508.3, \"Single-Ply Application,\" and subsection 2508.3.1, \"Floating Angles,\" address fastener omission in specific circumstances *except* where fire-resistance-rated construction is required. This reinforces the importance of adhering to the specific fire-rated assembly details.\n*   **Manufacturer's Installation Instructions:**  Alongside the code requirements, *always* consult the specific installation instructions provided by the gypsum board manufacturer. They will have detailed, tested assembly designs specifying fastener type, spacing, and other critical requirements for achieving the desired fire rating.  These instructions are considered part of the code compliance process.\n*   **UL Design Numbers (e.g., UL U419, U420, etc.):**  Fire-rated wall assemblies are often identified by a UL Design Number.  These designations represent specific, tested assemblies. Locating the relevant UL Design Number for your intended assembly will provide definitive guidance on construction and fastening requirements.  Look for this number in manufacturer literature.\n\nWhile the exact spacing isn't immediately available, these resources provide the definitive path forward. Begin by reviewing Chapter 7 of the IBC, focusing on any fire-rated wall tables, then cross-reference with Chapter 25 for specific fastening details in the context of fire-rated assemblies. Finally, consult the manufacturer's literature and identify the relevant UL Design Number for your specific assembly to ensure complete compliance. This three-step process will guarantee a properly constructed and code-compliant 1-hour fire-rated wall."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test-session-09b3d116-60ae-4a6b-b984-690044989a4a",
+  "full_history": [
+    {
+      "id": "88ea21ce-53ee-4146-8cfb-cf87003a15c0",
+      "role": "user",
+      "content": "How many toilets are required for a restaurant with a capacity of 100 people?"
+    },
+    {
+      "id": "727f7241-44ad-4a09-a28b-d48f57e1b02b",
+      "role": "assistant",
+      "content": "The Virginia Building Code requirements for the number of toilets in a restaurant with a 100-person capacity are determined by Table 2902.1 and several accessibility considerations.  While the specific table extract wasn't available in the provided research, I've identified the precise locations within the code you need to consult.\n\nHere's a breakdown of the relevant code sections and why they are essential:\n\n* **Table 2902.1:** This table in Chapter 29 (Plumbing Systems) directly dictates the minimum number of required plumbing fixtures, including water closets (toilets), based on the restaurant's occupancy classification and the number of occupants. You will find the exact requirement for a 100-person restaurant here.  This is your *primary* resource.\n\n* **Chapter 11 - Accessibility:**  This chapter, specifically section 1110.2 concerning toilet and bathing facilities, adds further requirements regarding accessibility. While not changing the *total* number from Table 2902.1, it dictates how many of those toilets must meet accessibility standards. Pay close attention to the following subsections within 1110.2:\n    * **1110.2.1 Family or assisted-use toilet and bathing rooms:**  This may require an additional accessible family/assisted-use restroom if the total number of required water closets reaches a certain threshold.\n    * **1110.2.4 Water closet compartment:** This outlines accessibility requirements for individual compartments within restrooms.\n    * **1110.2.6 Multi-user gender-neutral toilet facility fixtures:** If your restaurant design includes gender-neutral restrooms, this section applies.\n\n* **Chapter 29 - Plumbing Systems:** Beyond Table 2902.1, familiarize yourself with the broader chapter on plumbing systems. This chapter will provide additional guidance on fixture placement, ventilation, and other important aspects of restroom design.\n\n\nThe research provided contextual information regarding accessibility requirements, highlighting the importance of considering these provisions when designing restrooms. However, the *exact* number of required toilets and the breakdown of accessible fixtures will be found in Table 2902.1.  I strongly recommend beginning your detailed analysis there and then cross-referencing Chapter 11 to ensure full compliance with accessibility mandates.  Ensure you are using the most current edition of the Virginia Building Code for accurate and up-to-date information."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

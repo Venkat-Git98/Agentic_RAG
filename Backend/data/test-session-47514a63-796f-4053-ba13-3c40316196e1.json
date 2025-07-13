@@ -1,0 +1,18 @@
+{
+  "conversation_id": "test-session-47514a63-796f-4053-ba13-3c40316196e1",
+  "full_history": [
+    {
+      "id": "4a0f2d98-6752-4907-8f90-0adb63feb94c",
+      "role": "user",
+      "content": "What are the general requirements for building permits?"
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test-session-c48a9ac5-33fc-42a3-a105-6e711914f5ba",
+  "full_history": [
+    {
+      "id": "77cf28e8-7ed9-40cd-9911-7f0bf7803adb",
+      "role": "user",
+      "content": "Explain the diagram for roof framing."
+    },
+    {
+      "id": "4f9de4da-360e-42d0-8277-f5c4624127b0",
+      "role": "assistant",
+      "content": "The Virginia Building Code addresses roof framing primarily within the context of heavy timber construction, providing minimum dimension requirements for various structural members.  While a specific diagram wasn't provided in the research context, I can guide you to the precise sections within the code that will dictate proper framing practices.\n\nHere's a breakdown of the relevant information and where to find more details:\n\n*   **Table 2304.11 – Minimum Dimensions of Heavy Timber Structural Members:** This table is crucial. It specifies the minimum sizes for solid sawn, glued-laminated, and structural composite lumber members used in roof framing, categorized by load type (roof only or combined floor/roof) and structural element (columns, trusses, arches, etc.).  Pay close attention to the footnotes, which provide additional stipulations for spaced members and sprinklered buildings.\n*   **Section 2304.11.1.3 – Roof Framing:** This section provides specific requirements for heavy timber roof framing, including anchoring stipulations.  It directs you to Table 2304.11 for dimensioning and Chapter 16 for force resistance requirements.\n*   **Chapter 16 – Structural Design:** This chapter will detail the load calculations and other structural considerations necessary for designing a sound roof framing system. This is where you'll find information on wind loads, snow loads, and other forces the roof must withstand.\n*   **Section 2304.11.4 - Roof Decks:**  This section outlines acceptable roof deck constructions for heavy timber buildings, including cross-laminated timber, sawn lumber, and wood structural panels.  Understanding deck requirements is essential for proper framing design.\n\nThe provided context didn't include specific details on general light-frame roof construction or diagrams.  However, for heavy timber construction, the above sections are your starting point. I recommend carefully reviewing Table 2304.11 to determine the correct member sizes for your project, then consulting Section 2304.11.1.3 and Chapter 16 for connection and load requirements. If your project is *not* heavy timber construction, you will need to consult other chapters related to light-frame construction. Remember to always confirm with the local building authority for any specific interpretations or amendments to the Virginia Building Code applicable to your jurisdiction."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

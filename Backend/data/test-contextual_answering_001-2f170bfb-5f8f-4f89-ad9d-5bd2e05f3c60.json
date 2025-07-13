@@ -1,0 +1,18 @@
+{
+  "conversation_id": "test-contextual_answering_001-2f170bfb-5f8f-4f89-ad9d-5bd2e05f3c60",
+  "full_history": [
+    {
+      "id": "8dfbb8b4-4ab8-4899-962d-7d676bd97a3c",
+      "role": "user",
+      "content": "What is the main purpose of that section?"
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

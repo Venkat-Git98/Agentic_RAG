@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test-table_retrieval_001-70dd480a-bd4f-43d0-9e37-35d831e9156c",
+  "full_history": [
+    {
+      "id": "6fab2d43-b6a3-447d-93f7-1662148200f9",
+      "role": "user",
+      "content": "Show me the table for minimum uniformly distributed live loads in Section 1607."
+    },
+    {
+      "id": "2a64ed4b-6357-4fd3-97b9-225ebec7423f",
+      "role": "assistant",
+      "content": "The Virginia Building Code specifies minimum uniformly distributed live loads in Table 1607.1, as per Section 1607.3.  While the table itself wasn't included in the provided research context, I've pinpointed exactly where you'll find this crucial information.\n\nHere's a breakdown of the relevant section and how to use it:\n\n* **Table 1607.1 within Section 1607.3 - Uniform Live Loads:**  This table, referenced in 1607.3, is your primary resource.  It provides the minimum uniformly distributed live loads based on occupancy classifications (e.g., residential, office, assembly). Section 1607.3 states that the design live loads should be the *maximum* expected loads, but *no less* than the values in Table 1607.1.\n\nThe provided context does not include the actual Table 1607.1.  Therefore, I strongly recommend you consult the complete Virginia Building Code document and locate Table 1607.1 within Section 1607.3. Pay close attention to the occupancy classifications and ensure you select the appropriate live load values for your specific building design.  This table is essential for ensuring the structural integrity and safety of your project."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test-session-e67501cc-92b2-402d-9f86-d8b443cc555d",
+  "full_history": [
+    {
+      "id": "bccce4be-977e-40e8-9a40-34f2fd34c53d",
+      "role": "user",
+      "content": "What are the fire-resistance rating requirements for a structural frame supporting a roof in a Type IIA construction building that is 5 stories high?"
+    },
+    {
+      "id": "e70d3aed-0ae3-4959-94d3-75907c259907",
+      "role": "assistant",
+      "content": "The fire-resistance rating requirements for the structural frame supporting a roof in your 5-story Type IIA building are determined by several interacting factors within the Virginia Building Code.  You'll need to carefully review specific sections to confirm all applicable requirements.\n\nHere's a breakdown of the key sections and why they are relevant:\n\n*   **Table 601:** This table within Chapter 6 (Construction Classification) outlines the general fire-resistance ratings for various building elements by construction type.  Crucially, it specifies a 1-hour fire-resistance rating for the primary structural frame of a Type IIA building. (602.2, Table 601)\n*   **Section 602.2 (Types I and II):** This section clarifies that Type IIA construction utilizes noncombustible materials for the specified building elements, except where otherwise permitted.\n*   **Table 601 (Roof Construction):** This same table also specifies the fire-resistance rating for roof construction and associated secondary structural members. For Type IIA, it's 1 hour.  Pay close attention to the footnotes (b and c) which may indicate exceptions or additional requirements based on area and height. This is important given your 5-story building.\n*   **Chapter 7 (Fire and Smoke Protection Features):**  This chapter will contain detailed requirements related to fire resistance, materials, and methods of construction that satisfy the ratings given in Table 601.\n*   **Chapter 15 (Roof Assemblies):**  This chapter will have provisions related to permitted roof coverings and their impact on fire resistance.\n\nThe provided context did not contain the full text of these sections or address any potential height-related modifications for 5-story buildings. Your next step is to carefully review the referenced table and sections within the Virginia Building Code itself.  Specifically, focus on any exceptions or additional requirements triggered by building height within Table 601 and Chapter 7, which dictates how those ratings are achieved in practice. Additionally, ensure your chosen roof assembly materials comply with Chapter 15.  If you encounter any ambiguities, consulting with the local building authority is always recommended."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

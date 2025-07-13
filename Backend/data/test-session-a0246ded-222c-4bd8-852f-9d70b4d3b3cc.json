@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test-session-a0246ded-222c-4bd8-852f-9d70b4d3b3cc",
+  "full_history": [
+    {
+      "id": "327a318f-a0eb-4893-8eeb-b8efb743a920",
+      "role": "user",
+      "content": "I am inspecting a foundation and the anchor bolts are not placed exactly as shown on the approved plans. What is the maximum allowable tolerance for anchor bolt placement?"
+    },
+    {
+      "id": "5c4c90c7-734c-4918-b967-574eac0aca23",
+      "role": "assistant",
+      "content": "The Virginia Building Code does not provide a specific numerical tolerance for anchor bolt placement.  Instead, it directs us to the approved construction documents.  This means the placement accuracy is determined by the engineer's design and specifications.  However, the code *does* offer guidance on proper installation and considerations that impact acceptable placement.\n\nHere's how to proceed:\n\n*   **Section 2204.3 - Anchor Rods:** This section explicitly states that \"Anchor rods shall be set in accordance with the approved construction documents.\" This confirms that your primary reference for acceptable placement is the project's approved plans and specifications.\n*   **Approved Construction Documents:** These documents, including the structural drawings and specifications, will define the required location, size, and embedment of the anchor bolts.  Pay close attention to any specific tolerances called out on the drawings or in the notes.  Look for details like allowed deviation from grid lines, plan dimensions, or specific placement instructions.\n\nWhile a numerical tolerance isn't directly stated in the code, deviations from the approved construction documents could still be considered a violation.  Here's what I recommend:\n\n1.  **Carefully compare the as-built anchor bolt locations to the approved drawings.** Measure the discrepancies and document them thoroughly.\n2.  **Consult the project structural engineer.** They are the authority on the design intent and can assess the impact of the deviations.  Minor discrepancies might be acceptable, while others could require corrective action.  The engineer can provide guidance on an appropriate course of action.\n3.  **If the deviations are significant, be prepared to discuss remediation options with the contractor and the engineer.**  This might involve epoxy grouting, adding supplemental anchors, or other solutions.\n\nRemember, even small deviations can affect the structural integrity of the connection.  A proactive approach, involving the engineer early in the process, is always the best course of action."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

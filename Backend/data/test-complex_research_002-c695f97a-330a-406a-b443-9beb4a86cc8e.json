@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test-complex_research_002-c695f97a-330a-406a-b443-9beb4a86cc8e",
+  "full_history": [
+    {
+      "id": "8a102b95-ef3b-421c-8038-e0b9155d002e",
+      "role": "user",
+      "content": "What are the fire-resistance rating requirements for different types of building construction under the Virginia Building Code?"
+    },
+    {
+      "id": "3f8eb4e2-3f7a-41d2-93f4-3501486d5b11",
+      "role": "assistant",
+      "content": "The Virginia Building Code specifies fire-resistance ratings for various building elements based on the construction type (Type I through Type V) and sometimes occupancy.  You'll need to consult Table 601 for the primary fire-resistance requirements and Section 602 for a detailed explanation of each construction type.  Additional requirements relating to specific elements and situations are scattered throughout the code, as detailed below.\n\nHere's a breakdown of where to find the definitive answers in the Virginia Building Code:\n\n*   **Table 601:** This table is your primary resource. It outlines the required fire-resistance ratings (in hours) for key structural elements like primary structural frames, exterior walls, interior bearing walls, floor construction, and roof construction, categorized by construction type (I-A, I-B, II-A, II-B, III-A, III-B, IV-A, IV-B, IV-C, IV-HT, V-A, and V-B).\n\n*   **Section 602 - Construction Classification:**  This section defines each construction type (I through V), outlining permitted materials and specific requirements for each. Pay close attention to the sub-sections for Type IV (Heavy Timber) as they provide nuanced requirements for protected and unprotected elements.\n\n*   **Section 703.2 - Fire-Resistance Rating:** This section is essential for understanding how fire-resistance ratings are determined, particularly for Type IV construction using mass timber. It clarifies how the rating is established based on the protection applied to the mass timber or the mass timber itself.\n\n*   **Table 705.5:** This table provides fire resistance ratings specifically for exterior non-bearing walls.\n\n*   **Chapter 7 - Fire and Smoke Protection Features:** While Table 601 and Section 602 provide the core requirements, Chapter 7 will offer further details on fire resistance-rated construction, protection of openings, and related fire and smoke protection features. This chapter is critical for fully understanding and applying the fire-resistance ratings.\n\n*   **Chapter 9 - Fire Protection Systems:** This chapter may contain additional requirements impacting fire-resistance ratings based on installed fire protection systems, particularly sprinkler systems which can influence allowable construction methods.\n\n*   **Chapter 10 - Change of Occupancy:** If a building's occupancy is being changed, this chapter is essential, as it will define any adjustments needed to fire resistance-rated assemblies to meet the new occupancy requirements.\n\n\n\nWhile the provided context gives a good overview, the full text of these sections within the Virginia Building Code is necessary for complete compliance. Start with Table 601 to identify the base fire-resistance ratings for your specific construction type and then refer to the relevant sections of Chapter 6 and 7 to fully understand the material and construction requirements. Don't forget to check Chapters 9 and 10 for system and occupancy considerations that might affect the required ratings."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test-session-8b648bc6-16b0-4aa0-8e99-468c76800989",
+  "full_history": [
+    {
+      "id": "2c8663e6-8915-43d6-a34f-306b22515510",
+      "role": "user",
+      "content": "I have a building with a retail store on the first floor and apartments on the second floor. How do I determine the required fire separation between them?"
+    },
+    {
+      "id": "164e66f1-2ead-4b90-ad1c-f2d701069893",
+      "role": "assistant",
+      "content": "Determining the required fire separation between a retail store and apartments above it requires careful consideration of the Virginia Building Code.  My analysis has identified the key sections you must consult to ensure compliance.\n\nHere's a breakdown of the relevant information and where to find it:\n\n*   **Section 508 - Mixed Use and Occupancy:** This section is the core of addressing your situation. It provides guidance for buildings with multiple occupancy types, exactly like your retail/residential building. Specifically, it lays out several methods for handling mixed occupancies:\n    *   **508.2 - Accessory Occupancies:** If the retail space is considered *accessory* to the residential use (meaning it serves primarily the residents), this section applies. Carefully review the 10% area limitation rule to determine if this classification is appropriate.\n    *   **508.3 - Nonseparated Occupancies:** This section outlines the requirements if the occupancies are *not* separated by a fire barrier.  Note that this option often imposes the *most restrictive* code provisions of each individual occupancy on the entire combined space.\n    *   **508.4 - Separated Occupancies:**  This is likely the most relevant section for your scenario. It provides **Table 508.4**, which *directly* specifies the required fire separation (in hours) between different occupancy types. This table utilizes an \"S\" designation for sprinklered buildings and \"NS\" for non-sprinklered buildings, allowing you to determine the rating based on your building's fire suppression system.  You MUST locate and review this table.  Section 508.4 also details construction requirements for the fire barriers themselves. \n    *   **508.5 - Live/Work Units:** If your building falls under the specific definition of a Live/Work unit (which has stringent limitations), this section applies. Review the criteria carefully as it allows for some exceptions within the unit itself.\n\n*   **Section 302.1 - Occupancy Classification:**  Before using Table 508.4, you *must* determine the correct occupancy classification for both the retail store and the apartments.  This section provides those classifications and is essential for proper application of the fire separation requirements.\n\n*   **Chapter 7 - Fire and Smoke Protection Features:** This chapter contains detailed information on fire barriers and horizontal assemblies (Section 707 and 711 respectively), referencing the specific construction requirements outlined in 508.4.4.1.\n\n*   **Chapter 9 - Fire Protection Systems:**  This chapter will provide details regarding sprinkler system requirements (Section 903) referenced throughout Section 508, impacting the fire-resistance rating derived from Table 508.4.\n\nThe provided context did not contain the full text of these crucial sections, nor the specific occupancy classifications for your building. It is *imperative* you locate and review these sections within the Virginia Building Code. Start by determining the occupancy classifications (302.1) and then use Table 508.4 to find the required fire separation. Carefully consider the implications of each section within 508 to ensure proper code application.  Contact the local building authority if you have any questions or require clarification on local amendments."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

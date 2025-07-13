@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test-session-c73dd14a-40f6-4595-9a94-3eb9290ced09",
+  "full_history": [
+    {
+      "id": "451326b9-1c66-44db-af56-e5ef0cd917da",
+      "role": "user",
+      "content": "What is the occupant load of a 1,500 square foot business office?"
+    },
+    {
+      "id": "97ab1c29-aacb-4807-99b2-9cb96288629e",
+      "role": "assistant",
+      "content": "Determining the occupant load for your 1,500 square foot business office requires consulting the Virginia Building Code, specifically Chapter 10: Means of Egress. While the provided research context encountered an error, I can still guide you to the precise location of the necessary information.\n\nHere's how to determine the occupant load:\n\n*   **Chapter 10 - Means of Egress:** This chapter is crucial for determining occupant loads as it dictates the requirements for safe and efficient building evacuation. Within this chapter, you'll find the specific occupant load factors based on the use and occupancy classification.\n*   **Table 1004.1 – Occupant Load Factors:**  This table, located within Chapter 10, will list the square footage per occupant for various occupancy classifications, including business offices. You'll need to find the specific classification that applies to your office space (e.g., \"Business,\" \"Office,\" etc.) to obtain the correct factor.\n*  **Section 1004 - Occupant Load:** This section will detail the method for calculating occupant load using the area of the space and the appropriate occupant load factor from Table 1004.1. It will also outline any special provisions or exceptions that may apply.\n\nThe research context did not return the specific occupant load factor for business offices or the calculation method.  Therefore, your next step is to locate Table 1004.1 within Chapter 10 of the Virginia Building Code. Once you find the appropriate occupant load factor for \"Business\" or a similar classification, divide your 1,500 square foot area by this factor. This calculation will yield the occupant load for your business office.  Pay close attention to any additional requirements or modifications outlined in Section 1004.  If you have any unusual features within the office or if the space is designed for a specific purpose that might influence the occupancy, check for special provisions in the code."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

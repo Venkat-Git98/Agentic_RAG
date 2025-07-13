@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test-session-d39b7d29-5312-496f-ad45-8101f380c602",
+  "full_history": [
+    {
+      "id": "858c7947-cb43-4d7f-8707-fc7ee5544907",
+      "role": "user",
+      "content": "I am inspecting a foundation and the anchor bolts are not placed exactly as shown on the approved plans. What is the maximum allowable tolerance for anchor bolt placement?"
+    },
+    {
+      "id": "d5d54116-c959-4aec-8d4a-a47f1614455d",
+      "role": "assistant",
+      "content": "The Virginia Building Code does not provide a single, universal tolerance for anchor bolt placement.  Allowable deviations depend on the type of foundation, the building's occupancy classification, and the applicable referencing standards. The provided research points us to the correct areas of the code to determine the specific tolerance for your situation.\n\nHere are the key areas you MUST consult in the Virginia Building Code:\n\n*   **Section 1901.7 - Tolerances for structural concrete:**  This section, and its subsections for cast-in-place (1901.7.1) and precast (1901.7.2) concrete, will provide the applicable tolerances. Note that these sections reference ACI 117 for cast-in-place and ACI ITG-7 for precast concrete.  These ACI standards will contain the specific tolerance values you need. Also, be aware of the stated exception for Group R-3 detached one- or two-family dwellings.  If your project falls under this classification, these tolerances may not apply.\n\nWhile the exact tolerance value for anchor bolt placement wasn't directly found in the provided research excerpt, the referenced sections (1901.7, ACI 117, ACI ITG-7) are precisely where you'll find this information.  \n\nI strongly recommend you obtain copies of ACI 117 and ACI ITG-7, as appropriate for your foundation type, and cross-reference them with Section 1901.7 of the Virginia Building Code. Pay close attention to the referenced tables and figures within these documents for specific tolerances related to anchor bolt placement. If, after reviewing these documents, you are still unsure, consult with a structural engineer or the local building official for clarification.  Proper anchor bolt placement is crucial for structural integrity, so confirming the applicable tolerance and any required corrective actions is essential."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

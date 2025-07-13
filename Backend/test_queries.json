@@ -1,0 +1,137 @@
+{
+  "test_cases": [
+    {
+      "query_id": "simple_triage_001",
+      "query": "What is the title of Chapter 16 of the Virginia Building Code?",
+      "expected_flow": ["TriageAgent", "Finish"],
+      "description": "A simple, direct question that should be answered by the TriageAgent."
+    },
+    {
+      "query_id": "simple_triage_002",
+      "query": "Can you provide a summary of Section 1605.3.1?",
+      "expected_flow": ["TriageAgent", "Finish"],
+      "description": "A direct request for a summary of a specific section."
+    },
+    {
+      "query_id": "contextual_answering_001",
+      "query": "What is the main purpose of that section?",
+      "context": "The previous answer was about Section 1605.3.1.",
+      "expected_flow": ["TriageAgent", "ContextualAnsweringAgent", "Finish"],
+      "description": "A contextual follow-up question."
+    },
+    {
+      "query_id": "complex_research_001",
+      "query": "Compare the wind load requirements for buildings in coastal versus non-coastal areas of Virginia.",
+      "expected_flow": ["TriageAgent", "PlanningAgent", "HydeAgent", "ResearchOrchestrator", "SynthesisAgent", "MemoryAgent", "Finish"],
+      "description": "A complex research question requiring multiple steps."
+    },
+    {
+      "query_id": "table_retrieval_001",
+      "query": "Show me the table for minimum uniformly distributed live loads in Section 1607.",
+      "expected_flow": ["TriageAgent", "PlanningAgent", "HydeAgent", "ResearchOrchestrator", "SynthesisAgent", "MemoryAgent", "Finish"],
+      "description": "A query that requires the retrieval and display of a table."
+    },
+    {
+      "query_id": "math_calculation_001",
+      "query": "Calculate the reduced live load for a floor with a tributary area of 500 square feet and a live load of 100 psf, using the formula in Section 1607.12.",
+      "expected_flow": ["TriageAgent", "PlanningAgent", "HydeAgent", "ResearchOrchestrator", "SynthesisAgent", "MemoryAgent", "Finish"],
+      "description": "A query that requires a mathematical calculation."
+    },
+    {
+      "query_id": "error_handler_001",
+      "query": "What are the requirements for flibbertigibbet construction?",
+      "expected_flow": ["TriageAgent", "ErrorHandler", "Finish"],
+      "description": "A query with a nonsensical term designed to trigger the ErrorHandler."
+    },
+    {
+      "query_id": "hyde_agent_001",
+      "query": "What are the hypothetical implications of a 10% increase in the seismic design forces for hospitals in Virginia?",
+      "expected_flow": ["TriageAgent", "PlanningAgent", "HydeAgent", "ResearchOrchestrator", "SynthesisAgent", "MemoryAgent", "Finish"],
+      "description": "A query that should trigger the HydeAgent to generate a hypothetical document."
+    },
+    {
+      "query_id": "memory_agent_001",
+      "query": "What was the first question I asked you in this session?",
+      "expected_flow": ["TriageAgent", "MemoryAgent", "Finish"],
+      "description": "A query that tests the MemoryAgent's ability to recall conversation history."
+    },
+    {
+      "query_id": "direct_retrieval_001",
+      "query": "What is Section 1609.1.1 about?",
+      "expected_flow": ["TriageAgent", "ResearchOrchestrator", "SynthesisAgent", "MemoryAgent", "Finish"],
+      "description": "A direct retrieval question that should bypass the planning stage."
+    },
+    {
+      "query_id": "clarification_001",
+      "query": "Tell me more about structural integrity.",
+      "expected_flow": ["TriageAgent", "ContextualAnsweringAgent", "Finish"],
+      "description": "A vague query that should trigger a clarification response."
+    },
+    {
+      "query_id": "rejection_001",
+      "query": "What is the best recipe for chocolate chip cookies?",
+      "expected_flow": ["TriageAgent", "Finish"],
+      "description": "An off-topic query that should be rejected."
+    },
+    {
+      "query_id": "complex_research_002",
+      "query": "What are the fire-resistance rating requirements for different types of building construction under the Virginia Building Code?",
+      "expected_flow": ["TriageAgent", "PlanningAgent", "HydeAgent", "ResearchOrchestrator", "SynthesisAgent", "MemoryAgent", "Finish"],
+      "description": "A complex research question about fire-resistance ratings."
+    },
+    {
+      "query_id": "table_retrieval_002",
+      "query": "Please provide the table of contents for Chapter 19 of the Virginia Building Code.",
+      "expected_flow": ["TriageAgent", "PlanningAgent", "HydeAgent", "ResearchOrchestrator", "SynthesisAgent", "MemoryAgent", "Finish"],
+      "description": "A query to retrieve the table of contents for a chapter."
+    },
+    {
+      "query_id": "math_calculation_002",
+      "query": "Using the formula from Section 1608.2, calculate the snow load for a roof with a pitch of 30 degrees in a region with a ground snow load of 40 psf.",
+      "expected_flow": ["TriageAgent", "PlanningAgent", "HydeAgent", "ResearchOrchestrator", "SynthesisAgent", "MemoryAgent", "Finish"],
+      "description": "A query involving a specific formula and calculation."
+    },
+    {
+      "query_id": "error_handler_002",
+      "query": "What does Section 9999.99.99 say?",
+      "expected_flow": ["TriageAgent", "ErrorHandler", "Finish"],
+      "description": "A query for a non-existent section to test error handling."
+    },
+    {
+      "query_id": "hyde_agent_002",
+      "query": "Generate a hypothetical code section that addresses the use of 3D-printed structural components in residential construction.",
+      "expected_flow": ["TriageAgent", "PlanningAgent", "HydeAgent", "ResearchOrchestrator", "SynthesisAgent", "MemoryAgent", "Finish"],
+      "description": "A query to generate a new, hypothetical code section."
+    },
+    {
+      "query_id": "memory_agent_002",
+      "query": "What were the main topics we discussed in our conversation so far?",
+      "expected_flow": ["TriageAgent", "MemoryAgent", "Finish"],
+      "description": "A query to test the MemoryAgent's summarization capabilities."
+    },
+    {
+      "query_id": "direct_retrieval_002",
+      "query": "Find the definition of 'live load' in the Virginia Building Code.",
+      "expected_flow": ["TriageAgent", "ResearchOrchestrator", "SynthesisAgent", "MemoryAgent", "Finish"],
+      "description": "A direct retrieval query for a specific definition."
+    },
+    {
+      "query_id": "complex_research_003",
+      "query": "What are the accessibility requirements for public restrooms in commercial buildings according to the Virginia Building Code?",
+      "expected_flow": ["TriageAgent", "PlanningAgent", "HydeAgent", "ResearchOrchestrator", "SynthesisAgent", "MemoryAgent", "Finish"],
+      "description": "A complex research question about accessibility requirements."
+    },
+    {
+      "query_id": "mathematical_retrieval_001",
+      "query": "Find the formula for calculating the required area of openings for natural ventilation from Section 1203.4.1.",
+      "expected_flow": ["TriageAgent", "ResearchOrchestrator", "SynthesisAgent", "MemoryAgent", "Finish"],
+      "description": "A query to test the retrieval of mathematical formulas and LaTeX rendering."
+    },
+    {
+      "query_id": "parallel_execution_001",
+      "query": "Provide a detailed comparison of the fire sprinkler system requirements in NFPA 13, NFPA 13R, and NFPA 13D, and also explain the historical context of the Life Safety Code.",
+      "expected_flow": ["TriageAgent", "PlanningAgent", "HydeAgent", "ResearchOrchestrator", "SynthesisAgent", "MemoryAgent", "Finish"],
+      "description": "A complex, multi-part query designed to trigger the parallel research orchestrator."
+    }
+  ]
+}

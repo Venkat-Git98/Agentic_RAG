@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test-session-74df5e85-cd29-4008-95f5-e04be5fc75d2",
+  "full_history": [
+    {
+      "id": "fef9e72c-1f34-42e3-a9a0-672b85f6672e",
+      "role": "user",
+      "content": "Explain the diagram for roof framing."
+    },
+    {
+      "id": "f38d9e56-3e11-4da0-b925-f5a779049f1b",
+      "role": "assistant",
+      "content": "The Virginia Building Code doesn't provide a single, universal \"roof framing diagram.\"  Roof framing is complex and depends heavily on the specific type of roof system being constructed. However, I've identified the critical sections within the code that will guide you to the appropriate design requirements and, in turn, inform the creation of your framing diagrams.\n\nHere are the key areas to consult within Chapter 16, Structural Design:\n\n*   **Section 1609.6 - Roof Systems:** This section provides the overarching requirements for roof systems, including roof decks and coverings.  You *must* ensure your framing design complies with the referenced subsections for decks (1609.6.1) and coverings (1609.6.2 & 1609.6.3), as they dictate load-bearing capacities and material specifications that directly impact framing.  The provided context gives detailed information regarding the design requirements for rigid tile roof coverings.  This includes equations for wind and tornado load calculations ([1609.6.3.1], [1609.6.3.2]) and even points to a diagram related to these calculations.\n*   **ASCE 7:** The code repeatedly references ASCE 7 for determining wind and tornado pressures. This standard is essential for calculating the loads your roof framing must withstand.  Pay close attention to the cross-references within Section 1609.6 that direct you to specific sections within ASCE 7 (e.g., Chapter 30 for roof pressure coefficients).\n*   **Chapter 15 - Roof Assemblies:** While not directly within the \"Structural Design\" chapter, Chapter 15 provides critical information about roof assembly components and their interaction, which will inform your framing layout.  This is especially important for understanding underlayment requirements and how they integrate with the structural components.\n\nWhile a generic framing diagram wasn't available, these sections provide the necessary building blocks.  Start by reviewing Section 1609.6 and the referenced subsections to understand the specific requirements for your chosen roof type.  Then, consult ASCE 7 for load calculations. Finally, cross-reference with Chapter 15 for assembly details. This multi-step approach ensures a complete and code-compliant framing design. Remember, specific design details and diagrams are typically developed by the design professional based on these code requirements and project-specific conditions."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

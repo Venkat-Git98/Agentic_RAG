@@ -95,6 +95,10 @@ class KeywordRetrievalTool(BaseTool):
         """
         Executes a full-text search against the pre-defined Neo4j indexes.
         """
+        if not lucene_query or lucene_query.strip().upper() == "N/A":
+            logging.warning(f"Skipping full-text search for invalid query: '{lucene_query}'")
+            return []
+            
         # Query both indexes and combine results, prioritizing the more specific passage index
         cypher_query = """
         CALL db.index.fulltext.queryNodes('passage_content_idx', $query) YIELD node, score
@@ -136,7 +140,8 @@ class KeywordRetrievalTool(BaseTool):
         """
         # Step 1: Generate a structured Lucene query from the natural language input
         lucene_query = await self._generate_lucene_query_from_llm(query)
-        if not lucene_query:
+        if not lucene_query or lucene_query.strip().upper() == 'N/A':
+            logging.warning(f"Invalid Lucene query generated for '{query}'. Aborting keyword search.")
             return "Could not generate a valid search query."
 
         # Step 2: Execute the full-text search

@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test-rejection_001-b3e745a6-80b1-4dfc-ab72-4828c9423a7a",
+  "full_history": [
+    {
+      "id": "7fc19bf9-d07a-49a0-b844-54784ce4df7d",
+      "role": "user",
+      "content": "What is the best recipe for chocolate chip cookies?"
+    },
+    {
+      "id": "187bffe9-a026-4f1e-8171-01bf16094946",
+      "role": "assistant",
+      "content": "Based on my research, I've compiled the essential information and techniques you need to bake the best chocolate chip cookies.  \"Best\" is subjective and depends on your preferred texture, but I've provided resources to guide you to *your* perfect cookie.\n\nHere are the key findings:\n\n* **Ingredients for Classic Cookies:**  Classic cookies typically use butter, granulated and brown sugars, eggs, flour, baking soda, salt, and vanilla extract. Semisweet chocolate chips are the standard. (Source: *Plum Street Collective: Classic Chocolate Chip Cookies*, *King Arthur Baking: Classic Chocolate Chip Cookies*)\n* **Chewy Cookies:** For chewier cookies, increase the brown sugar, use browned butter, and add cornstarch. (Source: *Mrs. Madi: The Ultimate Guide to 5 Chocolate Chip Cookie Styles*)\n* **Crispy Cookies:** Crispier cookies often use more flour and less brown sugar. (Source: *Mrs. Madi: The Ultimate Guide to 5 Chocolate Chip Cookie Styles*, *Cooking On the Side: Anatomy of a Chocolate Chip Cookie*)\n* **Chilling is Crucial:** Chilling the dough for at least 2 hours, and preferably 24-48 hours, dramatically improves texture, flavor, and prevents spreading. (Source: *Sally's Baking Addiction: Best Chocolate Chip Cookies*, *Handle the Heat: The Ultimate Guide to Chocolate Chip Cookies*, *King Arthur Baking: Chilling cookie dough*)\n* **Baking Temperature and Time:**  A common recommendation is 325°F (163°C) for 10-12 minutes, but this can vary slightly based on recipe and desired outcome.  (Source: *Sally's Baking Addiction: Best Chocolate Chip Cookies*)\n\nWhile the \"best\" recipe is subjective, the resources above provide excellent starting points.  I recommend beginning with a classic recipe and then experimenting with the variations for chewiness and crispiness. Pay close attention to the chilling instructions and baking times to achieve your desired texture.  The *Handle the Heat* and *Cooking On the Side* articles offer excellent insights into how ingredients and techniques interact, empowering you to tailor your cookies to perfection."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

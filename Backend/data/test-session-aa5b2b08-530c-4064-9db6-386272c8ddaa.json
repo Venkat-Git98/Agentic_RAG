@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test-session-aa5b2b08-530c-4064-9db6-386272c8ddaa",
+  "full_history": [
+    {
+      "id": "a3f11eaa-74c5-4af8-a017-1d64acc253c0",
+      "role": "user",
+      "content": "What are the egress requirements for a basement in a single-family home?"
+    },
+    {
+      "id": "bfe23bdc-5ff3-4483-a13e-6bcc2854fd43",
+      "role": "assistant",
+      "content": "The Virginia Building Code addresses basement egress requirements for single-family homes primarily through a combination of requirements for habitable spaces, means of egress, and specific building components like windows, doors, and stairs.  You'll need to consult the full code text for definitive answers, but I can point you to the critical sections.\n\nHere's a breakdown of the relevant areas and why they are essential for your research:\n\n*   **Section 3006.4 - Means of Egress:** This subsection lays the groundwork for all egress requirements within the Virginia Building Code.  It will define fundamental terms and concepts related to egress and is your starting point for understanding the overall framework. Pay close attention to any specific requirements or exceptions for basements.\n\n*   **Chapter 10 - Means of Egress:** As referenced in 3006.4, this chapter provides comprehensive details on egress requirements.  It will likely contain specific sections addressing basements or habitable spaces below grade. Look for sections addressing required number of egress points, permissible egress components (windows, doors, stairs), and their dimensional requirements.\n\n*   **Chapter 3 - Use and Occupancy Classification:**  This chapter is crucial for determining whether your basement is considered a \"habitable space.\" Egress requirements are significantly stricter for habitable spaces.\n\n*   **Chapter R310 (IRC) - Emergency Escape and Rescue Openings:** Within the International Residential Code (IRC), which is adopted by Virginia, R310 specifically details the requirements for egress windows, including size, location, and well dimensions. Pay close attention to the requirements for window well size (9 sq ft minimum, 36 inches minimum width and projection) and the allowable encroachment of ladders/steps within the well.\n\n*   **Chapter R311 (IRC) - Means of Egress:** Similar to the main code's Chapter 10, this chapter within the IRC details egress requirements specifically for residential buildings.  This will provide further clarification on egress requirements for basements in single-family homes. Focus on requirements for stairways and doors if the basement has those as egress components.\n\nThe provided context lacked the full text of these code sections and the specific requirements for windows, doors, and stairs within basements. Therefore, your next step is to carefully review these sections within the Virginia Building Code and IRC.  Pay particular attention to any specific requirements or exceptions for basement egress in single-family homes.  You should look for specific dimensions for windows and doors, well requirements for egress windows, and any specific provisions for stair design in basements. You should also consider any requirements regarding fire resistance ratings for egress components from a basement."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}
