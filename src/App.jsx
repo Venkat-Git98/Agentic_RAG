@@ -14,7 +14,7 @@ const getOrCreateUserId = () => {
         userId = crypto.randomUUID();
         localStorage.setItem('agentic-compliance-user-id', userId);
     }
-    console.log('🔍 User ID for history:', userId);
+    console.log('User ID:', userId);
     return userId;
 };
 
@@ -65,34 +65,41 @@ const useChat = ({ onFinish, onFirstSubmit }) => {
     useEffect(() => {
       const fetchHistory = async () => {
           const userId = getOrCreateUserId();
-          console.log(`[HISTORY DEBUG] 1. Fetching history for userId: ${userId}`);
+          console.log('Fetching history for userId:', userId);
           
           try {
-              // Corrected: Point to the local backend server
-              const response = await fetch(`http://localhost:8000/history?userId=${encodeURIComponent(userId)}`);
-              console.log(`[HISTORY DEBUG] 2. Response status: ${response.status}`);
+              const response = await fetch(`https://agenticrag-production.up.railway.app/history?userId=${encodeURIComponent(userId)}`);
+              console.log('History response status:', response.status);
+              console.log('History response ok:', response.ok);
 
               if (response.ok) {
                   const historyData = await response.json();
-                  console.log('[HISTORY DEBUG] 3. Parsed response data:', historyData);
-                  
-                  if (historyData.success && historyData.data && historyData.data.length > 0) {
-                      console.log(`[HISTORY DEBUG] 4. Success: Loaded ${historyData.message_count} messages.`);
+                  console.log('History data received:', historyData);
+                  // Check for the nested 'data' property as per the API spec
+                  if (historyData && historyData.data && historyData.data.length > 0) {
+                      console.log('Setting messages from history:', historyData.data);
                       setMessages(historyData.data);
                   } else {
-                      console.log('[HISTORY DEBUG] 4. Failure/Empty: No history found or data array is empty. Showing welcome message.');
+                      console.log('No history data found, showing welcome message');
                       setMessages([
                           { id: '1', role: 'assistant', content: "Welcome. I am an AI specializing in Virginia's building code regulations. Ask me anything from permit requirements to complex compliance scenarios.", logs: [], thinkingTime: null }
                       ]);
                   }
               } else {
-                   console.error(`[HISTORY DEBUG] 4. Error: History fetch failed with status: ${response.status}`);
+                  console.error('History response not ok. Status:', response.status);
+                  const errorText = await response.text();
+                  console.error('Error response body:', errorText);
                    setMessages([
                       { id: '1', role: 'assistant', content: "Welcome. I am an AI specializing in Virginia's building code regulations. Ask me anything from permit requirements to complex compliance scenarios.", logs: [], thinkingTime: null }
                   ]);
               }
           } catch (error) {
-              console.error("[HISTORY DEBUG] 4. Exception: An error occurred during fetch.", error);
+              console.error("Failed to fetch chat history:", error);
+              console.error("Error details:", {
+                  name: error.name,
+                  message: error.message,
+                  stack: error.stack
+              });
               setMessages([
                   { id: '1', role: 'assistant', content: "Welcome. I am an AI specializing in Virginia's building code regulations. Ask me anything from permit requirements to complex compliance scenarios.", logs: [], thinkingTime: null }
               ]);
@@ -100,7 +107,7 @@ const useChat = ({ onFinish, onFirstSubmit }) => {
               setIsHistoryLoading(false);
           }
       };
-  
+
       fetchHistory();
     }, []);
   
@@ -123,8 +130,7 @@ const useChat = ({ onFinish, onFirstSubmit }) => {
       const userId = getOrCreateUserId();
   
       try {
-        // Corrected: Point to the local backend server for queries
-        const response = await fetch('http://localhost:8000/query', {
+        const response = await fetch('https://agenticrag-production.up.railway.app/query', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -420,7 +426,6 @@ const ChatTab = ({ exampleQueries }) => {
 
     useEffect(() => {
         chatContainerRef.current?.scrollTo({ top: chatContainerRef.current.scrollHeight, behavior: 'smooth' });
-        console.log('[UI DEBUG] Messages state updated:', messages);
     }, [messages]);
     
     const handlePromptClick = (query) => {
@@ -445,26 +450,12 @@ const ChatTab = ({ exampleQueries }) => {
             <div className="flex flex-col flex-1 bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-700/50 m-4 overflow-hidden">
                 <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 fancy-scrollbar">
                     <AnimatePresence initial={false}>
-                        {isHistoryLoading && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                className="flex items-center justify-center py-8"
-                            >
-                                <div className="flex items-center space-x-3 text-gray-400">
-                                    <LoaderCircle className="w-5 h-5 animate-spin" />
-                                    <span className="text-sm">Loading chat history...</span>
-                                </div>
-                            </motion.div>
-                        )}
-                        {!isHistoryLoading && messages.map(m => {
-                            console.log('[UI DEBUG] Rendering message:', m);
-                            return <ChatMessage key={m.id} message={m} />
-                        })}
+                        {messages.map(m => (
+                            <ChatMessage key={m.id} message={m} />
+                        ))}
                     </AnimatePresence>
                     
-                    {isChatEmpty && !isHistoryLoading && <InitialPrompts prompts={initialPrompts} onPromptClick={handlePromptClick} />}
+                    {isChatEmpty && <InitialPrompts prompts={initialPrompts} onPromptClick={handlePromptClick} />}
                 </div>
                 <div className="p-4 border-t border-gray-700/50 bg-gray-900/20">
                     <form onSubmit={handleSubmit} className="relative">
@@ -826,15 +817,16 @@ const ChatMessage = ({ message }) => {
                 : 'bg-gray-700 text-gray-200 rounded-bl-none'
             }`}
           >
-            <ReactMarkdown
-              className="prose prose-sm prose-invert max-w-none"
-              remarkPlugins={[remarkGfm]}
-              components={{
-                a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline" />,
-              }}
-            >
-              {content || (isAssistant ? '...' : '')}
-            </ReactMarkdown>
+            <div className="prose prose-sm prose-invert max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline" />,
+                }}
+              >
+                {content || (isAssistant ? '...' : '')}
+              </ReactMarkdown>
+            </div>
           </motion.div>
 
           {isAssistant && !isGenerating && thinkingTime && (
