@@ -65,30 +65,34 @@ const useChat = ({ onFinish, onFirstSubmit }) => {
     useEffect(() => {
       const fetchHistory = async () => {
           const userId = getOrCreateUserId();
+          console.log(`[HISTORY DEBUG] 1. Fetching history for userId: ${userId}`);
+          
           try {
-              const response = await fetch(`https://agenticrag-production.up.railway.app/history?userId=${encodeURIComponent(userId)}`);
-  
+              // Corrected: Point to the local backend server
+              const response = await fetch(`http://localhost:8000/history?userId=${encodeURIComponent(userId)}`);
+              console.log(`[HISTORY DEBUG] 2. Response status: ${response.status}`);
+
               if (response.ok) {
                   const historyData = await response.json();
+                  console.log('[HISTORY DEBUG] 3. Parsed response data:', historyData);
                   
-                  // Handle the backend's response format
                   if (historyData.success && historyData.data && historyData.data.length > 0) {
-                      console.log(`Loaded ${historyData.message_count} messages from history`);
+                      console.log(`[HISTORY DEBUG] 4. Success: Loaded ${historyData.message_count} messages.`);
                       setMessages(historyData.data);
                   } else {
-                      console.log('No history found or empty response:', historyData.message || 'No data');
+                      console.log('[HISTORY DEBUG] 4. Failure/Empty: No history found or data array is empty. Showing welcome message.');
                       setMessages([
                           { id: '1', role: 'assistant', content: "Welcome. I am an AI specializing in Virginia's building code regulations. Ask me anything from permit requirements to complex compliance scenarios.", logs: [], thinkingTime: null }
                       ]);
                   }
               } else {
-                  console.error('History fetch failed with status:', response.status);
-                  setMessages([
+                   console.error(`[HISTORY DEBUG] 4. Error: History fetch failed with status: ${response.status}`);
+                   setMessages([
                       { id: '1', role: 'assistant', content: "Welcome. I am an AI specializing in Virginia's building code regulations. Ask me anything from permit requirements to complex compliance scenarios.", logs: [], thinkingTime: null }
                   ]);
               }
           } catch (error) {
-              console.error("Failed to fetch chat history:", error);
+              console.error("[HISTORY DEBUG] 4. Exception: An error occurred during fetch.", error);
               setMessages([
                   { id: '1', role: 'assistant', content: "Welcome. I am an AI specializing in Virginia's building code regulations. Ask me anything from permit requirements to complex compliance scenarios.", logs: [], thinkingTime: null }
               ]);
@@ -119,7 +123,8 @@ const useChat = ({ onFinish, onFirstSubmit }) => {
       const userId = getOrCreateUserId();
   
       try {
-        const response = await fetch('https://agenticrag-production.up.railway.app/query', {
+        // Corrected: Point to the local backend server for queries
+        const response = await fetch('http://localhost:8000/query', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
