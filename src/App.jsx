@@ -420,6 +420,7 @@ const ChatTab = ({ exampleQueries }) => {
 
     useEffect(() => {
         chatContainerRef.current?.scrollTo({ top: chatContainerRef.current.scrollHeight, behavior: 'smooth' });
+        console.log('[UI DEBUG] Messages state updated:', messages);
     }, [messages]);
     
     const handlePromptClick = (query) => {
@@ -457,9 +458,10 @@ const ChatTab = ({ exampleQueries }) => {
                                 </div>
                             </motion.div>
                         )}
-                        {!isHistoryLoading && messages.map(m => (
-                            <ChatMessage key={m.id} message={m} />
-                        ))}
+                        {!isHistoryLoading && messages.map(m => {
+                            console.log('[UI DEBUG] Rendering message:', m);
+                            return <ChatMessage key={m.id} message={m} />
+                        })}
                     </AnimatePresence>
                     
                     {isChatEmpty && !isHistoryLoading && <InitialPrompts prompts={initialPrompts} onPromptClick={handlePromptClick} />}
