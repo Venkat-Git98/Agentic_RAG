@@ -155,26 +155,12 @@ async def query_endpoint(request: QueryRequest):
 async def chat_endpoint(request: ChatRequest):
     """
     Accepts a chat message and thread_id, processes it through the AI system,
-    and returns the response directly (non-streaming version).
+    and returns the response as a streaming response.
     """
-    ai_system = ai_system_instance.get("instance")
-    if not ai_system:
-        raise HTTPException(status_code=503, detail="AI system not initialized.")
-    
-    try:
-        # Process the chat message
-        response = await ai_system.query(user_query=request.message, thread_id=request.thread_id)
-        
-        return {
-            "success": True,
-            "message": "Message processed successfully",
-            "thread_id": request.thread_id,
-            "response": response
-        }
-        
-    except Exception as e:
-        logging.error(f"Error processing chat message: {e}")
-        raise HTTPException(status_code=500, detail=f"Error processing message: {str(e)}")
+    return StreamingResponse(
+        stream_logs_and_query(request.message, request.thread_id),
+        media_type="text/event-stream"
+    )
 
 @app.get("/api/knowledge-graph", summary="Get knowledge graph data")
 async def get_knowledge_graph_endpoint(query: str):

@@ -104,6 +104,8 @@ class LangGraphAgenticAI:
                 break
             yield message
             if "final_answer" in message:
+                # Save the final answer to the conversation history
+                conversation_manager.add_assistant_message(message["final_answer"])
                 break
         
         # Ensure the workflow task is complete

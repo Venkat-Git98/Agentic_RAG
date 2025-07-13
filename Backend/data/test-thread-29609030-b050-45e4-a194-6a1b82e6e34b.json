@@ -1,0 +1,18 @@
+{
+  "conversation_id": "test-thread-29609030-b050-45e4-a194-6a1b82e6e34b",
+  "full_history": [
+    {
+      "id": "62067b11-1310-4ce8-b549-02779189328d",
+      "role": "user",
+      "content": "What is the capital of France?"
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}
