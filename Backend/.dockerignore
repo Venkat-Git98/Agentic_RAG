@@ -1,0 +1,34 @@
+# Ignore documentation and testing files
+experimentation_phase/
+technical_specification/
+# Ignore large data and result files
+ragas_evaluated_results.json
+test_output.log
+test_queries.json
+# Ignore local development artifacts and documentation
+*.log
+*.swp
+*.swo
+.DS_Store
+# Ignore specific documentation files
+README.md
+TESTING_STRATEGY.md
+FOLDER_STRUCTURE.md
+"User Flow Diagram for FigJam (Community) (2).jpg"
+# Ignore Python virtual environment
+venv/
+.venv/
+# Ignore pycache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+# Ignore build artifacts
+build/
+dist/
+*.egg-info/
+# Ignore IDE/editor specific files
+.idea/
+.vscode/
+# Ignore OS-specific files
+Thumbs.db 
