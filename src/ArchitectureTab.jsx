@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import VisNetwork from './VisNetwork';
 import { architectureNodes as simpleNodes, architectureEdges as simpleEdges } from './ArchitectureData';
 import { userFlowNodes, userFlowEdges } from './UserFlowData';
@@ -16,7 +17,11 @@ const ArchitectureTab = ({ onNodeClick }) => {
     const renderContent = () => {
         switch (view) {
             case 'agents':
-                return <SimpleFlowDiagram onNodeSelect={setSelectedNode} />;
+                return (
+                    <div className="w-full h-full flex items-center justify-center">
+                        <SimpleFlowDiagram onNodeSelect={setSelectedNode} />
+                    </div>
+                );
             case 'architecture':
                 return <InteractiveDiagram />;
             default:
@@ -60,34 +65,43 @@ const ArchitectureTab = ({ onNodeClick }) => {
                 )}
             </div>
 
-            <div className="flex-1 min-h-0 flex gap-4">
-                <div className="flex-1 min-h-0 relative">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={view}
-                            initial={{ opacity: 0, scale: 0.98 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.98 }}
-                            transition={{ duration: 0.2 }}
-                            className="absolute inset-0"
-                        >
-                            {renderContent()}
-                        </motion.div>
+            <div className="flex-1 min-h-0">
+                <PanelGroup direction="horizontal">
+                    <Panel>
+                        <div className="h-full w-full relative">
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={view}
+                                    initial={{ opacity: 0, scale: 0.98 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.98 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="absolute inset-0"
+                                >
+                                    {renderContent()}
+                                </motion.div>
+                            </AnimatePresence>
+                        </div>
+                    </Panel>
+                    <AnimatePresence>
+                        {isSidebarOpen && (
+                            <>
+                                <PanelResizeHandle className="w-2 bg-gray-800/60 hover:bg-cyan-600/90 transition-colors" />
+                                <Panel defaultSize={30} minSize={20} maxSize={50}>
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="h-full bg-gray-800/60 p-4 rounded-lg border border-gray-700 overflow-y-auto"
+                                    >
+                                        {view === 'agents' ? <SidebarContent node={selectedNode} /> : <SidebarContent />}
+                                    </motion.div>
+                                </Panel>
+                            </>
+                        )}
                     </AnimatePresence>
-                </div>
-                <AnimatePresence>
-                    {isSidebarOpen && (view === 'architecture' || view === 'agents') && (
-                        <motion.div
-                            initial={{ width: 0, opacity: 0 }}
-                            animate={{ width: 400, opacity: 1 }}
-                            exit={{ width: 0, opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 overflow-y-auto"
-                        >
-                            {view === 'agents' ? <SidebarContent node={selectedNode} /> : <SidebarContent />}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                </PanelGroup>
             </div>
         </div>
     );

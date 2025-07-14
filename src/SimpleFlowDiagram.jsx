@@ -40,20 +40,23 @@ const SimpleFlowDiagram = ({ onNodeSelect }) => {
     }, [onNodeSelect]);
 
     return (
-        <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodeClick={handleNodeClick}
-            nodesDraggable={false}
-            nodesConnectable={false}
-            elementsSelectable={false}
-            colorMode="dark"
-            className="bg-gray-800"
-        >
-            <Controls />
-            <MiniMap />
-            <Background variant="dots" gap={12} size={1} />
-        </ReactFlow>
+        <div style={{ width: '100%', height: '100%' }}>
+            <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodeClick={handleNodeClick}
+                nodesDraggable={false}
+                nodesConnectable={false}
+                elementsSelectable={false}
+                colorMode="dark"
+                className="bg-gray-800"
+                fitView
+            >
+                <Controls />
+                <MiniMap />
+                <Background variant="dots" gap={12} size={1} />
+            </ReactFlow>
+        </div>
     );
 };
 

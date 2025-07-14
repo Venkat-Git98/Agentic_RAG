@@ -12,6 +12,7 @@ export const simpleFlowNodes = [
   { id: 'prompt_caching', type: 'output', data: { label: 'Prompt Caching', description: 'This high-speed data store serves two roles. As **Redis**, it holds the short-term session history for contextual conversations. As **Prompt Caching**, it stores the final answers to common questions, allowing the `TriageAgent` to provide them instantly.' }, position: { x: 50, y: 700 }, sourcePosition: 'bottom', targetPosition: 'top' },
   { id: 'neo4j', type: 'output', data: { label: 'Neo4j', description: "This graph database is the system's long-term brain. It stores the core technical knowledge and the complex relationships between data points, allowing for sophisticated and context-aware queries during the research phase." }, position: { x: 450, y: 400 }, sourcePosition: 'bottom', targetPosition: 'top' },
   { id: 'user_query_answer', type: 'output', data: { label: 'User Query Answer', description: 'The final, synthesized answer that is presented to the user.' }, position: { x: 250, y: 800 }, sourcePosition: 'bottom', targetPosition: 'top' },
+  { id: 'langsmith', type: 'output', data: { label: 'Langsmith', description: '**Purpose:** To provide observability and debugging capabilities for the entire workflow.\n\n**Function:** Langsmith is a third-party platform that tracks every step of the agentic process, from the initial `User Query` to the `Final Answer`. It logs all intermediate steps, agent interactions, and tool outputs, making it an essential tool for monitoring, evaluating, and debugging the system\'s performance.' }, position: { x: 450, y: 700 }, sourcePosition: 'bottom', targetPosition: 'top' },
 ];
 
 export const simpleFlowEdges = [
@@ -28,7 +29,8 @@ export const simpleFlowEdges = [
   { id: 'e5-6', source: 'research', target: 'synthesis' },
   { id: 'e6-7', source: 'synthesis', target: 'memory' },
   { id: 'e6-pc', source: 'synthesis', target: 'prompt_caching' },
-  { id: 'e5-8', source: 'research', target: 'neo4j' },
+  { id: 'e-research-neo4j', source: 'research', target: 'neo4j' },
   { id: 'e-synth-ans', source: 'synthesis', target: 'user_query_answer', animated: true },
   { id: 'e-pc-ans', source: 'prompt_caching', target: 'user_query_answer', animated: true },
+  { id: 'e-mem-ls', source: 'memory', target: 'langsmith', animated: true },
 ]; 
