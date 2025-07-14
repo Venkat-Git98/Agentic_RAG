@@ -1,5 +1,6 @@
 import React from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
+import DiagramImage from './assets/architectural-diagram.jpg';
 
 const InteractiveDiagram = () => {
   return (
@@ -20,7 +21,7 @@ const InteractiveDiagram = () => {
           }}
         >
           <img
-            src="/architectural-diagram.jpg"
+            src={DiagramImage}
             alt="Flow Diagram"
             style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
           />
