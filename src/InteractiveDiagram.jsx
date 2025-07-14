@@ -20,7 +20,7 @@ const InteractiveDiagram = () => {
           }}
         >
           <img
-            src="/User Flow Diagram for FigJam (Community) (2).jpg"
+            src="/architectural-diagram.jpg"
             alt="Flow Diagram"
             style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
           />
