@@ -39,12 +39,14 @@ def setup_logging():
 # --- Load Environment Variables ---
 # Searches for a .env file in the current directory or parent directories.
 # This makes it flexible for running scripts from different locations.
-dotenv_path = load_dotenv()
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+dotenv_path = os.path.join(project_root, '.env')
+was_loaded = load_dotenv(dotenv_path=dotenv_path)
 
-if dotenv_path:
+if was_loaded:
     logging.info(f"Loaded environment variables from: {dotenv_path}")
 else:
-    logging.warning("No .env file found. Please create one with the required variables.")
+    logging.warning(f".env file not found at {dotenv_path}. Please create one with the required variables.")
 
 # --- Google Gemini API Configuration ---
 # Your API key for accessing Google's generative models.
@@ -102,24 +104,20 @@ USE_DOCKER = os.environ.get("USE_DOCKER", "False").lower() == "true"
 # Defines the location for saving the persistent conversation state.
 CONVERSATION_STATE_FILE = "data/conversation_state.json"
 
-# --- Redis Configuration ---
-# Your connection URL for the Redis instance on Railway.
+# --- Redis Configuration (Temporarily Disabled for Testing) ---
 REDIS_URL = os.environ.get("REDIS_URL")
-
 if not REDIS_URL:
-    raise ValueError("FATAL: REDIS_URL environment variable not set. Please provide a valid Redis connection URL.")
-
-try:
-    # Use decode_responses=True to get strings back from Redis
-    redis_client = redis.from_url(REDIS_URL, decode_responses=True)
-    # Check if the connection is alive
-    redis_client.ping()
-    logging.info("Successfully connected to Redis.")
-except redis.exceptions.ConnectionError as e:
-    logging.error(f"FATAL: Could not connect to Redis at the provided URL. Please check the REDIS_URL. Error: {e}")
-    # Re-raise the exception to prevent the application from starting
-    # with a non-functional Redis connection.
-    raise ValueError(f"Failed to connect to Redis: {e}") from e
+    logging.warning("REDIS_URL not set. Redis functionality will be disabled.")
+    redis_client = None # Set to None if Redis is not configured
+else:
+    try:
+        redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+        redis_client.ping()
+        logging.info("Successfully connected to Redis.")
+    except redis.exceptions.ConnectionError as e:
+        logging.error(f"FATAL: Could not connect to Redis: {e}. Redis functionality will be disabled.")
+        redis_client = None
+redis_client = None # Temporarily set to None to bypass Redis connection issues
 
 # --- Tool Configuration ---
 # Set to True to use the parallel research tool for sub-queries

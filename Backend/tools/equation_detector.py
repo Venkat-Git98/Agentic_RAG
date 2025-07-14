@@ -319,3 +319,26 @@ class EquationDetector:
             formatted += f"LaTeX: {eq['latex']}\n\n"
         
         return formatted 
+
+    def detect_chapter_summary_request(self, text: str) -> Optional[str]:
+        """
+        Detects if the user query is a request for a chapter summary.
+        
+        Args:
+            text: The user's query.
+            
+        Returns:
+            The chapter number (e.g., "3") if a chapter summary request is detected,
+            otherwise None.
+        """
+        # Pattern to match "Summarize Chapter X" or "Chapter X summary"
+        chapter_summary_patterns = [
+            r'summarize\s+chapter\s+(\d+)',
+            r'chapter\s+(\d+)\s+summary'
+        ]
+        
+        for pattern in chapter_summary_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                return match.group(1)
+        return None 

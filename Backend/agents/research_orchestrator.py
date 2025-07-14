@@ -218,7 +218,17 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             self.logger.info(f"Sub-query {index+1} - LLM selected retrieval strategy: {strategy}")
 
             # Step 2: Execute retrieval with enhanced fallbacks (validation is now done internally)
-            retrieved_context = await self._execute_retrieval_with_fallbacks(strategy, sub_query)
+            # --- NEW: Chapter Summary Retrieval Logic ---
+            chapter_number = self.equation_detector.detect_chapter_summary_request(sub_query)
+            if chapter_number:
+                self.logger.info(f"Chapter summary request detected for Chapter {chapter_number}. Retrieving full chapter content.")
+                chapter_content_dict = self.neo4j_connector.get_chapter_content(chapter_number)
+                retrieved_context = self._format_chapter_content(chapter_content_dict)
+                strategy = "chapter_retrieval" # Override strategy for logging
+            else:
+                retrieved_context = await self._execute_retrieval_with_fallbacks(strategy, sub_query)
+            # --- END: Chapter Summary Retrieval Logic ---
+
 
             # Step 3: Validate the final retrieved context quality
             validation_result = await self._validate_context_quality(sub_query, retrieved_context)
@@ -335,6 +345,17 @@ class ResearchOrchestrator(BaseLangGraphAgent):
         """Execute retrieval with appropriate fallback sequence based on initial strategy."""
         
         if initial_strategy == "direct_retrieval":
+            # Check for chapter summary request first
+            chapter_number = self.equation_detector.detect_chapter_summary_request(query)
+            if chapter_number:
+                self.logger.info(f"Detected chapter summary request for Chapter {chapter_number}")
+                chapter_content = await self._safe_tool_call(self.neo4j_connector.get_chapter_content, chapter_number)
+                if chapter_content:
+                    formatted_chapter_content = self._format_enhanced_context({"primary_item": {"uid": chapter_content.get("chapter_uid"), "title": chapter_content.get("chapter_title"), "number": chapter_content.get("chapter_number"), "type": "Chapter"}, "supplemental_context": chapter_content})
+                    self.logger.info(f"Successfully retrieved and formatted content for Chapter {chapter_number}")
+                    return formatted_chapter_content
+                else:
+                    self.logger.warning(f"Failed to retrieve content for Chapter {chapter_number}. Falling back to standard direct retrieval.")
             return await self._try_direct_then_placeholder(query)
         elif initial_strategy == "vector_search":
             # Use the NEW complete fallback hierarchy
@@ -1311,3 +1332,54 @@ Only return the JSON array, no other text.
                 }
             }
         }
+
+    def _format_chapter_content(self, chapter_content: Dict[str, Any]) -> str:
+        """
+        Formats the comprehensive chapter content dictionary into a single string
+        for the synthesis agent.
+
+        Args:
+            chapter_content: The dictionary returned by Neo4jConnector.get_chapter_content.
+
+        Returns:
+            A formatted string with all chapter content.
+        """
+        if not chapter_content:
+            return "No content found for this chapter."
+
+        output = []
+        
+        title = chapter_content.get('chapter_title', 'N/A')
+        number = chapter_content.get('chapter_number', 'N/A')
+        output.append(f"CHAPTER {number}: {title}\n{'='*40}")
+
+        # Helper to format a list of nodes
+        def format_nodes(nodes: List[Dict], title: str, fields: List[str]):
+            if not nodes:
+                return
+            output.append(f"\n--- {title.upper()} ---\n")
+            for item in sorted(nodes, key=lambda x: x.get('uid', '')):
+                details = [f"ID: {item.get('uid', 'N/A')}"]
+                for field in fields:
+                    if field_name := field.get('name'):
+                         details.append(f"{field.get('label', field_name.capitalize())}: {item.get(field_name, 'N/A')}")
+                output.append(" | ".join(details))
+                if 'text' in item:
+                    output.append(item['text'])
+                if 'html_repr' in item:
+                    # This is a simplified representation. For a real app, you might parse the HTML.
+                    output.append(f"Table Content (HTML): {item['html_repr'][:500]}...")
+                if 'latex' in item:
+                    output.append(f"LaTeX: {item['latex']}")
+                if 'description' in item:
+                    output.append(f"Description: {item.get('description', 'N/A')}")
+                output.append("-" * 20)
+
+        format_nodes(chapter_content.get('sections', []), 'Sections', [{'name': 'number'}, {'name': 'title'}])
+        format_nodes(chapter_content.get('subsections', []), 'Subsections', [{'name': 'number'}, {'name': 'title'}])
+        format_nodes(chapter_content.get('passages', []), 'Passages', [])
+        format_nodes(chapter_content.get('tables', []), 'Tables', [{'name': 'title'}])
+        format_nodes(chapter_content.get('mathematical_content', []), 'Mathematical Content', [])
+        format_nodes(chapter_content.get('diagrams', []), 'Diagrams', [{'name': 'path'}])
+
+        return "\n".join(output)

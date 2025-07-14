@@ -12,6 +12,10 @@ import logging
 from typing import Optional, Dict, AsyncGenerator, Any
 from datetime import datetime
 
+# --- Early Configuration Loading ---
+# This is critical to ensure all environment variables are loaded from the .env
+# file before any other module tries to access them.
+from config import redis_client
 # --- Configuration ---
 logging.basicConfig(
     level=logging.INFO,
@@ -24,7 +28,6 @@ from conversation_manager import ConversationManager
 from thinking_workflow import ThinkingAgenticWorkflow, create_thinking_agentic_workflow
 from thinking_logger import ThinkingMode
 from cognitive_flow import CognitiveFlowLogger
-from config import redis_client
 from state import create_initial_state
 
 class LangGraphAgenticAI:
@@ -56,7 +59,7 @@ class LangGraphAgenticAI:
             A stream of dictionaries representing parts of the response.
         """
         # Create ConversationManager for this thread
-        conversation_manager = ConversationManager(thread_id, redis_client)
+        conversation_manager = ConversationManager(thread_id, redis_client=None)
         
         # Add the user message to conversation history
         conversation_manager.add_user_message(user_query)
@@ -117,7 +120,7 @@ class LangGraphAgenticAI:
         This is a non-streaming, async version for test suites.
         """
         # Create ConversationManager for this thread
-        conversation_manager = ConversationManager(thread_id, redis_client)
+        conversation_manager = ConversationManager(thread_id, redis_client=None)
         
         # Add the user message to conversation history
         conversation_manager.add_user_message(user_query)

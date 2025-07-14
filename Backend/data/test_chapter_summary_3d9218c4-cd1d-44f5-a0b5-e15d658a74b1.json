@@ -1,0 +1,18 @@
+{
+  "conversation_id": "test_chapter_summary_3d9218c4-cd1d-44f5-a0b5-e15d658a74b1",
+  "full_history": [
+    {
+      "id": "3a5a3957-fd1e-4be4-ad84-8aff8981e4d5",
+      "role": "user",
+      "content": "Summarize Chapter 3 of the Virginia Building Code"
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

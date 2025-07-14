@@ -1035,4 +1035,67 @@ class Neo4jConnector:
             return {}
 
 # Ensure the driver is closed when the application exits.
+    @staticmethod
+    def get_chapter_content(chapter_number: str) -> Dict[str, Any]:
+        """
+        Retrieves all content (sections, subsections, passages, tables, math, diagrams)
+        for a given chapter.
+
+        Args:
+            chapter_number: The number of the chapter (e.g., "3").
+
+        Returns:
+            A dictionary containing the chapter's content, structured by type.
+        """
+        logging.info(f"Retrieving all content for Chapter {chapter_number}")
+        
+        query = """
+        MATCH (c:Chapter {number: $chapter_number})
+        OPTIONAL MATCH (c)-[:CONTAINS*]->(node)
+        WHERE node:Section OR node:Subsection OR node:Passage OR node:Table OR node:Math OR node:Diagram
+        RETURN 
+            c.uid AS chapter_uid,
+            c.title AS chapter_title,
+            c.number AS chapter_number,
+            COLLECT(DISTINCT CASE WHEN node:Section THEN {uid: node.uid, title: node.title, number: node.number, type: LABELS(node)[0]} ELSE NULL END) AS sections,
+            COLLECT(DISTINCT CASE WHEN node:Subsection THEN {uid: node.uid, title: node.title, number: node.number, type: LABELS(node)[0]} ELSE NULL END) AS subsections,
+            COLLECT(DISTINCT CASE WHEN node:Passage THEN {uid: node.uid, text: node.text, type: LABELS(node)[0]} ELSE NULL END) AS passages,
+            COLLECT(DISTINCT CASE WHEN node:Table THEN {uid: node.uid, title: node.title, html_repr: node.html_repr, type: LABELS(node)[0]} ELSE NULL END) AS tables,
+            COLLECT(DISTINCT CASE WHEN node:Math THEN {uid: node.uid, latex: node.latex, type: LABELS(node)[0]} ELSE NULL END) AS mathematical_content,
+            COLLECT(DISTINCT CASE WHEN node:Diagram THEN {uid: node.uid, path: node.path, description: node.description, type: LABELS(node)[0]} ELSE NULL END) AS diagrams
+        """
+        
+        try:
+            with Neo4jConnector.get_driver().session(database="neo4j") as session:
+                result = session.run(query, chapter_number=chapter_number)
+                record = result.single()
+
+            if not record:
+                logging.warning(f"No content found for Chapter {chapter_number}")
+                return {}
+
+            # Filter out None values from collected lists
+            sections = [s for s in record["sections"] if s is not None]
+            subsections = [s for s in record["subsections"] if s is not None]
+            passages = [p for p in record["passages"] if p is not None]
+            tables = [t for t in record["tables"] if t is not None]
+            mathematical_content = [m for m in record["mathematical_content"] if m is not None]
+            diagrams = [d for d in record["diagrams"] if d is not None]
+
+            return {
+                "chapter_uid": record["chapter_uid"],
+                "chapter_title": record["chapter_title"],
+                "chapter_number": record["chapter_number"],
+                "sections": sections,
+                "subsections": subsections,
+                "passages": passages,
+                "tables": tables,
+                "mathematical_content": mathematical_content,
+                "diagrams": diagrams
+            }
+
+        except Exception as e:
+            logging.error(f"Error retrieving chapter content for Chapter {chapter_number}: {e}")
+            return {}
+
 atexit.register(Neo4jConnector.close_driver)
