@@ -1,95 +1,116 @@
 import asyncio
 import json
+import datetime
 import uuid
-from datetime import datetime
-import pandas as pd
 from rich.console import Console
 from rich.table import Table
+from rich.progress import Progress
 
 from main import LangGraphAgenticAI
-from conversation_manager import ConversationManager
-from config import redis_client
-
-console = Console()
 
 class ComprehensiveTestSuite:
-    def __init__(self, test_queries_file):
-        self.test_queries_file = test_queries_file
-        self.test_queries = self._load_test_queries()
+    def __init__(self, test_file_path):
+        self.test_queries = self._load_test_queries(test_file_path)
         self.results = []
+        self.start_time = None
+        self.end_time = None
 
-    def _load_test_queries(self):
-        with open(self.test_queries_file, 'r') as f:
-            return json.load(f)
+    def _load_test_queries(self, test_file_path):
+        console = Console()
+        try:
+            with open(test_file_path, 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            console.print(f"[bold red]Error: Test queries file not found at '{test_file_path}'[/bold red]")
+            return []
+        except json.JSONDecodeError:
+            console.print(f"[bold red]Error: Could not decode JSON from '{test_file_path}'[/bold red]")
+            return []
+
+    async def run(self):
+        console = Console()
+        if not self.test_queries:
+            console.print("[bold yellow]No test queries to run.[/bold yellow]")
+            return
+
+        self.start_time = datetime.datetime.now()
+        console.print(f"[bold green]Starting comprehensive test suite at {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}[/bold green]")
+
+        with Progress(console=console) as progress:
+            task = progress.add_task("[cyan]Running test suite...[/cyan]", total=len(self.test_queries))
+            for test_case in self.test_queries:
+                query = test_case["query"]
+                test_id = test_case["test_id"]
+                progress.update(task, description=f"[cyan]Running {test_id}...[/cyan]")
+
+                try:
+                    agent_instance = LangGraphAgenticAI()
+                    final_state = await agent_instance.invoke_for_test_async(query, f"session_{test_id}")
+
+                    # Clean up state for cleaner logs
+                    if "explicit_input_prompts" in final_state:
+                        del final_state["explicit_input_prompts"]
+                    if "original_query" in final_state: # Redundant
+                        del final_state["original_query"]
+
+                    result = {
+                        "test_id": test_id,
+                        "description": test_case["description"],
+                        "query": query,
+                        "final_answer": final_state.get("final_answer", "N/A"),
+                        "full_trace": final_state,
+                        "status": "Success" if final_state.get("final_answer") else "Failure"
+                    }
+                except Exception as e:
+                    console.print(f"\n[bold red]CRITICAL FAILURE in test {test_id}: {e}[/bold red]")
+                    result = {
+                        "test_id": test_id,
+                        "description": test_case["description"],
+                        "query": query,
+                        "final_answer": "CRITICAL FAILURE",
+                        "full_trace": {"error": str(e)},
+                        "status": "Critical Failure"
+                    }
+                
+                self.results.append(result)
+                progress.advance(task)
+
+        self.end_time = datetime.datetime.now()
+        self._print_summary()
+        self._save_results()
 
     def _print_summary(self):
-        df = pd.DataFrame(self.results)
-
-        # --- Save results to a file ---
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        results_filename = f"test_results_{timestamp}.json"
-        try:
-            with open(results_filename, 'w', encoding='utf-8') as f:
-                json.dump(self.results, f, indent=4)
-            console.print(f"\n[bold green]📊 Test results saved to {results_filename}[/bold green]")
-        except Exception as e:
-            console.print(f"\n[bold red]Error saving results to file: {e}[/bold red]")
-
-        
-        table = Table(title=f"Comprehensive Test Suite Results ({timestamp})")
+        console = Console()
+        table = Table(title="Test Suite Summary")
         table.add_column("Test ID", style="cyan")
-        table.add_column("Description", style="magenta")
-        table.add_column("Query", style="magenta")
-        table.add_column("Final Answer", style="green")
         table.add_column("Status", style="bold")
+        table.add_column("Query", style="magenta")
+
+        success_count = 0
+        failure_count = 0
+        for result in self.results:
+            status_style = "green" if "Success" in result['status'] else "red"
+            table.add_row(result['test_id'], f"[{status_style}]{result['status']}[/{status_style}]", result['query'])
+            if "Success" in result['status']:
+                success_count += 1
+            else:
+                failure_count += 1
         
-        for _, row in df.iterrows():
-            status = "✅" if row['status'] == 'Success' else "❌"
-            table.add_row(
-                row['test_id'],
-                row['description'],
-                row['query'],
-                row['final_answer'],
-                status
-            )
-            
         console.print(table)
+        duration = self.end_time - self.start_time
+        console.print(f"\n[bold]Total Tests: {len(self.results)}[/bold]")
+        console.print(f"[bold green]Successes: {success_count}[/bold green]")
+        console.print(f"[bold red]Failures: {failure_count}[/bold red]")
+        console.print(f"[bold]Total Duration: {duration}[/bold]")
 
-    async def run_tests(self):
-        ai_system = LangGraphAgenticAI()
-
-        for test in self.test_queries:
-            thread_id = f"test-session-{uuid.uuid4()}"
-            
-            console.print(f"[bold blue]Running test case: {test['test_id']} - {test['description']}[/bold blue]")
-            
-            try:
-                final_answer = ""
-                async for chunk in ai_system.get_response_stream(test['query'], thread_id):
-                    if "final_answer" in chunk:
-                        final_answer = chunk["final_answer"]
-
-                self.results.append({
-                    'test_id': test['test_id'],
-                    'description': test['description'],
-                    'query': test['query'],
-                    'final_answer': final_answer,
-                    'status': 'Success'
-                })
-
-            except Exception as e:
-                console.print(f"[bold red]Test case failed: {test['test_id']}[/bold red]")
-                console.print(f"Error: {e}")
-                self.results.append({
-                    'test_id': test['test_id'],
-                    'description': test['description'],
-                    'query': test['query'],
-                    'final_answer': 'N/A',
-                    'status': 'Failure'
-                })
-        
-        self._print_summary()
+    def _save_results(self):
+        console = Console()
+        timestamp = self.start_time.strftime("%Y%m%d_%H%M%S")
+        output_filename = f"test_results_with_trace_{timestamp}.json"
+        with open(output_filename, 'w') as f:
+            json.dump(self.results, f, indent=4)
+        console.print(f"\n[bold]Results with full trace saved to [cyan]{output_filename}[/cyan][/bold]")
 
 if __name__ == '__main__':
     suite = ComprehensiveTestSuite('experimentation_phase/testing_files/testing_suite.json')
-    asyncio.run(suite.run_tests()) 
+    asyncio.run(suite.run()) 

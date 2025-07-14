@@ -111,6 +111,40 @@ class LangGraphAgenticAI:
         # Ensure the workflow task is complete
         await workflow_task
 
+    async def invoke_for_test_async(self, user_query: str, thread_id: str) -> Dict[str, Any]:
+        """
+        Invoke the agent for testing purposes, returning the final state.
+        This is a non-streaming, async version for test suites.
+        """
+        # Create ConversationManager for this thread
+        conversation_manager = ConversationManager(thread_id, redis_client)
+        
+        # Add the user message to conversation history
+        conversation_manager.add_user_message(user_query)
+        
+        # Get context payload from conversation manager
+        context_payload = conversation_manager.get_contextual_payload()
+        
+        initial_state = create_initial_state(user_query, context_payload, conversation_manager, debug_mode=self.debug)
+
+        config = {
+            "configurable": {
+                "thread_id": thread_id,
+            }
+        }
+        
+        # Inject conversation manager
+        self._inject_conversation_manager(conversation_manager)
+
+        # Run the workflow asynchronously for testing
+        final_state = await self.app.ainvoke(initial_state, config=config)
+        
+        # Save the final answer to history
+        if final_answer := final_state.get("final_answer"):
+            conversation_manager.add_assistant_message(final_answer)
+            
+        return final_state
+
     def _inject_conversation_manager(self, conversation_manager):
         """Inject conversation manager into agents that need it."""
         # Get the workflow from the thinking workflow
