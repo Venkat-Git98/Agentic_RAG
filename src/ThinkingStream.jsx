@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BrainCircuit, CheckCircle, AlertTriangle, Workflow } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const LogIcon = ({ level }) => {
   switch (level) {
@@ -54,9 +56,11 @@ const ThinkingStream = ({ logs }) => {
               className="flex items-start py-1.5 text-gray-300"
             >
               <LogIcon level={log.level} />
-              <span className="ml-3 flex-1 whitespace-pre-wrap">
-                {typeof log.message === 'string' ? log.message : JSON.stringify(log.message, null, 2)}
-              </span>
+              <div className="ml-3 flex-1 prose prose-sm prose-invert max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {typeof log.message === 'string' ? log.message : `\`\`\`json\n${JSON.stringify(log.message, null, 2)}\n\`\`\``}
+                </ReactMarkdown>
+              </div>
             </motion.div>
           ))}
         </AnimatePresence>

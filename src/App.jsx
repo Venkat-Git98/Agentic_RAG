@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { AnimatePresence, motion, useAnimation } from 'framer-motion';
 import { ChevronDown, Send, LoaderCircle, Database, Cog, CheckCircle2, XCircle, Search, User, Atom, MessagesSquare, BrainCircuit, Share2, GitBranch, Menu, AlertTriangle, Lightbulb, X, FileCheck, GitCompareArrows, Building2, Workflow, PlusCircle, Users, Pencil } from 'lucide-react';
+import { FaGithub, FaLinkedin } from 'react-icons/fa';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import VisNetwork from './VisNetwork';
@@ -856,7 +857,15 @@ export default function App() {
                    <TabButton id="graph" label="Knowledge Graph" icon={Share2} />
                    <TabButton id="architecture" label="Architecture" icon={GitBranch} />
                 </nav>
-                <div className="justify-self-end pr-4">
+                <div className="justify-self-end pr-4 flex items-center gap-4">
+                    <div className="flex items-center gap-4">
+                        <a href="https://github.com/Venkat-Git98/Agentic_RAG/tree/main" target="_blank" rel="noopener noreferrer">
+                            <FaGithub size={20} className="text-gray-400 hover:text-white transition-colors" />
+                        </a>
+                        <a href="https://www.linkedin.com/in/svenkatesh-js/" target="_blank" rel="noopener noreferrer">
+                            <FaLinkedin size={20} className="text-gray-400 hover:text-white transition-colors" />
+                        </a>
+                    </div>
                     {activeTab === 'chat' && (
                         <SessionControls 
                             activeSessionId={activeSessionId}
@@ -1149,17 +1158,19 @@ const ChatMessage = ({ message }) => {
             exit={{ opacity: 0, height: 0 }}
             className="pl-12 mt-2"
           >
-             <div className="bg-gray-800/50 border border-gray-700 rounded-lg">
-                <pre className="p-4 text-xs text-gray-300 whitespace-pre-wrap font-mono overflow-x-auto">
+             <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+                <div className="prose prose-sm prose-invert max-w-none">
                   {logs.map((log, i) => (
                     <div key={i} className="flex items-start py-1">
-                      <LogIcon level={log.level} />
-                      <span className="ml-2 flex-1">
-                        {typeof log.message === 'string' ? log.message : JSON.stringify(log.message, null, 2)}
-                      </span>
+                        <LogIcon level={log.level} />
+                        <div className="ml-3 flex-1">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {typeof log.message === 'string' ? log.message : `\`\`\`json\n${JSON.stringify(log.message, null, 2)}\n\`\`\``}
+                            </ReactMarkdown>
+                        </div>
                     </div>
                   ))}
-                </pre>
+                </div>
             </div>
            </motion.div>
         )}
