@@ -102,7 +102,44 @@ const useSessionManager = () => {
         updateSessions(updatedSessions);
     }, [sessions]);
 
-    return { activeSessionId, sessions, createNewSession, switchSession, renameSession };
+    const deleteSession = useCallback((sessionIdToDelete) => {
+        const sessionToDelete = sessions.find(s => s.id === sessionIdToDelete);
+        if (!sessionToDelete) return;
+
+        if (!window.confirm(`Are you sure you want to delete "${sessionToDelete.name}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        let newActiveId = activeSessionId;
+        const remainingSessions = sessions.filter(s => s.id !== sessionIdToDelete);
+
+        // If the deleted session was the active one, pick a new active session
+        if (activeSessionId === sessionIdToDelete) {
+            if (remainingSessions.length > 0) {
+                newActiveId = remainingSessions[0].id;
+            } else {
+                // If no sessions are left, create a new default one
+                const newId = crypto.randomUUID();
+                const newSession = { id: newId, name: 'Default Session' };
+                remainingSessions.push(newSession);
+                newActiveId = newId;
+            }
+        }
+        
+        updateSessions(remainingSessions);
+        
+        if (activeSessionId !== newActiveId) {
+            localStorage.setItem('agentic-compliance-active-user-id', newActiveId);
+            setActiveSessionId(newActiveId);
+        }
+
+        // Also remove the chat history for the deleted session
+        localStorage.removeItem(`chat_history_${sessionIdToDelete}`);
+
+    }, [sessions, activeSessionId]);
+
+
+    return { activeSessionId, sessions, createNewSession, switchSession, renameSession, deleteSession };
 };
 
 
@@ -678,7 +715,7 @@ const KnowledgeGraphTab = ({ nodes, edges, onNodeClick, handleSearch, isLoading,
 
 export default function App() {
     const [activeTab, setActiveTab] = useState('chat');
-    const { activeSessionId, sessions, createNewSession, switchSession, renameSession } = useSessionManager();
+    const { activeSessionId, sessions, createNewSession, switchSession, renameSession, deleteSession } = useSessionManager();
 
     const { messages, input, handleInputChange, handleSubmit, isLoading, submitQuery, isHistoryLoading } = useChat({
         userId: activeSessionId,
@@ -827,6 +864,7 @@ export default function App() {
                             onSwitch={switchSession}
                             onCreate={createNewSession}
                             onRename={renameSession}
+                            onDelete={deleteSession}
                         />
                     )}
                 </div>
@@ -887,7 +925,7 @@ export default function App() {
     );
 } 
 
-const SessionControls = ({ activeSessionId, sessions, onSwitch, onCreate, onRename }) => {
+const SessionControls = ({ activeSessionId, sessions, onSwitch, onCreate, onRename, onDelete }) => {
     const [isOpen, setIsOpen] = useState(false);
     const wrapperRef = useRef(null);
     const [editingSessionId, setEditingSessionId] = useState(null);
@@ -1004,6 +1042,15 @@ const SessionControls = ({ activeSessionId, sessions, onSwitch, onCreate, onRena
                                                 title="Rename session"
                                             >
                                                 <Pencil size={14} />
+                                            </button>
+                                        )}
+                                        {editingSessionId !== session.id && (
+                                            <button
+                                                onClick={() => onDelete(session.id)}
+                                                className="p-1 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity"
+                                                title="Delete session"
+                                            >
+                                                <XCircle size={14} />
                                             </button>
                                         )}
                                     </div>
