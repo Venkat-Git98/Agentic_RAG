@@ -117,7 +117,6 @@ else:
     except redis.exceptions.ConnectionError as e:
         logging.error(f"FATAL: Could not connect to Redis: {e}. Redis functionality will be disabled.")
         redis_client = None
-redis_client = None # Temporarily set to None to bypass Redis connection issues
 
 # --- Tool Configuration ---
 # Set to True to use the parallel research tool for sub-queries
