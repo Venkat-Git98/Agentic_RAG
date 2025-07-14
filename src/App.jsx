@@ -110,30 +110,18 @@ const useSessionManager = () => {
 
 const exampleQueries = [
   {
-    category: 'Code Compliance',
+    category: 'Prompt Library',
     icon: FileCheck,
     queries: [
-      'What are the fire safety requirements for a new single-family home in Fairfax County?',
-      'Is a permit required to build a 150 sq ft deck attached to a house in Richmond?',
-      'List the key differences in electrical code for commercial vs. residential buildings in Virginia.',
-    ],
-  },
-  {
-    category: 'Comparative Analysis',
-    icon: GitCompareArrows,
-    queries: [
-      'Compare the maximum building height regulations in Arlington County versus Loudoun County.',
+      'I am designing an office building with interior beams, each supporting a tributary area of 500 square feet. The unreduced live load (Lo) for offices is 50 psf. According to Section 1607.12.1, am I permitted to reduce the live load for these beams? If so, what is the final reduced design live load (L) in psf after applying Equation 16-7?',
+      'Show me Section 101.1 of the Virginia Building Code?',
+      'Explain the methodology for calculating wind load pressure on the wall of a simple diaphragm building',
+      'I am building a wood-frame wall that is part of a required fire-resistance-rated assembly. What are the specific requirements for the materials and construction of this wall?',
+      'Using the diagram in Section 1609.6.2.1, what is the effective wind area for a component with a length of 20 feet and a width of 10 feet?',
+      'Calculate the required live load for a library reading room with a tributary area of 300 sq ft.',
       'What are the differences in setback requirements for sheds in Virginia Beach and Chesapeake?',
-      'Contrast the energy efficiency code requirements for windows in Northern Virginia vs. the rest of the state.',
-    ],
-  },
-  {
-    category: 'Scenario-Based',
-    icon: Building2,
-    queries: [
       'I want to finish my basement in a 1980s house in Alexandria. What are the egress window requirements I need to be aware of?',
-      'Outline the steps and required inspections for converting a garage into a living space in Norfolk.',
-      'My client wants to install a solar panel system on their roof in Roanoke. What are the structural load considerations I should review?',
+      'I\'m designing a new multi-story hospital, which is obviously a critical facility. I need to understand the special structural integrity rules that apply to this type of high-risk building. Specifically, for a cast-in-place concrete frame, what are the fundamental requirements for tying the structure together to ensure stability, particularly concerning the connection of floors and beams to the columns?'
     ],
   },
 ];
@@ -708,9 +696,15 @@ export default function App() {
     const initialQueryFired = useRef(false);
 
     const onNodeClick = (event, node) => {
-        // eslint-disable-next-line no-unused-vars
-        const { embedding, ...properties } = node;
-        setSelectedNode({ properties: properties || {} });
+        if (node) {
+            const simplifiedNode = {
+                id: node.id,
+                label: node.label,
+                group: node.group,
+            };
+            setSelectedNode(simplifiedNode);
+            setIsPanelOpen(true);
+        }
     };
 
     const handleSearchGraph = useCallback(async (query) => {
@@ -826,13 +820,15 @@ export default function App() {
                    <TabButton id="architecture" label="Architecture" icon={GitBranch} />
                 </nav>
                 <div className="justify-self-end pr-4">
-                    <SessionControls 
-                        activeSessionId={activeSessionId}
-                        sessions={sessions}
-                        onSwitch={switchSession}
-                        onCreate={createNewSession}
-                        onRename={renameSession}
-                    />
+                    {activeTab === 'chat' && (
+                        <SessionControls 
+                            activeSessionId={activeSessionId}
+                            sessions={sessions}
+                            onSwitch={switchSession}
+                            onCreate={createNewSession}
+                            onRename={renameSession}
+                        />
+                    )}
                 </div>
             </header>
             <div className="flex-1 min-h-0">
@@ -862,19 +858,26 @@ export default function App() {
                             <button onClick={() => setSelectedNode(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white">
                                 <X size={20} />
                             </button>
-                            <h3 className="text-xl font-bold text-cyan-400 mb-4">{selectedNode.properties.label}</h3>
-                            <div className="space-y-2 text-sm max-h-[60vh] overflow-y-auto fancy-scrollbar pr-2">
-                                 {selectedNode.properties && Object.entries(selectedNode.properties).map(([key, value]) => {
-                                    if (key === 'embedding') return null;
-                                    return (
-                                        <div key={key}>
-                                            <p className="font-semibold text-gray-300 capitalize">{key.replace(/_/g, ' ')}:</p>
-                                            <p className="text-gray-400 bg-gray-900/50 p-2 rounded-md whitespace-pre-wrap">
-                                                {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
-                                            </p>
-                        </div>
-                                    )
-                                })}
+                            <h3 className="text-xl font-bold text-cyan-400 mb-4">{selectedNode.label}</h3>
+                            <div className="space-y-3 text-sm max-h-[60vh] overflow-y-auto fancy-scrollbar pr-2">
+                                <div key="id">
+                                    <p className="font-semibold text-gray-400 capitalize mb-1">ID</p>
+                                    <div className="p-2.5 bg-gray-900 rounded-md text-gray-200 font-mono text-xs break-words">
+                                        {selectedNode.id}
+                                    </div>
+                                </div>
+                                <div key="label">
+                                    <p className="font-semibold text-gray-400 capitalize mb-1">Label</p>
+                                    <div className="p-2.5 bg-gray-900 rounded-md text-gray-200 font-mono text-xs break-words">
+                                        {selectedNode.label}
+                                    </div>
+                                </div>
+                                <div key="group">
+                                    <p className="font-semibold text-gray-400 capitalize mb-1">Group</p>
+                                    <div className="p-2.5 bg-gray-900 rounded-md text-gray-200 font-mono text-xs break-words">
+                                        {selectedNode.group}
+                                    </div>
+                                </div>
                             </div>
                         </motion.div>
                     </motion.div>
@@ -1157,7 +1160,7 @@ const QueryLibraryModal = ({ categories, onClose, onSelectQuery }) => {
         <div className="flex-shrink-0 p-6 flex items-center justify-between border-b border-gray-700/50">
           <h2 className="text-2xl font-bold text-white flex items-center gap-3">
             <Lightbulb className="text-cyan-400" />
-            Prompt Library
+            Common Use Cases
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             <X size={24} />

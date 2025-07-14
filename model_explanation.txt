@@ -1,0 +1,57 @@
+
+### System Architecture Overview
+
+#### **System Purpose**
+
+The Multi-Agent AI System is an expert question-answering platform. It is specifically designed to provide accurate, context-aware, and synthesized answers from a highly specialized and structured knowledge base. Its primary function is to act as a digital expert, capable of deep reasoning and research into a technical domain, such as a building code or a complex manual, that includes intricate relationships between text, tables, diagrams, and mathematical formulas.
+
+
+### **Part 1: System Components**
+
+The architecture is composed of three primary layers: the workflow engine, the specialized cognitive agents, and the data infrastructure.
+
+#### **A. Core Workflow Engine**
+
+*   **LangGraph State Machine:** The system's backbone, orchestrating the flow of information between agents. It manages the system's state and directs the query through different stages based on conditional logic, ensuring a predictable yet flexible process.
+
+#### **B. Specialized Agents**
+
+These are the functional units that perform the cognitive work. Each is a distinct module with a specific responsibility.
+
+*   **`TriageAgent`:** The system's entry point. It analyzes incoming queries, checks for cached answers, and routes the query to the most efficient processing path.
+*   **`ContextualAnsweringAgent`:** A "fast-path" agent that handles simple follow-up questions by using the immediate conversation history.
+*   **`PlanningAgent`:** A strategic agent that deconstructs complex user queries into a logical, multi-step research plan. It also identifies if a query requires mathematical calculation.
+*   **`HydeAgent`:** An enhancement agent that generates hypothetical documents for each step in the research plan to improve the accuracy of the subsequent information retrieval.
+*   **`ResearchOrchestrator`:** The core of the research process. This highly concurrent agent executes the research plan, managing multiple data retrieval strategies and fallbacks.
+*   **`SynthesisAgent`:** The final authoring agent. It consolidates all verified research data into a single, coherent, and final answer for the user.
+*   **`MemoryAgent`:** The concluding agent that ensures the persistence of the conversation by updating the session history.
+
+#### **C. Data & Infrastructure Layer**
+
+This layer provides the memory, knowledge, and external tools the agents rely on.
+
+*   **Redis:** A high-speed in-memory database serving two distinct, critical functions:
+    1.  **Performance Cache:** A key-value store for caching the final answers of high-quality, successfully resolved queries. This enables near-instantaneous responses to repeated questions.
+    2.  **Session Store:** Maintains the short-term memory of each user's individual conversation, providing necessary context for follow-up interactions.
+*   **Neo4j:** The system's primary long-term knowledge base. It's a graph database that stores not just information but also the complex relationships between data points (e.g., how sections of text relate to specific tables, diagrams, and mathematical equations), enabling sophisticated, context-aware queries that are impossible with traditional databases.
+*   **External APIs (Tavily & Cohere):** Third-party services integrated as tools for specific tasks. Tavily is used for real-time web searches when internal knowledge is insufficient. Cohere is used to rerank search results for relevance, ensuring only the highest quality information is used.
+
+
+### **Part 2: Operational Flow**
+
+This describes the end-to-end process of how a user query is handled by the system.
+
+1.  **Ingestion and Triage:** A user query enters the system and is immediately directed to the `TriageAgent`. The agent first queries the **Redis performance cache** to see if an identical query has been answered before. If a valid answer exists, it is returned, and the process ends. If not, the agent classifies the query's complexity.
+
+2.  **Path Selection:**
+    *   **Complex/Direct Path:** For queries requiring research, the `PlanningAgent` creates a detailed research plan, which is then enhanced by the `HydeAgent`.
+    *   **Contextual Path:** For simple follow-ups, the `ContextualAnsweringAgent` attempts a direct answer by reading the conversation context from the **Redis session store**. Failure re-routes the query to the full research path.
+
+3.  **Research Execution:** The `ResearchOrchestrator` receives the research plan and executes all sub-queries in parallel. For each sub-query, it initiates a **resilient retrieval cascade**:
+    *   **Internal Knowledge First:** It queries the **Neo4j knowledge graph**, attempting a sequence of methods: direct lookup (for specific sections or equations), then vector search (for conceptual similarity), then keyword search.
+    *   **External Fallback:** If all retrieval methods from **Neo4j** fail to produce a sufficient result, the orchestrator triggers a final fallback, querying the **Tavily** API for a web search.
+    *   **Validation:** All retrieved data is validated and reranked for quality. Failed sub-queries are handled gracefully to not disrupt the overall process.
+
+4.  **Synthesis and Caching:** The `SynthesisAgent` receives the collection of verified information. It generates a final, structured answer. If this answer meets internal quality standards, it is stored in the **Redis performance cache** for future use.
+
+5.  **Memory and Response:** The `MemoryAgent` saves the final user query and assistant response to the conversation history in the **Redis session store**. The final answer is then delivered to the user.

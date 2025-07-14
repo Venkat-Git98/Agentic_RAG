@@ -1,29 +1,17 @@
 [
   {
-    "category": "Code Compliance",
+    "category": "Prompt Library",
     "icon": "FileCheck",
     "queries": [
-      "What are the fire safety requirements for a new single-family home in Fairfax County?",
-      "Is a permit required to build a 150 sq ft deck attached to a house in Richmond?",
-      "List the key differences in electrical code for commercial vs. residential buildings in Virginia."
-    ]
-  },
-  {
-    "category": "Comparative Analysis",
-    "icon": "GitCompareArrows",
-    "queries": [
-      "Compare the maximum building height regulations in Arlington County versus Loudoun County.",
+      "I am designing an office building with interior beams, each supporting a tributary area of 500 square feet. The unreduced live load (Lo) for offices is 50 psf. According to Section 1607.12.1, am I permitted to reduce the live load for these beams? If so, what is the final reduced design live load (L) in psf after applying Equation 16-7?",
+      "Show me Section 101.1 of the Virginia Building Code?",
+      "Explain the methodology for calculating wind load pressure on the wall of a simple diaphragm building",
+      "I am building a wood-frame wall that is part of a required fire-resistance-rated assembly. What are the specific requirements for the materials and construction of this wall?",
+      "Using the diagram in Section 1609.6.2.1, what is the effective wind area for a component with a length of 20 feet and a width of 10 feet?",
+      "Calculate the required live load for a library reading room with a tributary area of 300 sq ft.",
       "What are the differences in setback requirements for sheds in Virginia Beach and Chesapeake?",
-      "Contrast the energy efficiency code requirements for windows in Northern Virginia vs. the rest of the state."
-    ]
-  },
-  {
-    "category": "Scenario-Based",
-    "icon": "Building2",
-    "queries": [
       "I want to finish my basement in a 1980s house in Alexandria. What are the egress window requirements I need to be aware of?",
-      "Outline the steps and required inspections for converting a garage into a living space in Norfolk.",
-      "My client wants to install a solar panel system on their roof in Roanoke. What are the structural load considerations I should review?"
+      "I'm designing a new multi-story hospital, which is obviously a critical facility. I need to understand the special structural integrity rules that apply to this type of high-risk building. Specifically, for a cast-in-place concrete frame, what are the fundamental requirements for tying the structure together to ensure stability, particularly concerning the connection of floors and beams to the columns?"
     ]
   }
 ] 
