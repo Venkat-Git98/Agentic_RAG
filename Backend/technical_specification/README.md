@@ -6,7 +6,7 @@ This document provides a detailed technical overview of the multi-agent AI syste
 
 The following diagram illustrates the complete, end-to-end flow of the system, from initial user query to the final response.
 
-![Master Architecture Diagram](User%20Flow%20Diagram%20for%20FigJam%20(Community)%20(2).jpg)
+![Master Architecture Diagram](../User%20Flow%20Diagram%20for%20FigJam%20(Community)%20(2).jpg)
 
 ## Architectural Overview
 
