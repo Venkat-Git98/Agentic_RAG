@@ -8,6 +8,7 @@ import { Eye, Code, GitMerge, Figma, PanelLeft, Workflow, Users } from 'lucide-r
 import InteractiveDiagram from './InteractiveDiagram';
 import SidebarContent from './SidebarContent';
 import SimpleFlowDiagram from './SimpleFlowDiagram';
+import { ReactFlowProvider } from 'reactflow';
 
 const ArchitectureTab = ({ onNodeClick }) => {
     const [view, setView] = useState('agents'); // agents, architecture
@@ -19,7 +20,9 @@ const ArchitectureTab = ({ onNodeClick }) => {
             case 'agents':
                 return (
                     <div className="w-full h-full flex items-center justify-center">
-                        <SimpleFlowDiagram onNodeSelect={setSelectedNode} />
+                        <ReactFlowProvider>
+                            <SimpleFlowDiagram onNodeSelect={setSelectedNode} />
+                        </ReactFlowProvider>
                     </div>
                 );
             case 'architecture':

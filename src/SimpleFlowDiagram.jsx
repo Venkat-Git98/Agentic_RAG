@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import ReactFlow, {
     Controls,
     Background,
     MiniMap,
+    useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { simpleFlowNodes, simpleFlowEdges } from './SimpleFlowData';
@@ -17,6 +18,36 @@ const nodeColor = (node) => {
             return '#4A5568';
     }
 };
+
+const CenteredFlow = ({ onNodeSelect, nodes, edges }) => {
+    const { fitView } = useReactFlow();
+
+    useEffect(() => {
+        fitView({ padding: 0.2 });
+    }, []);
+
+    const handleNodeClick = useCallback((event, node) => {
+        onNodeSelect(node);
+    }, [onNodeSelect]);
+
+    return (
+        <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodeClick={handleNodeClick}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable={false}
+            colorMode="dark"
+            className="bg-gray-800"
+        >
+            <Controls />
+            <MiniMap />
+            <Background variant="dots" gap={12} size={1} />
+        </ReactFlow>
+    );
+};
+
 
 const SimpleFlowDiagram = ({ onNodeSelect }) => {
     const [nodes, setNodes] = useState(simpleFlowNodes.map(node => ({
@@ -35,27 +66,9 @@ const SimpleFlowDiagram = ({ onNodeSelect }) => {
         },
     })));
 
-    const handleNodeClick = useCallback((event, node) => {
-        onNodeSelect(node);
-    }, [onNodeSelect]);
-
     return (
         <div style={{ width: '100%', height: '100%' }}>
-            <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                onNodeClick={handleNodeClick}
-                nodesDraggable={false}
-                nodesConnectable={false}
-                elementsSelectable={false}
-                colorMode="dark"
-                className="bg-gray-800"
-                fitView
-            >
-                <Controls />
-                <MiniMap />
-                <Background variant="dots" gap={12} size={1} />
-            </ReactFlow>
+            <CenteredFlow onNodeSelect={onNodeSelect} nodes={nodes} edges={edges} />
         </div>
     );
 };
