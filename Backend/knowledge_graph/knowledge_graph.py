@@ -7,7 +7,7 @@ knowledge graph data.
 
 from typing import Dict, Any
 from tools.neo4j_connector import Neo4jConnector
-from knowledge_graph_models import GraphResponse
+from .knowledge_graph_models import GraphResponse
 
 def get_knowledge_graph_service(query: str) -> Dict[str, Any]:
     """

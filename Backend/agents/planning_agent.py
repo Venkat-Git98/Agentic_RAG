@@ -9,7 +9,7 @@ import re
 from typing import Dict, Any
 
 from .base_agent import BaseLangGraphAgent
-from state import AgentState
+from core.state import AgentState
 from state_keys import (
     USER_QUERY, CONTEXT_PAYLOAD, CURRENT_STEP, RESEARCH_PLAN,
     PLANNING_REASONING, INTERMEDIATE_OUTPUTS, MATH_CALCULATION_NEEDED

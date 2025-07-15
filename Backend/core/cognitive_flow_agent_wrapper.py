@@ -8,9 +8,9 @@ to any agent that it wraps, with human-like "thinking" messages.
 import random
 from typing import Optional, Dict, Any
 from agents.base_agent import BaseLangGraphAgent
-from cognitive_flow import CognitiveFlowLogger
-from state import AgentState
-from thinking_messages import THINKING_MESSAGES
+from .cognitive_flow import CognitiveFlowLogger
+from .state import AgentState
+from .thinking_messages import THINKING_MESSAGES
 
 class CognitiveFlowAgentWrapper:
     """

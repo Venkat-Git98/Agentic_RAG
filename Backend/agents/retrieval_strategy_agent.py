@@ -7,7 +7,7 @@ import re
 from typing import Dict, Any, Literal, Optional
 
 from .base_agent import BaseLangGraphAgent
-from state import AgentState
+from core.state import AgentState
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from langchain_google_genai import ChatGoogleGenerativeAI

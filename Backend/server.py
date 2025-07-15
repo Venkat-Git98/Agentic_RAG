@@ -22,9 +22,9 @@ import redis
 # --- Local Imports ---
 # Import the main AI class
 from main import LangGraphAgenticAI
-from knowledge_graph import get_knowledge_graph_service
+from knowledge_graph.knowledge_graph import get_knowledge_graph_service
 from config import REDIS_URL
-from main import ThinkingMode
+from core.thinking_logger import ThinkingMode
 
 # --- Pydantic Models for API ---
 

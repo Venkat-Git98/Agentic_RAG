@@ -15,8 +15,8 @@ import logging
 from datetime import datetime
 
 from agents.base_agent import BaseLangGraphAgent
-from state import AgentState
-from thinking_logger import ThinkingLogger, ThinkingMixin, ThinkingMode
+from core.state import AgentState
+from core.thinking_logger import ThinkingLogger, ThinkingMixin, ThinkingMode
 from tools.reranker import Reranker
 from state_keys import (
     USER_QUERY, SUB_QUERY_ANSWERS, RESEARCH_VALIDATION_RESULTS,

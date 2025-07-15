@@ -13,7 +13,7 @@ from datetime import datetime
 
 # Add parent directories to path for imports
 from .base_agent import BaseLangGraphAgent
-from state import AgentState
+from core.state import AgentState
 
 class MemoryAgent(BaseLangGraphAgent):
     """

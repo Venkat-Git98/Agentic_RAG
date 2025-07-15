@@ -11,7 +11,7 @@ import re
 from typing import Dict, Any
 
 from .base_agent import BaseLangGraphAgent
-from state import AgentState
+from core.state import AgentState
 
 class RouterAgent(BaseLangGraphAgent):
     """

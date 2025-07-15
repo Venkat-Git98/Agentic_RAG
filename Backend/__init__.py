@@ -1,9 +1,4 @@
-"""
-LangGraph-based Agentic AI System for Virginia Building Code
+import sys
+import os
 
-This package implements a sophisticated multi-agent system using LangGraph
-for orchestrating autonomous agents that answer questions about building codes.
-"""
-
-__version__ = "1.0.0"
-__author__ = "LangGraph Agentic AI Team" 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))

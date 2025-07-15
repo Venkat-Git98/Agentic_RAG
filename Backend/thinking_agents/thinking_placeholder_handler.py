@@ -12,8 +12,8 @@ from typing import Dict, Any, List
 
 # Add parent directories to path for imports
 from agents.base_agent import BaseLangGraphAgent
-from state import AgentState
-from thinking_logger import ThinkingLogger, ThinkingMixin, ThinkingMode
+from core.state import AgentState
+from core.thinking_logger import ThinkingLogger, ThinkingMixin, ThinkingMode
 from state_keys import (
     USER_QUERY, SUB_QUERY_ANSWERS
 )

@@ -18,7 +18,7 @@ from config import redis_client
 
 # Add parent directories to path for imports
 from config import TIER_1_MODEL_NAME, TIER_2_MODEL_NAME, GOOGLE_API_KEY
-from state import AgentState, log_agent_execution
+from core.state import AgentState, log_agent_execution
 
 # Use the LangChain wrapper for Google Generative AI
 from langchain_google_genai import ChatGoogleGenerativeAI

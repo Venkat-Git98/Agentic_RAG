@@ -13,7 +13,7 @@ from typing import Dict, Any
 from datetime import datetime
 
 from .base_agent import BaseLangGraphAgent
-from state import AgentState
+from core.state import AgentState
 from state_keys import (
     TRIAGE_CLASSIFICATION, REWRITTEN_QUERY, TRIAGE_REASONING,
     USER_QUERY, CURRENT_STEP, WORKFLOW_STATUS,

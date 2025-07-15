@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 
 from .base_agent import BaseLangGraphAgent
-from state import AgentState
+from core.state import AgentState
 from state_keys import (
     USER_QUERY, SUB_QUERY_ANSWERS, FINAL_ANSWER, SYNTHESIS_METADATA,
     SOURCE_CITATIONS, CONFIDENCE_SCORE, CURRENT_STEP, INTERMEDIATE_OUTPUTS

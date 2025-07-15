@@ -10,7 +10,7 @@ from typing import Dict, Any, List
 import asyncio
 
 from .base_agent import BaseLangGraphAgent
-from state import AgentState
+from core.state import AgentState
 from state_keys import RESEARCH_PLAN, CURRENT_STEP, INTERMEDIATE_OUTPUTS
 from tools.hyde_tool import HydeTool
 from tools.equation_detector import EquationDetector

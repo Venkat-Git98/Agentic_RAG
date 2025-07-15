@@ -12,7 +12,7 @@ from datetime import datetime
 
 # Add parent directories to path for imports
 from .base_agent import BaseLangGraphAgent
-from state import AgentState, should_retry
+from core.state import AgentState, should_retry
 
 class ErrorHandler(BaseLangGraphAgent):
     """

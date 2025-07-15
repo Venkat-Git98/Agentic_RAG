@@ -39,8 +39,13 @@ def setup_logging():
 # --- Load Environment Variables ---
 # Searches for a .env file in the current directory or parent directories.
 # This makes it flexible for running scripts from different locations.
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+project_root = os.path.dirname(os.path.abspath(__file__))
 dotenv_path = os.path.join(project_root, '.env')
+if not os.path.exists(dotenv_path):
+    # If .env is not found in the same directory, try one level up (common for tests)
+    project_root = os.path.dirname(project_root)
+    dotenv_path = os.path.join(project_root, '.env')
+
 was_loaded = load_dotenv(dotenv_path=dotenv_path)
 
 if was_loaded:

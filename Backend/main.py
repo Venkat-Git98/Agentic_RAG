@@ -24,11 +24,11 @@ logging.basicConfig(
 logger = logging.getLogger("MainApp")
 
 # --- Imports ---
-from conversation_manager import ConversationManager
-from thinking_workflow import ThinkingAgenticWorkflow, create_thinking_agentic_workflow
-from thinking_logger import ThinkingMode
-from cognitive_flow import CognitiveFlowLogger
-from state import create_initial_state
+from core.conversation_manager import ConversationManager
+from core.thinking_workflow import ThinkingAgenticWorkflow, create_thinking_agentic_workflow
+from core.thinking_logger import ThinkingMode
+from core.cognitive_flow import CognitiveFlowLogger
+from core.state import create_initial_state
 
 class LangGraphAgenticAI:
     """Main class for the LangGraph Agentic AI system."""
@@ -202,21 +202,31 @@ def main():
     """Main execution function."""
     parser = argparse.ArgumentParser(description="Run the LangGraph Agentic AI.")
     parser.add_argument('--query', type=str, help='A single user query to process.')
+    parser.add_argument('--file', type=str, help='Path to a file containing the user query.')
     parser.add_argument('--thread_id', type=str, help='The conversation thread ID.')
     parser.add_argument('--interactive', action='store_true', help='Run in interactive mode.')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
     
     args = parser.parse_args()
+
+    query = args.query
+    if args.file:
+        try:
+            with open(args.file, 'r', encoding='utf-8') as f:
+                query = f.read()
+        except FileNotFoundError:
+            print(f"Error: File not found at {args.file}")
+            return
     
     if args.interactive:
         asyncio.run(interactive_main())
-    elif args.query:
+    elif query:
         ai_system = LangGraphAgenticAI(debug=args.debug)
         thread_id = args.thread_id or f"test_session_{uuid4()}"
         
         async def run_query():
             response = ""
-            async for chunk in ai_system.get_response_stream(args.query, thread_id):
+            async for chunk in ai_system.get_response_stream(query, thread_id):
                 if final_answer := chunk.get("final_answer"):
                     response = final_answer
                 elif cognitive_message := chunk.get("cognitive_message"):

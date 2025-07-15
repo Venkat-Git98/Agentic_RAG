@@ -13,16 +13,13 @@ from datetime import datetime
 import hashlib
 import json
 
-# Add parent directories to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
 # LangGraph imports
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 # Local imports
-from state import AgentState, create_initial_state
+from .state import AgentState, create_initial_state
 from agents import (
     TriageAgent, ContextualAnsweringAgent, PlanningAgent, HydeAgent,
     ResearchOrchestrator, EnhancedSynthesisAgent, MemoryAgent, ErrorHandler,
@@ -31,9 +28,9 @@ from agents import (
 from thinking_agents import (
     ThinkingValidationAgent,
 )
-from thinking_logger import ThinkingLogger, ThinkingMode
-from cognitive_flow_agent_wrapper import CognitiveFlowAgentWrapper
-from cognitive_flow import CognitiveFlowLogger
+from .thinking_logger import ThinkingLogger, ThinkingMode
+from .cognitive_flow_agent_wrapper import CognitiveFlowAgentWrapper
+from .cognitive_flow import CognitiveFlowLogger
 
 class ThinkingAgenticWorkflow:
     """

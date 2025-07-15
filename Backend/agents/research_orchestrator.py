@@ -17,7 +17,7 @@ import time
 
 # Add parent directories to path for imports
 from .base_agent import BaseLangGraphAgent
-from state import AgentState
+from core.state import AgentState
 from state_keys import (
     USER_QUERY, ORIGINAL_QUERY, RESEARCH_PLAN, SUB_QUERY_ANSWERS,
     CURRENT_STEP, WORKFLOW_STATUS, INTERMEDIATE_OUTPUTS,

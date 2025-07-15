@@ -9,7 +9,7 @@ from typing import Optional, Dict, Any, Literal, Coroutine, AsyncGenerator, List
 import asyncio
 from pydantic import BaseModel
 
-from state import AgentState # Import AgentState
+from .state import AgentState # Import AgentState
 
 class CognitiveFlowEvent(BaseModel):
     """

@@ -12,7 +12,7 @@ import re
 from typing import Dict, Any
 
 from .base_agent import BaseLangGraphAgent
-from state import AgentState
+from core.state import AgentState
 from state_keys import (
     USER_QUERY, FINAL_ANSWER, WORKFLOW_STATUS,
     INTERMEDIATE_OUTPUTS
