@@ -8,214 +8,168 @@ This backend implements a state-of-the-art agentic AI architecture where multipl
 
 The system is designed to handle complex queries that require:
 - **Multi-step reasoning** and research planning
-- **Context-aware retrieval** from knowledge graphs and vector stores
+- **Context-aware retrieval** from a knowledge graph and vector stores
 - **Mathematical calculations** and formula extraction
-- **Conversation memory** and contextual follow-ups
+- **Conversation memory** and contextual follow-ups via Redis
 - **Parallel research execution** for efficiency
-- **High-performance caching** for instant responses
+- **High-performance caching** for instant responses to repeated queries
 
-## 🏗️ Architecture
+## 🏗️ System Architecture
 
 ### Core Components
+1.  **FastAPI Server (`server.py`)**: Exposes the agentic workflow via a streaming API.
+2.  **LangGraph Workflow Engine (`core/thinking_workflow.py`)**: Manages the state and directs the flow of data between agents.
+3.  **Specialized Agents (`agents/`)**: Individual Python classes that perform cognitive work (e.g., `TriageAgent`, `PlanningAgent`, `ResearchOrchestrator`).
+4.  **Knowledge Infrastructure**: A Neo4j graph database for structured knowledge and Redis for caching and session management.
+5.  **Cognitive Flow Logging (`core/cognitive_flow.py`)**: A real-time logging system that streams the "thinking" process of the agents to the frontend.
 
-1. **LangGraph Workflow Engine**: Manages state transitions and agent orchestration
-2. **Specialized Agents**: Each handles specific cognitive tasks
-3. **Knowledge Infrastructure**: Neo4j graph database + Redis caching
-4. **Thinking Engine**: Provides transparent reasoning visibility
-5. **API Layer**: FastAPI-based streaming server
-
-### Agent Ecosystem
-
-- **🔍 Triage Agent**: Classifies queries and routes to appropriate workflows
-- **💭 Contextual Answering Agent**: Handles follow-up questions using conversation context
-- **📋 Planning Agent**: Breaks complex queries into research sub-tasks
-- **🔮 Hyde Agent**: Generates hypothetical answers for better retrieval
-- **🔬 Research Orchestrator**: Executes parallel research operations
-- **✨ Synthesis Agent**: Combines research into coherent responses
-- **🧠 Memory Agent**: Updates conversation and structured memory
-- **⚠️ Error Handler**: Manages failures and provides fallback strategies
-
-### Data Infrastructure
-
-- **Neo4j**: Knowledge graph for structured document storage
-- **Redis**: High-performance caching and session management
-- **Vector Search**: Semantic similarity retrieval
-- **Web Search**: Real-time information gathering via Tavily
+### High-Level Flow
+```mermaid
+graph TD
+    A[User Query] --> B{FastAPI Server};
+    B --> C[main:LangGraphAgenticAI];
+    C --> D{core:ThinkingAgenticWorkflow};
+    D --> E[agents:TriageAgent];
+    E --> F{Conditional Routing};
+    F --> G[agents:PlanningAgent & ResearchOrchestrator];
+    G --> H[agents:SynthesisAgent];
+    H --> I[agents:MemoryAgent];
+    I --> J[Final Response Stream];
+```
 
 ## 🚀 Features
 
 ### Advanced Capabilities
-
-- **🔄 Stateful Conversations**: Maintains context across multiple interactions
-- **🧮 Mathematical Processing**: Extracts and executes formulas from documents
-- **📊 Parallel Research**: Executes multiple research queries simultaneously
-- **🎯 Precision Retrieval**: Combines vector, graph, and keyword search strategies
-- **🔍 Transparent Reasoning**: Optional thinking mode reveals agent decision-making
-- **⚡ Stream Processing**: Real-time response streaming for better UX
-- **📈 Quality Metrics**: Tracks retrieval relevance and synthesis quality
-
-### Intelligent Query Handling
-
-- Natural language understanding with intent classification
-- Complex multi-document research and synthesis
-- Mathematical calculations with step-by-step explanations
-- Contextual follow-ups without repeating information
-- Fallback strategies for challenging queries
+- **🔄 Stateful Conversations**: Maintains context across multiple interactions using a Redis-backed `ConversationManager`.
+- **🧮 Mathematical Processing**: The `EquationDetector` tool and specialized prompts enable the system to extract and understand mathematical content.
+- **📊 Parallel Research**: The `ResearchOrchestrator` can execute multiple research queries simultaneously for better performance.
+- **🎯 Precision Retrieval**: The `RetrievalStrategyAgent` dynamically chooses the best retrieval method (vector, keyword, or direct graph lookup) for each query.
+- **🔍 Transparent Reasoning**: The `CognitiveFlowAgentWrapper` provides real-time "thinking" messages that are streamed to the client.
+- **⚡ Stream Processing**: The FastAPI server uses `StreamingResponse` to send Server-Sent Events (SSE) for a real-time user experience.
 
 ## 📦 Installation
 
 ### Prerequisites
-
 - Python 3.11+
+- Poetry for dependency management
 - Redis server
 - Neo4j database
 - API keys for: Google Gemini, Cohere, Tavily
 
 ### Setup
+1.  **Clone the repository**
+    ```bash
+    git clone <repository-url>
+    cd <repository-directory>
+    ```
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd Backend
-   ```
+2.  **Install dependencies**
+    ```bash
+    poetry install
+    ```
 
-2. **Install dependencies**
-   ```bash
-   poetry install
-   ```
+3.  **Configure environment**
+    Create a `.env` file in the project root and add the necessary API keys and service URIs. See `config.py` for all required variables.
+    ```env
+    GOOGLE_API_KEY="your_google_api_key"
+    COHERE_API_KEY="your_cohere_api_key"
+    TAVILY_API_KEY="your_tavily_api_key"
+    
+    NEO4J_URI="bolt://localhost:7687"
+    NEO4J_USERNAME="neo4j"
+    NEO4J_PASSWORD="your_password"
+    
+    REDIS_URL="redis://localhost:6379"
+    
+    # Optional: For LangSmith Tracing
+    LANGCHAIN_TRACING_V2="true"
+    LANGCHAIN_API_KEY="your_langsmith_key"
+    LANGCHAIN_PROJECT="your-project-name"
+    ```
 
-3. **Configure environment**
-   Create a `.env` file:
-   ```env
-   GOOGLE_API_KEY=your_google_api_key
-   COHERE_API_KEY=your_cohere_api_key
-   TAVILY_API_KEY=your_tavily_api_key
-   NEO4J_URI=bolt://localhost:7687
-   NEO4J_USERNAME=neo4j
-   NEO4J_PASSWORD=your_password
-   REDIS_URL=redis://localhost:6379
-   LANGCHAIN_API_KEY=your_langsmith_key  # Optional
-   ```
+4.  **Initialize the database**
+    The `manage_neo4j_indexes.py` script can be run to set up the necessary indexes in your Neo4j database.
+    ```bash
+    python manage_neo4j_indexes.py
+    ```
 
-4. **Initialize the database**
-   ```bash
-   python manage_neo4j_indexes.py
-   ```
-
-5. **Run the server**
-   ```bash
-   poetry run uvicorn server:app --reload
-   ```
-
-## 🔧 Configuration
-
-Key configuration options in `config.py`:
-
-- **Model Tiers**: Configure primary (tier_1) and secondary (tier_2) LLMs
-- **Cache Settings**: Redis connection and TTL configurations
-- **Search Parameters**: Retrieval limits and reranking thresholds
-- **Debug Mode**: Enable detailed logging and thinking visibility
+5.  **Run the server**
+    ```bash
+    poetry run uvicorn server:app --reload
+    ```
 
 ## 📡 API Usage
 
-### Basic Query
+The primary way to interact with the system is through the `/query` endpoint, which provides a streaming response.
 
+### Streaming Query
+Send a `POST` request to `/query`:
 ```bash
 curl -X POST http://localhost:8000/query \
   -H "Content-Type: application/json" \
   -d '{
     "user_query": "What are the load requirements for residential buildings?",
-    "thread_id": "unique-session-id"
+    "thread_id": "unique-conversation-id-123"
   }'
 ```
 
-### Streaming Response
+The server responds with a `text/event-stream`. You can listen for two types of events:
+- **`log`**: Contains real-time "thinking" messages from the `CognitiveFlowLogger`.
+- **`result`**: Contains the final answer from the `SynthesisAgent`.
 
-The API returns Server-Sent Events (SSE) for real-time updates:
-
+**Example Frontend Logic**:
 ```javascript
-const eventSource = new EventSource('/query');
-eventSource.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  if (data.type === 'final_response') {
-    console.log('Answer:', data.content);
-  }
+const eventSource = new EventSource("http://localhost:8000/query", { withCredentials: true });
+
+eventSource.addEventListener('log', (event) => {
+  const logData = JSON.parse(event.data);
+  console.log('Log:', logData.message);
+  // Update UI with thinking messages
+});
+
+eventSource.addEventListener('result', (event) => {
+  const resultData = JSON.parse(event.data);
+  console.log('Final Answer:', resultData.result);
+  // Display final answer
+  eventSource.close();
+});
+
+eventSource.onerror = (err) => {
+  console.error("EventSource failed:", err);
+  eventSource.close();
 };
 ```
 
 ## 🧪 Testing
 
-Run the comprehensive test suite:
+The repository includes a test suite to validate the end-to-end functionality of the agentic workflow.
 
+**Run the test suite**:
 ```bash
 python comprehensive_test_suite.py
 ```
-
-Test categories include:
-- Simple queries
-- Complex research scenarios
-- Mathematical calculations
-- Contextual follow-ups
-- Error handling
-
-## 📊 Monitoring & Debugging
-
-### LangSmith Integration
-
-Enable tracing by setting:
-```env
-LANGCHAIN_TRACING_V2=true
-LANGCHAIN_API_KEY=your_key
-```
-
-### Thinking Mode
-
-Enable detailed reasoning visibility:
-```python
-ai_system = LangGraphAgenticAI(
-    thinking_detail_mode=ThinkingMode.DETAILED
-)
-```
-
-### Logs
-
-- Application logs: `logs/agent_run.log`
-- Test results: `test_output.log`
-- Evaluation metrics: `evaluation_log.jsonl`
+This script reads a series of test queries from a JSON file, runs them through the `LangGraphAgenticAI` system, and saves the results, including a full trace of the `AgentState`.
 
 ## 🗂️ Project Structure
 
 ```
-Backend/
+.
 ├── agents/              # Specialized agent implementations
-├── core/               # Core workflow and state management
-├── tools/              # Utility tools (search, retrieval, etc.)
-├── thinking_agents/    # Enhanced reasoning capabilities
-├── knowledge_graph/    # Graph database integration
-├── data/              # Static data and configurations
-├── server.py          # FastAPI application
-├── main.py            # CLI entry point
-├── config.py          # Configuration management
-└── prompts.py         # Centralized prompt templates
+├── core/                # Core workflow, state, and conversation management
+├── tools/               # Reusable tools (search, retrieval, etc.)
+├── thinking_agents/     # Agents focused on reasoning and validation
+├── knowledge_graph/     # Graph database integration logic
+├── data/                # Data files, e.g. for testing
+├── server.py            # FastAPI application and endpoints
+├── main.py              # Main class and CLI entry point
+├── config.py            # Centralized configuration management
+└── prompts.py           # Centralized prompt templates for all agents
 ```
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Contributions are welcome. Please fork the repository and submit a pull request with your changes.
 
 ## 📄 License
 
-This project is proprietary software. All rights reserved.
-
-## 🙏 Acknowledgments
-
-Built with:
-- [LangGraph](https://github.com/langchain-ai/langgraph) for workflow orchestration
-- [LangChain](https://github.com/langchain-ai/langchain) for LLM integration
-- [FastAPI](https://fastapi.tiangolo.com/) for the API layer
-- [Neo4j](https://neo4j.com/) for knowledge graph storage
-- [Redis](https://redis.io/) for caching 
+This project is proprietary software. All rights reserved. 
