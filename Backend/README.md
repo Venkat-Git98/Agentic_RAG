@@ -170,6 +170,3 @@ This script reads a series of test queries from a JSON file, runs them through t
 
 Contributions are welcome. Please fork the repository and submit a pull request with your changes.
 
-## 📄 License
-
-This project is proprietary software. All rights reserved. 
