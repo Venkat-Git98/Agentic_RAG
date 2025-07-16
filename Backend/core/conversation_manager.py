@@ -70,12 +70,18 @@ class ConversationManager:
         self.structured_memory = StructuredMemory()
         self.running_summary = "No summary has been generated yet."
         
+        # Determine if this is a new or existing conversation by checking Redis
+        self.is_new_conversation = True
         if initial_state:
-            logging.info(f"Initializing ConversationManager for '{conversation_id}' with provided initial state.")
+            logging.info(f"Initializing ConversationManager for '{self.conversation_id}' with provided initial state.")
             self._load_state_from_dict(initial_state)
-        else:
-            # Load the entire conversation state from Redis.
+            self.is_new_conversation = not self.full_history
+        elif self.redis_client and self.redis_client.exists(self.conversation_id):
+            logging.info(f"Conversation '{self.conversation_id}' exists in Redis. Loading state.")
             self._load_state_from_redis()
+            self.is_new_conversation = False
+        else:
+            logging.info(f"Starting new conversation: '{self.conversation_id}'.")
         
         # Initialize the generative model for memory analysis
         try:
@@ -104,14 +110,15 @@ class ConversationManager:
         }
         self.full_history.append(message)
         
-        # Memory and state are managed together. Defer saving until after potential memory update.
-
+        # If the history grows too long, trigger the full memory update and state sync
         if len(self.full_history) > self.history_prune_threshold:
-            logging.info("History prune threshold reached. Updating memory...")
+            logging.info("History prune threshold reached. Updating memory and performing full state sync.")
             self._update_memory()
-        
-        # Persist the latest state to Redis and disk after every message or memory update.
-        self._save_state()
+            self._save_state() # Performs a full delete-and-rewrite sync
+        else:
+            # For normal messages, just append to Redis and save a backup to disk
+            self._append_message_to_redis(message)
+            self._save_state_to_disk()
 
     def get_formatted_history(self) -> str:
         """
@@ -149,8 +156,22 @@ Here is the context for the current query:
 """
         return payload
 
+    def _append_message_to_redis(self, message: Dict[str, Any]):
+        """Saves only the most recent message to the history list in Redis efficiently."""
+        if self.redis_client:
+            try:
+                history_key = self.conversation_id
+                self.redis_client.rpush(history_key, json.dumps(message))
+                logging.info(f"Appended new message to Redis history for '{self.conversation_id}'.")
+            except redis.exceptions.RedisError as e:
+                logging.error(f"Failed to append message to Redis for '{self.conversation_id}': {e}")
+
     def _save_state(self):
-        """Saves the current full conversation state to Redis and a backup JSON file."""
+        """
+        Saves the current full conversation state to Redis and a backup JSON file.
+        This method performs a full overwrite and is best used for synchronization
+        after major events like memory pruning, not for every message.
+        """
         # --- Save to Redis ---
         if self.redis_client:
             try:

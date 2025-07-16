@@ -58,8 +58,8 @@ class LangGraphAgenticAI:
         Yields:
             A stream of dictionaries representing parts of the response.
         """
-        # Create ConversationManager for this thread
-        conversation_manager = ConversationManager(thread_id, redis_client=None)
+        # Create ConversationManager for this thread, passing the actual redis_client
+        conversation_manager = ConversationManager(thread_id, redis_client=redis_client)
         
         # Add the user message to conversation history
         conversation_manager.add_user_message(user_query)
@@ -119,8 +119,8 @@ class LangGraphAgenticAI:
         Invoke the agent for testing purposes, returning the final state.
         This is a non-streaming, async version for test suites.
         """
-        # Create ConversationManager for this thread
-        conversation_manager = ConversationManager(thread_id, redis_client=None)
+        # Create ConversationManager for this thread, passing the actual redis_client
+        conversation_manager = ConversationManager(thread_id, redis_client=redis_client)
         
         # Add the user message to conversation history
         conversation_manager.add_user_message(user_query)
