@@ -196,10 +196,6 @@ Test categories:
 - [Tools Reference](Backend/tools/README.md)
 - [Core Components](Backend/core/README.md)
 
-### For Users
-- [API Reference](docs/api.md)
-- [Configuration Guide](docs/configuration.md)
-- [Deployment Guide](docs/deployment.md)
 
 ## 🛠️ Development
 
@@ -225,40 +221,6 @@ Test categories:
 - Rate limiting on API endpoints
 - Input validation and sanitization
 
-## 🤝 Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes with tests
-4. Submit a pull request
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
-## 📈 Roadmap
-
-- [ ] Multi-language support
-- [ ] Enhanced mathematical reasoning
-- [ ] Distributed agent execution
-- [ ] Advanced caching strategies
-- [ ] Real-time collaboration features
-
-## 📄 License
-
-This project is proprietary software. See [LICENSE](LICENSE) for details.
-
-## 🙏 Acknowledgments
-
-Built with powerful open-source technologies:
-- [LangGraph](https://github.com/langchain-ai/langgraph)
-- [LangChain](https://github.com/langchain-ai/langchain)
-- [FastAPI](https://fastapi.tiangolo.com/)
-- [Neo4j](https://neo4j.com/)
-- [Redis](https://redis.io/)
-
 ## 📞 Support
 
-- 📧 Email: support@example.com
-- 💬 Discord: [Join our server](https://discord.gg/example)
-- 📖 Documentation: [docs.example.com](https://docs.example.com)
+- 📧 Email: svenkatesh.js@gmail.com

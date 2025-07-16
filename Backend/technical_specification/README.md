@@ -2,17 +2,6 @@
 
 This document provides an in-depth technical analysis of the LangGraph-based multi-agent AI system architecture, detailing the design decisions, agent behaviors, and system workflows.
 
-## Table of Contents
-
-1. [System Architecture Overview](#system-architecture-overview)
-2. [Core Design Principles](#core-design-principles)
-3. [Agent Specifications](#agent-specifications)
-4. [Workflow Orchestration](#workflow-orchestration)
-5. [State Management](#state-management)
-6. [Data Infrastructure](#data-infrastructure)
-7. [Advanced Features](#advanced-features)
-8. [Performance Optimizations](#performance-optimizations)
-
 ## System Architecture Overview
 
 The system implements a **Directed Acyclic Graph (DAG)** workflow using LangGraph, where specialized agents process information through a stateful pipeline. Each agent is designed with a single responsibility, enabling modular development and testing.
@@ -163,22 +152,9 @@ User Query → API Layer → LangGraph Workflow → Response Stream
 
 ## Workflow Orchestration
 
-### Standard Workflow Path
 
-```mermaid
-graph TD
-    A[User Query] --> B[Triage Agent]
-    B -->|Simple| C[Direct Response]
-    B -->|Contextual| D[Contextual Agent]
-    B -->|Complex| E[Planning Agent]
-    D -->|Success| C
-    D -->|Needs Research| E
-    E --> F[Hyde Agent]
-    F --> G[Research Orchestrator]
-    G --> H[Synthesis Agent]
-    H --> I[Memory Agent]
-    I --> C
-```
+
+
 
 ### Conditional Routing Logic
 
@@ -369,6 +345,3 @@ class BaseAgent(ABC):
 - **Error Propagation**: Standardized error format
 - **Logging Protocol**: Consistent execution logs
 
----
-
-For detailed specifications of individual agents, refer to the agent-specific documentation files in this directory. 

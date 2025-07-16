@@ -332,24 +332,7 @@ TOOL_CONFIG = {
 
 ## 📊 Performance Optimization
 
-### Caching Strategy
 
-Many tools implement caching for improved performance:
-
-```python
-from functools import lru_cache
-import hashlib
-
-class CachedTool:
-    @lru_cache(maxsize=1000)
-    def _cached_operation(self, query_hash: str) -> Any:
-        # Expensive operation here
-        pass
-        
-    def execute(self, query: str) -> Any:
-        query_hash = hashlib.md5(query.encode()).hexdigest()
-        return self._cached_operation(query_hash)
-```
 
 ### Async Operations
 
@@ -420,36 +403,3 @@ Python Dependencies:
 └── thefuzz (Fuzzy matching)
 ```
 
-## 📚 Best Practices
-
-1. **Error Handling**: Always wrap external calls in try-except
-2. **Logging**: Use structured logging for debugging
-3. **Timeouts**: Set reasonable timeouts for all operations
-4. **Rate Limiting**: Respect API rate limits
-5. **Testing**: Write tests for both success and failure cases
-6. **Documentation**: Keep docstrings updated
-7. **Type Hints**: Use type annotations for clarity
-
-## 🚀 Quick Start
-
-```python
-# Example: Using multiple tools together
-from tools.neo4j_connector import Neo4jConnector
-from tools.reranker import Reranker
-from tools.web_search_tool import web_search_tavily
-
-async def enhanced_search(query: str) -> List[Dict]:
-    # Initialize tools
-    connector = Neo4jConnector()
-    reranker = Reranker()
-    
-    # Perform searches
-    kb_results = await connector.hybrid_search(query)
-    web_results = web_search_tavily(query)
-    
-    # Combine and rerank
-    all_results = kb_results + web_results
-    final_results = reranker.rerank(query, all_results)
-    
-    return final_results
-```
