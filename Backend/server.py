@@ -51,8 +51,14 @@ async def lifespan(app: FastAPI):
     # print(f"Waiting for {startup_delay} seconds to allow other services to initialize...")
     # await asyncio.sleep(startup_delay)
     # print("Delay complete. Continuing with AI system initialization.")
-    # # Initialize the AI system on startup. It will use the global redis_client from config.
+    
+    # Initialize the AI system on startup.
+    # First, create the Redis client.
+    redis_client_instance = redis.from_url(REDIS_URL)
+    
+    # Then, pass the client to the AI system constructor.
     ai_system_instance["instance"] = LangGraphAgenticAI(
+        redis_client=redis_client_instance,
         debug=True,
         thinking_detail_mode=ThinkingMode.DETAILED
     )
