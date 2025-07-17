@@ -48,7 +48,7 @@ def fetch_user_history(user_id: str):
             try:
                 item = json.loads(item_json)
                 role = item.get('role', 'unknown').capitalize()
-                content = item.get('content', 'No content').replace('\\n', '\\n' + ' ' * 11)
+                content = item.get('content', 'No content').replace('\n', '\n' + ' ' * 11)
                 print(f"  {i+1:02d}. Role: {role}")
                 print(f"       Content: {content}")
                 print("-" * 30)
@@ -73,4 +73,4 @@ if __name__ == "__main__":
     if not user_id_to_fetch:
         print("Please provide a user_id.")
     else:
-        fetch_user_history(user_id_to_fetch) 
+        fetch_user_history(user_id_to_fetch)

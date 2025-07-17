@@ -328,91 +328,106 @@ class ResearchOrchestrator(BaseLangGraphAgent):
 
     async def _execute_retrieval_with_fallbacks(self, initial_strategy: str, query: str) -> str:
         """Execute retrieval with fallbacks based on the chosen strategy."""
+        self.logger.info(f"Executing retrieval with initial strategy: {initial_strategy}")
+        
+        # NEW: Use the most robust fallback chain for all strategies
+        # to ensure direct retrieval is always attempted.
         if initial_strategy == 'direct_retrieval':
-            return await self._try_direct_then_placeholder(query)
+            # For direct retrieval, use the new hierarchical method first.
+            return await self._try_hierarchical_then_fallbacks(query)
         elif initial_strategy == 'vector_search':
-            return await self._try_vector_then_keyword_then_placeholder(query)
+            return await self._try_vector_then_keyword_then_direct_then_web(query)
         elif initial_strategy == 'keyword_search':
-            return await self._try_keyword_then_placeholder(query)
+            return await self._try_keyword_then_direct_then_web(query)
         else:
-            self.logger.warning(f"Unknown initial strategy '{initial_strategy}'. Defaulting to vector search.")
-            return await self._try_vector_then_keyword_then_placeholder(query)
+            self.logger.warning(f"Unknown initial strategy '{initial_strategy}'. Defaulting to full fallback chain.")
+            return await self._try_vector_then_keyword_then_direct_then_web(query)
+
+    async def _try_hierarchical_then_fallbacks(self, query: str) -> str:
+        """
+        New retrieval path for direct queries.
+        1. Try the new hierarchical retrieval.
+        2. If it fails, use the standard full fallback chain.
+        """
+        self.logger.info(f"Executing hierarchical retrieval for: '{query}'")
+        
+        # Step 1: Extract the section number
+        section_numbers = self.equation_detector.extract_section_context(query)
+        if not section_numbers:
+            self.logger.warning("No section number found for hierarchical retrieval. Using standard fallbacks.")
+            return await self._try_vector_then_keyword_then_direct_then_web(query)
+
+        # We only use the first detected section number for this focused retrieval
+        section_to_find = section_numbers[0]
+        self.logger.info(f"Attempting to retrieve section '{section_to_find}' with hierarchical logic.")
+
+        # Step 2: Attempt hierarchical retrieval
+        try:
+            content = await self.neo4j_connector.hierarchical_section_retrieval(section_to_find)
+            if self._is_context_sufficient(content):
+                self.logger.info(f"Hierarchical retrieval successful for section '{section_to_find}'")
+                return content
+            else:
+                self.logger.info("Hierarchical retrieval did not return sufficient content.")
+        except Exception as e:
+            self.logger.error(f"Hierarchical retrieval failed: {e}", exc_info=True)
+
+        # Step 3: If hierarchical fails, use the full standard fallback chain
+        self.logger.info("Hierarchical retrieval failed. Falling back to standard retrieval methods.")
+        return await self._try_vector_then_keyword_then_direct_then_web(query)
 
     async def _try_direct_then_placeholder(self, query: str) -> str:
-        """Enhanced direct retrieval with mathematical content detection and fallback."""
+        """
+        Enhanced direct retrieval that uses the full output of the EquationDetector.
+        It attempts to retrieve content based on detected sections, tables, or equations.
+        """
+        # This method is now effectively deprecated in favor of the more robust
+        # _try_direct_retrieval_fallback which is part of the main chain.
+        # We keep it for potential direct calls but the main flow is updated.
+        self.logger.info("Executing legacy _try_direct_then_placeholder...")
         try:
-            # First, detect any mathematical content references in the query
-            equation_analysis = self.equation_detector.resolve_equation_references(query)
-            self.logger.info(f"Equation analysis: {len(equation_analysis['equation_references'])} equation refs, "
-                           f"{len(equation_analysis['context_sections'])} sections detected")
-            
-            # Extract section number from query for direct lookup
-            section_id = self._extract_section_id(query)
-            if section_id:
+            # Use the comprehensive analysis from the equation detector
+            analysis = self.equation_detector.resolve_equation_references(query)
+            self.logger.info(f"Direct retrieval analysis: {analysis}")
+
+            # Prioritize fetching content based on the most specific entity detected
+            if analysis.get("context_sections"):
+                section_id = analysis["context_sections"][0]
                 self.logger.info(f"Attempting enhanced direct lookup for section: '{section_id}'")
-                
-                # Use enhanced query that includes Math, Diagram, and Table nodes
                 context = await self._safe_tool_call(
-                    self.neo4j_connector.get_enhanced_subsection_context, 
+                    self.neo4j_connector.get_enhanced_subsection_context,
                     section_id
                 )
-                
                 if context and self._is_context_sufficient(str(context)):
-                    # Format the enhanced context
-                    formatted_context = self._format_enhanced_context(context, equation_analysis)
-                    self.logger.info("Enhanced direct subsection lookup successful")
-                    return formatted_context
-                else:
-                    self.logger.info(f"Enhanced direct lookup for '{section_id}' returned insufficient content")
-            
-            # ENHANCED: Try equation-specific retrieval if we have equation references
-            elif equation_analysis['equation_references']:
-                self.logger.info("No direct section found, but detected equation references - trying equation-specific retrieval")
-                
-                # Check if we have resolved equations from the detector
-                if equation_analysis['resolved_equations']:
-                    self.logger.info(f"Found {len(equation_analysis['resolved_equations'])} resolved equations")
-                    equations_context = self.equation_detector.format_equations_for_context(
-                        equation_analysis['resolved_equations']
+                    return self._format_enhanced_context(context, analysis)
+
+            if analysis.get("table_references"):
+                table_ref = analysis["table_references"][0]
+                section_id_from_table = table_ref.get("number")
+                if section_id_from_table:
+                    context = await self._safe_tool_call(
+                        self.neo4j_connector.get_enhanced_subsection_context,
+                        section_id_from_table
                     )
-                    if self._is_context_sufficient(equations_context):
-                        return equations_context
-                
-                # If we have context sections, retrieve from those
-                if equation_analysis['context_sections']:
-                    self.logger.info(f"Trying contextual sections: {equation_analysis['context_sections']}")
-                    combined_context = await self._retrieve_mathematical_context(equation_analysis)
-                    if self._is_context_sufficient(combined_context):
-                        return combined_context
-                
-                # ENHANCED: Try targeted equation search using equation numbers
-                equation_refs = equation_analysis['equation_references']
-                for eq_ref in equation_refs:
-                    eq_number = eq_ref['number']
-                    self.logger.info(f"Searching for equation pattern: {eq_number}")
-                    
-                    # Use equation detector to find math nodes
-                    equations = self.equation_detector.find_math_by_pattern(eq_number)
-                    if equations:
-                        equations_text = self.equation_detector.format_equations_for_context(equations)
-                        if self._is_context_sufficient(equations_text):
-                            self.logger.info(f"Found equations for pattern {eq_number}")
-                            return equations_text
+                    if context and self._is_context_sufficient(str(context)):
+                        return self._format_enhanced_context(context, analysis)
+
+            if analysis.get("resolved_equations"):
+                return self.equation_detector.format_equations_for_context(
+                    analysis["resolved_equations"]
+                )
             
-            # If no specific section, but we detected contextual sections, try contextual retrieval
-            elif equation_analysis['context_sections']:
-                self.logger.info("No direct section found, but detected contextual sections for equation lookup")
-                combined_context = await self._retrieve_mathematical_context(equation_analysis)
-                if self._is_context_sufficient(combined_context):
-                    return combined_context
-            
-            else:
-                self.logger.warning(f"Could not extract section ID from query: '{query}'")
-                
+            if analysis.get("has_chapter_pattern") and analysis.get("context_sections"):
+                 chapter_num = analysis.get("context_sections")[0]
+                 chapter_content_dict = self.neo4j_connector.get_chapter_content(chapter_num)
+                 return self._format_chapter_content(chapter_content_dict)
+
+            self.logger.warning(f"Direct retrieval did not find any specific content for query: '{query}'")
+
         except Exception as e:
             self.logger.warning(f"Enhanced direct retrieval failed: {e}", exc_info=True)
-        
-        self.logger.info("Enhanced direct retrieval insufficient. Falling back to vector search.")
+
+        self.logger.info("Direct retrieval insufficient. Falling back to vector search.")
         return await self._try_vector_search_fallback(query)
     
     async def _retrieve_mathematical_context(self, equation_analysis: Dict[str, Any]) -> str:
@@ -691,51 +706,6 @@ class ResearchOrchestrator(BaseLangGraphAgent):
         
         return "\n".join(formatted_parts)
     
-    def _extract_section_id(self, query: str) -> str:
-        """Extract section ID from a query for direct retrieval."""
-        import re
-        
-        # Pattern to match section references like "1607.12.1"
-        section_pattern = r'section\s+(\d+\.[\d\.]*)'
-        match = re.search(section_pattern, query, re.IGNORECASE)
-        if match:
-            return match.group(1)
-        
-        # Also try pattern without "section" keyword for queries like "What is 1607.12.1?"
-        standalone_pattern = r'\b(\d+\.[\d\.]+)\b'
-        match = re.search(standalone_pattern, query)
-        if match:
-            return match.group(1)
-        
-        # ENHANCED: Try to extract section from equation references
-        # E.g., "Equation 16-7" should try sections like "1607", "1607.12", etc.
-        equation_pattern = r'equation\s+(\d+)[-\.](\d+)'
-        match = re.search(equation_pattern, query, re.IGNORECASE)
-        if match:
-            chapter = match.group(1)
-            eq_num = match.group(2)
-            # Try common section patterns for this chapter
-            potential_sections = [
-                f"{chapter}07.12.1",  # Most specific first
-                f"{chapter}07.12", 
-                f"{chapter}07",
-                f"{chapter}",
-            ]
-            self.logger.info(f"Extracted equation {chapter}-{eq_num}, will try sections: {potential_sections}")
-            # Return the first potential section (most specific)
-            return potential_sections[0]
-        
-        # ENHANCED: Try to extract section from table references
-        # E.g., "Table 1607.1" should try section "1607.1"
-        table_pattern = r'table\s+(\d+\.[\d\.]*)'
-        match = re.search(table_pattern, query, re.IGNORECASE)
-        if match:
-            section_from_table = match.group(1)
-            self.logger.info(f"Extracted section {section_from_table} from table reference")
-            return section_from_table
-        
-        return None
-    
     async def _try_vector_then_keyword_then_placeholder(self, query: str) -> str:
         """Vector → Keyword → Web Search fallback sequence."""
         # Try vector search first
@@ -989,8 +959,11 @@ Only return the JSON array, no other text.
             self.logger.info(f"Direct retrieval fallback - Equation analysis: {len(equation_analysis['equation_references'])} equation refs, "
                            f"{len(equation_analysis['context_sections'])} sections detected")
             
-            # Extract section number from query for direct lookup (existing method)
-            section_id = self._extract_section_id(query)
+            # FIX: Use the equation_analysis to get the section_id, not a missing method.
+            section_id = None
+            if equation_analysis.get("context_sections"):
+                section_id = equation_analysis["context_sections"][0]
+
             if section_id:
                 self.logger.info(f"Direct retrieval - Attempting enhanced direct lookup for section: '{section_id}'")
                 
@@ -1000,6 +973,15 @@ Only return the JSON array, no other text.
                     section_id
                 )
                 
+                # NEW: If direct lookup fails, try the parent section (e.g., 101.1 -> 101)
+                if (not context or not self._is_context_sufficient(str(context))) and '.' in section_id:
+                    parent_section_id = section_id.rsplit('.', 1)[0]
+                    self.logger.info(f"Direct retrieval failed for '{section_id}'. Trying parent section '{parent_section_id}'.")
+                    context = await self._safe_tool_call(
+                        self.neo4j_connector.get_enhanced_subsection_context,
+                        parent_section_id
+                    )
+
                 if context and self._is_context_sufficient(str(context)):
                     # Format the enhanced context
                     formatted_context = self._format_enhanced_context(context, equation_analysis)

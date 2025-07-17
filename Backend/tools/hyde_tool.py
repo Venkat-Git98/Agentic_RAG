@@ -10,7 +10,7 @@ from config import TIER_1_MODEL_NAME
 import re
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+
 
 class HydeTool(BaseTool):
     """

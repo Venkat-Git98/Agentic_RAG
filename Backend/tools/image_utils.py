@@ -8,7 +8,7 @@ import logging
 from typing import Dict, Optional
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+
 logger = logging.getLogger(__name__)
 
 # Assumes an 'images' directory exists at the root of the project at runtime.

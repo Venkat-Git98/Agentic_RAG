@@ -38,9 +38,10 @@ class EquationDetector:
         
         # Section reference patterns for context
         self.section_patterns = [
-            r'Section\s+(\d+\.[\d\.]*)',            # "Section 1607.12.1"
-            r'section\s+(\d+\.[\d\.]*)',            # "section 1607.12.1"
-            r'\b(\d{4}\.\d+(?:\.\d+)*)\b',         # "1607.12.1" standalone
+            r'Section\s+(\d+[\.\d]*)',            # "Section 1607.12.1" or "Section 101"
+            r'section\s+(\d+[\.\d]*)',            # "section 1607.12.1" or "section 101"
+            # More specific pattern for standalone numbers, avoiding "Chapter X"
+            r'(?<!Chapter\s)\b(\d+(?:\.\d+)*)\b(?![\d\s]*\w*of\s*the\s*Virginia\s*Building\s*Code)',
         ]
     
     def detect_equation_references(self, text: str) -> List[Dict[str, str]]:

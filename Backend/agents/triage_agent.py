@@ -54,12 +54,23 @@ class TriageAgent(BaseLangGraphAgent):
         self.logger.info(f"Triaging query: '{user_query[:100]}...'")
         
         # 🔍 NEW: Check for cached query-answer pairs first
-        cached_result = await self._check_query_cache(user_query, state)
-        if cached_result:
-            return cached_result
+        # cached_result = await self._check_query_cache(user_query, state)
+        # if cached_result:
+        #     return cached_result
         
         # Use LLM for sophisticated classification
         llm_classification = await self._llm_classification(user_query, context_payload)
+        
+        # --- MANUAL OVERRIDE FOR DEBUGGING ---
+        # If the query is a simple, direct request for a section, force direct_retrieval.
+        # This pattern is now more specific to avoid capturing complex questions.
+        if re.match(r'^(show me|what is|get|find)\s+section\s+(\d+\.?\d*)\.?$', user_query, re.IGNORECASE):
+            self.logger.warning(f"MANUAL OVERRIDE: Forcing 'direct_retrieval' for query: {user_query}")
+            llm_classification['classification'] = 'direct_retrieval'
+            # CRITICAL: Clear the direct_response to prevent shortcutting the workflow
+            if 'direct_response' in llm_classification:
+                del llm_classification['direct_response']
+        # --- END OVERRIDE ---
         
         self.logger.info(f"LLM classification result: {llm_classification.get('classification')}")
         

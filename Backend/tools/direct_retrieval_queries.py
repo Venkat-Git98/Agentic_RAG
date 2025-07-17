@@ -191,8 +191,7 @@ ORDER BY diagram.uid
 # Enhanced query that gets context with explicit mathematical content expansion
 GET_EXPANDED_MATHEMATICAL_CONTEXT = """
 // Find the main node (could be Section or Subsection)
-MATCH (main_node {number: $uid})
-WHERE main_node:Section OR main_node:Subsection
+MATCH (main_node) WHERE main_node.uid = $uid
 
 // Get regular content
 CALL {
@@ -266,4 +265,10 @@ RETURN
     table_content,
     referenced_math,
     referenced_tables
+""" 
+
+GET_SECTION_WITH_CONTENT = """
+MATCH (s:Section {number: $section_number})
+OPTIONAL MATCH (s)-[:CONTAINS*]->(child)
+RETURN s as parent, COLLECT(child) as children
 """ 

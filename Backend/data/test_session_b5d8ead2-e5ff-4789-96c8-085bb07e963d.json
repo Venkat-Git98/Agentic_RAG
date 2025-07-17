@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test_session_b5d8ead2-e5ff-4789-96c8-085bb07e963d",
+  "full_history": [
+    {
+      "id": "9797247e-243f-43ba-9f72-bd45edc4f883",
+      "role": "user",
+      "content": "Show me Section 101.1 of the Virginia Building Code."
+    },
+    {
+      "id": "362dcb8a-b3f6-4a87-9fe6-ca4858dfed27",
+      "role": "assistant",
+      "content": "Section 101.1 of the Virginia Construction Code establishes the short title for the code itself.  Essentially, it provides the official abbreviated ways to refer to the code. Understanding this foundational section is important for clear communication and proper referencing when working with the Virginia Construction Code.\n\nHere's a breakdown of what we've learned from reviewing multiple versions of the code and related resources:\n\n* **The Core Definition:** Section 101.1 states that the Virginia Uniform Statewide Building Code, Part I, Construction, can be referred to as either the \"Virginia Construction Code\" or the \"VCC.\"  This is consistent across different code years.\n\n* **Clarifying \"USBC\":** The section also clarifies the meaning of \"USBC.\"  While \"USBC\" stands for the entire Virginia Uniform Statewide Building Code,  within the context of the Virginia *Construction* Code (Part I), \"USBC\" is synonymous with \"VCC,\" unless otherwise explicitly stated.  This is a crucial distinction to avoid confusion.\n\n* **Variations for Existing Buildings:**  Note that Part II of the Virginia Uniform Statewide Building Code, dealing with existing buildings, has a different short title: the \"Virginia Existing Building Code\" or \"VEBC.\"  This highlights the importance of specifying which part of the code you are referencing.\n\n* **Consistency Across Editions:** While the specific code editions (2015, 2018, 2021) might have different content in *other* sections, the principle of Section 101.1 remains consistent – defining the short title for efficient and accurate referencing.\n\nBased on this information, when working with new construction projects in Virginia, you should confidently use \"VCC\" or \"Virginia Construction Code\" when referring to the applicable regulations.  If your project involves existing buildings, make sure to use \"VEBC\" or \"Virginia Existing Building Code.\"  Clearly distinguishing between these terms will ensure clear communication and accurate application of the relevant code requirements.  For specific requirements related to your project,  consult the appropriate section of the VCC or VEBC after identifying the correct code edition applicable to your project."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

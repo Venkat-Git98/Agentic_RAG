@@ -39,7 +39,7 @@ class LangGraphAgenticAI:
         self.logger.info(f"🧠 LangGraph Agentic AI instance created (debug={debug}).")
         self.debug = debug
         self.redis_client = redis_client
-
+        
         self.cognitive_flow_queue = asyncio.Queue()
         cognitive_flow_logger = CognitiveFlowLogger(self.cognitive_flow_queue)
         

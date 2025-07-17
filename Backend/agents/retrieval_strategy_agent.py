@@ -17,7 +17,7 @@ from langchain.chains.llm import LLMChain
 from prompts import RETRIEVAL_STRATEGY_PROMPT
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 class RetrievalStrategy(BaseModel):
     """

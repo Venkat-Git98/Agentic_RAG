@@ -11,7 +11,7 @@ NEO4J_URI = os.environ.get("NEO4J_URI")
 NEO4J_USERNAME = os.environ.get("NEO4J_USERNAME")
 NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD")
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 class Neo4jIndexManager:
     def __init__(self, uri, user, password):

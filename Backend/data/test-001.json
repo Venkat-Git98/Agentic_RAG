@@ -1,0 +1,23 @@
+{
+  "conversation_id": "test-001",
+  "full_history": [
+    {
+      "id": "c81ba2fa-7d88-4735-a4a0-dbb46fc1464a",
+      "role": "user",
+      "content": "Show me Section 101 of the Virginia Building Code."
+    },
+    {
+      "id": "39c89472-6b1d-440b-8b2d-52380f1d3dc2",
+      "role": "assistant",
+      "content": "As a building code consultant specializing in the Virginia Building Code, I've reviewed Section 101 to provide you with a comprehensive understanding of its provisions.  Section 101 essentially lays the groundwork for both the Virginia Construction Code (VCC) and the Virginia Existing Building Code (VEBC) by establishing their titles, referencing incorporated standards, and clarifying the hierarchy and terminology used throughout the codes.\n\nHere's a detailed breakdown of the key components of Section 101:\n\n* **Short Title (101.1):** This subsection establishes the official short titles for the codes. The Virginia Uniform Statewide Building Code, Part I, Construction is referred to as the \"Virginia Construction Code\" or \"VCC.\"  The Virginia Uniform Statewide Building Code, Part II, Existing Buildings is cited as the \"Virginia Existing Building Code\" or \"VEBC.\"  It's important to note the distinction between \"USBC\" (the entire Uniform Statewide Building Code) and \"VCC\" (Part I, Construction), which are sometimes used interchangeably but have distinct meanings.\n\n* **Incorporation by Reference (101.2):**  This is crucial.  Section 101.2 incorporates other industry-standard codes and standards by reference. While the specific list wasn't fully extracted in the provided context for the VEBC, it's essential to consult the VCC's 101.2 for a complete list. This list will include publications like the International Building Code (IBC), International Residential Code (IRC), and other relevant standards that are adopted as part of the Virginia Code. Remember, amendments to these incorporated codes within the VCC also apply.\n\n* **Order of Precedence (101.6):**  This establishes a clear hierarchy.  Chapter 1 of both the VCC and VEBC takes precedence over any conflicting provisions in the subsequently adopted International Codes (like the IBC or IEBC).  This means if there's a discrepancy between Chapter 1 of the Virginia Code and a provision in the IBC/IEBC, the Virginia Code provision governs.\n\n* **Use of Terminology (101.5):** For clarity and consistency, 101.5 defines the meaning of \"this code\" or \"the code\". Within Chapter 1 and the incorporated chapters of the IBC/IEBC, these terms refer to the VCC or VEBC respectively, unless otherwise specified.  Furthermore, when referencing other incorporated codes and standards, \"this code\" refers to that specific code or standard. This clarifies potential ambiguities when navigating multiple referenced documents.\n\n\nYour next step should be to review the complete list of incorporated codes and standards in Section 101.2 of the VCC.  Understanding these incorporated documents and the order of precedence is paramount for correct application of the Virginia Building Code.  If you're working with existing buildings specifically, pay close attention to the VEBC provisions and any differences from the VCC. If you encounter any conflicting information or require clarification on specific aspects, consulting the full text of the Virginia Uniform Statewide Building Code is always recommended. You can find the official version on the DHCD website or through a reputable code provider."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

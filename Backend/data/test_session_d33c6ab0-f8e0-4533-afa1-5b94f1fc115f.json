@@ -1,0 +1,18 @@
+{
+  "conversation_id": "test_session_d33c6ab0-f8e0-4533-afa1-5b94f1fc115f",
+  "full_history": [
+    {
+      "id": "de2e0c43-a093-409b-99bc-6d1bf07f8932",
+      "role": "user",
+      "content": "Show me Section 101.1 of the Virginia Building Code."
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}

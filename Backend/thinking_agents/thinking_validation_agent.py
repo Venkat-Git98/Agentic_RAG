@@ -21,7 +21,7 @@ from langchain.chains.llm import LLMChain
 from prompts import QUALITY_CHECK_PROMPT
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 class ValidationResult(BaseModel):
     """

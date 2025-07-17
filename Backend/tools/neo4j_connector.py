@@ -14,7 +14,7 @@ from config import (
     EMBEDDING_MODEL, TIER_1_MODEL_NAME
 )
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 import google.generativeai as genai
 from .direct_retrieval_queries import (
@@ -25,7 +25,8 @@ from .direct_retrieval_queries import (
     GET_ENHANCED_SUBSECTION_CONTEXT,
     GET_CHAPTER_EQUATIONS,
     GET_SECTION_EQUATIONS,
-    GET_EXPANDED_MATHEMATICAL_CONTEXT
+    GET_EXPANDED_MATHEMATICAL_CONTEXT,
+    GET_SECTION_WITH_CONTENT
 )
 
 class Neo4jConnector:
@@ -1034,6 +1035,69 @@ class Neo4jConnector:
             logging.error(f"Failed to get expanded mathematical context for '{uid}': {e}")
             return {}
 
+    @staticmethod
+    def get_section_content_by_id(section_number: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a section and all its content by section number.
+        """
+        try:
+            with Neo4jConnector.get_driver().session(database="neo4j") as session:
+                result = session.run(GET_SECTION_WITH_CONTENT, section_number=section_number)
+                record = result.single()
+
+            if not record or not record["parent"]:
+                logging.warning(f"No section found with number: {section_number}")
+                return None
+
+            parent_node = record["parent"]
+            child_nodes = record.get("children", [])
+            
+            # This is a simplified formatter. You can reuse the more complex
+            # one from get_gold_standard_context if needed.
+            def format_node(n):
+                if not n: return None
+                return {
+                    'uid': n.get('uid'),
+                    'text': n.get('text'),
+                    'title': n.get('title'),
+                    'number': n.get('number'),
+                    'type': list(n.labels)[0] if n.labels else 'Unknown'
+                }
+
+            return {
+                "primary_item": format_node(parent_node),
+                "supplemental_context": [format_node(child) for child in child_nodes if child]
+            }
+
+        except Exception as e:
+            logging.error(f"Error getting section content for {section_number}: {e}")
+            return None
+
+    @staticmethod
+    async def get_section_with_content(section_number: str) -> Optional[str]:
+        """
+        Retrieves all content for a given section.
+        """
+        logging.info(f"Retrieving content for section '{section_number}'")
+        data = Neo4jConnector.get_section_content_by_id(section_number)
+        if not data:
+            return None
+        
+        return json.dumps(data, indent=2)
+
+    @staticmethod
+    async def get_chapter_with_content(chapter_number: str) -> Optional[str]:
+        """
+        Retrieves all content for a given chapter.
+        """
+        logging.info(f"Retrieving content for chapter '{chapter_number}'")
+        data = Neo4jConnector.get_chapter_overview_by_id(chapter_number)
+        if not data:
+            return None
+            
+        # Format the data into a single string for now.
+        return json.dumps(data, indent=2)
+
 # Ensure the driver is closed when the application exits.
     @staticmethod
     def get_chapter_content(chapter_number: str) -> Dict[str, Any]:
@@ -1097,5 +1161,51 @@ class Neo4jConnector:
         except Exception as e:
             logging.error(f"Error retrieving chapter content for Chapter {chapter_number}: {e}")
             return {}
+
+    async def hierarchical_section_retrieval(self, section_number: str) -> Optional[str]:
+        """
+        Retrieves content for a section with hierarchical fallback.
+        1. Tries to get the exact section (e.g., 101.1 or 101).
+        2. If not found, and if it was a subsection, try the parent section.
+        3. If still not found, tries to get the entire chapter.
+        """
+        logging.info(f"Attempting hierarchical retrieval for section '{section_number}'")
+
+        # Attempt 1: Try to get the exact section/subsection first
+        content = await self.get_section_with_content(section_number)
+        if content:
+            logging.info(f"Success: Found exact match for '{section_number}'")
+            return content
+
+        # Attempt 2: If it was a subsection (e.g., "101.1"), try the parent section ("101")
+        parts = section_number.split('.')
+        if len(parts) > 1:
+            parent_section_number = parts[0]
+            logging.info(f"Info: Exact subsection not found. Trying parent section '{parent_section_number}'")
+            content = await self.get_section_with_content(parent_section_number)
+            if content:
+                logging.info(f"Success: Found content for parent section '{parent_section_number}'")
+                return content
+        else:
+            # If there was no '.', the parent section is the number itself, which we already tried
+            parent_section_number = section_number
+
+        # Attempt 3: Parent chapter based on your logic
+        chapter_number = ""
+        if len(parent_section_number) >= 3:
+             if len(parent_section_number) == 3: # e.g., 101 -> Chapter 1
+                 chapter_number = parent_section_number[0]
+             elif len(parent_section_number) == 4: # e.g., 1001 -> Chapter 10
+                 chapter_number = parent_section_number[:2]
+        
+        if chapter_number:
+            logging.info(f"Info: Parent section not found. Trying chapter '{chapter_number}'")
+            content = await self.get_chapter_with_content(chapter_number)
+            if content:
+                logging.info(f"Success: Found content for chapter '{chapter_number}'")
+                return content
+        
+        logging.warning(f"Failure: No content found for section '{section_number}' or its fallbacks.")
+        return None
 
 atexit.register(Neo4jConnector.close_driver)

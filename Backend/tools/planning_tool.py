@@ -11,7 +11,7 @@ import re
 from typing import Any, Dict
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+
 
 class PlanningTool(BaseTool):
     """

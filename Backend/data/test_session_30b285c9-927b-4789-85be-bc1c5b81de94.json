@@ -1,0 +1,18 @@
+{
+  "conversation_id": "test_session_30b285c9-927b-4789-85be-bc1c5b81de94",
+  "full_history": [
+    {
+      "id": "4f357c77-50b7-458a-ba9e-1b7cc9c8f1f2",
+      "role": "user",
+      "content": "\"hello\""
+    }
+  ],
+  "structured_memory": {
+    "user_profile": {},
+    "topics_discussed": [],
+    "key_facts_established": {},
+    "unresolved_questions": [],
+    "session_summary": ""
+  },
+  "running_summary": "No summary has been generated yet."
+}
