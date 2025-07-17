@@ -15,7 +15,7 @@ from .base_agent import BaseLangGraphAgent
 from core.state import AgentState
 from state_keys import (
     USER_QUERY, FINAL_ANSWER, WORKFLOW_STATUS,
-    INTERMEDIATE_OUTPUTS
+    INTERMEDIATE_OUTPUTS, CURRENT_STEP, CONTEXTUAL_ANSWER
 )
 
 class ContextualAnsweringAgent(BaseLangGraphAgent):

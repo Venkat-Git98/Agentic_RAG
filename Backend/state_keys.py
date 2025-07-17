@@ -25,6 +25,7 @@ PLANNING_CLASSIFICATION = "planning_classification"
 PLANNING_REASONING = "planning_reasoning"
 RESEARCH_PLAN = "research_plan"
 DIRECT_ANSWER = "direct_answer"
+CONTEXTUAL_ANSWER = "contextual_answer"
 
 # --- Research & Synthesis State ---
 SUB_QUERY_ANSWERS = "sub_query_answers"

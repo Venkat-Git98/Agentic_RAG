@@ -11,11 +11,12 @@ from uuid import uuid4
 import logging
 from typing import Optional, Dict, AsyncGenerator, Any
 from datetime import datetime
+import redis
 
 # --- Early Configuration Loading ---
 # This is critical to ensure all environment variables are loaded from the .env
 # file before any other module tries to access them.
-from config import redis_client
+from config import REDIS_URL
 # --- Configuration ---
 logging.basicConfig(
     level=logging.INFO,
@@ -33,15 +34,17 @@ from core.state import create_initial_state
 class LangGraphAgenticAI:
     """Main class for the LangGraph Agentic AI system."""
 
-    def __init__(self, debug: bool = False, thinking_detail_mode: ThinkingMode = ThinkingMode.SIMPLE):
+    def __init__(self, redis_client, debug: bool = False, thinking_detail_mode: ThinkingMode = ThinkingMode.SIMPLE):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info(f"🧠 LangGraph Agentic AI instance created (debug={debug}).")
         self.debug = debug
-        
+        self.redis_client = redis_client
+
         self.cognitive_flow_queue = asyncio.Queue()
         cognitive_flow_logger = CognitiveFlowLogger(self.cognitive_flow_queue)
         
         self.workflow = create_thinking_agentic_workflow(
+            redis_client=self.redis_client,
             debug=self.debug,
             thinking_mode=True,
             thinking_detail_mode=thinking_detail_mode,
@@ -59,7 +62,7 @@ class LangGraphAgenticAI:
             A stream of dictionaries representing parts of the response.
         """
         # Create ConversationManager for this thread, passing the actual redis_client
-        conversation_manager = ConversationManager(thread_id, redis_client=redis_client)
+        conversation_manager = ConversationManager(thread_id, redis_client=self.redis_client)
         
         # Add the user message to conversation history
         conversation_manager.add_user_message(user_query)
@@ -120,7 +123,7 @@ class LangGraphAgenticAI:
         This is a non-streaming, async version for test suites.
         """
         # Create ConversationManager for this thread, passing the actual redis_client
-        conversation_manager = ConversationManager(thread_id, redis_client=redis_client)
+        conversation_manager = ConversationManager(thread_id, redis_client=self.redis_client)
         
         # Add the user message to conversation history
         conversation_manager.add_user_message(user_query)
@@ -170,7 +173,8 @@ class LangGraphAgenticAI:
 async def interactive_main():
     """Async main execution function for interactive mode."""
     print("🤖 LangGraph Agentic AI - Interactive Mode")
-    ai = LangGraphAgenticAI()
+    redis_client_instance = redis.from_url(REDIS_URL)
+    ai = LangGraphAgenticAI(redis_client=redis_client_instance)
     
     while True:
         try:
@@ -221,7 +225,8 @@ def main():
     if args.interactive:
         asyncio.run(interactive_main())
     elif query:
-        ai_system = LangGraphAgenticAI(debug=args.debug)
+        redis_client_instance = redis.from_url(REDIS_URL)
+        ai_system = LangGraphAgenticAI(redis_client=redis_client_instance, debug=args.debug)
         thread_id = args.thread_id or f"test_session_{uuid4()}"
         
         async def run_query():

@@ -37,17 +37,45 @@ class ThinkingAgenticWorkflow:
     Thinking-Enhanced LangGraph workflow with detailed reasoning visibility.
     """
     
-    def __init__(self, debug_mode: bool = True, thinking_mode: bool = True, thinking_detail_mode: ThinkingMode = ThinkingMode.SIMPLE, cognitive_flow_logger: Optional[CognitiveFlowLogger] = None):
+    def __init__(self, redis_client, debug_mode: bool = True, thinking_mode: bool = True, thinking_detail_mode: ThinkingMode = ThinkingMode.SIMPLE, cognitive_flow_logger: Optional[CognitiveFlowLogger] = None):
         self.debug_mode = debug_mode
         self.thinking_mode = thinking_mode
         self.thinking_detail_mode = thinking_detail_mode
         self.logger = logging.getLogger("ThinkingAgenticWorkflow")
         self.cognitive_flow_logger = cognitive_flow_logger
+        self.redis_client = redis_client
         self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest", temperature=0)
 
         self.workflow = self._build_workflow_graph()
         self.app = self._compile_workflow()
         self.logger.info(f"Thinking-enhanced workflow initialized (debug={debug_mode}, thinking={thinking_mode})")
+    
+    async def _cache_and_rewrite(self, state: AgentState) -> AgentState:
+        """
+        A new node to handle cache checking after triage and potential query rewriting.
+        """
+        # 1. Update user_query if it was rewritten by the TriageAgent
+        if rewritten_query := state.get("rewritten_query"):
+            if rewritten_query.lower().strip() != state.get("user_query", "").lower().strip():
+                self.logger.info(f"Query was rewritten by TriageAgent. Updating user_query.")
+                state["user_query"] = rewritten_query
+        
+        # 2. Check cache with the (potentially rewritten) query
+        user_query = state.get("user_query", "")
+        query_hash = hashlib.sha256(user_query.lower().strip().encode()).hexdigest()
+        cache_key = f"query_cache:{query_hash}"
+
+        if self.redis_client and (cached_data := self.redis_client.get(cache_key)):
+            self.logger.info(f"CACHE HIT after rewrite for query: '{user_query[:100]}...'")
+            cached_answer = json.loads(cached_data)
+            
+            # Here, we can add validation logic if needed. For now, we'll use the cached answer directly.
+            state["final_answer"] = cached_answer.get("answer")
+            state["triage_classification"] = "simple_response" # Force finish
+        else:
+            self.logger.info("Cache miss after rewrite. Proceeding with research.")
+            
+        return state
     
     def _build_workflow_graph(self) -> StateGraph:
         """Build the workflow graph with our new agent architecture."""
@@ -56,6 +84,7 @@ class ThinkingAgenticWorkflow:
         
         # Add all agent nodes
         workflow.add_node("triage", CognitiveFlowAgentWrapper(TriageAgent(), self.cognitive_flow_logger))
+        workflow.add_node("cache_and_rewrite", self._cache_and_rewrite) # New node
         workflow.add_node("contextual_answering", CognitiveFlowAgentWrapper(ContextualAnsweringAgent(), self.cognitive_flow_logger))
         workflow.add_node("planning", CognitiveFlowAgentWrapper(PlanningAgent(), self.cognitive_flow_logger))
         workflow.add_node("hyde_generation", CognitiveFlowAgentWrapper(HydeAgent(), self.cognitive_flow_logger))
@@ -66,8 +95,11 @@ class ThinkingAgenticWorkflow:
         
         workflow.set_entry_point("triage")
         
+        # Edges
+        workflow.add_edge("triage", "cache_and_rewrite") # Triage now goes to the new node
+        
         workflow.add_conditional_edges(
-            "triage",
+            "cache_and_rewrite", # Routing now happens AFTER the cache check
             self._route_after_triage,
             {
                 "planning": "planning",
@@ -91,6 +123,7 @@ class ThinkingAgenticWorkflow:
         workflow.add_edge("planning", "hyde_generation")
         workflow.add_edge("hyde_generation", "research")
         workflow.add_edge("research", "synthesis")
+        
         workflow.add_edge("synthesis", "memory_update")
         workflow.add_edge("memory_update", END)
         workflow.add_edge("error_handler", END)
@@ -148,6 +181,6 @@ class ThinkingAgenticWorkflow:
             "error": final_state.get("error_state"),
         }
 
-def create_thinking_agentic_workflow(debug=True, *args, **kwargs) -> ThinkingAgenticWorkflow:
+def create_thinking_agentic_workflow(redis_client, debug=True, *args, **kwargs) -> ThinkingAgenticWorkflow:
     """Factory function to create the agentic workflow."""
-    return ThinkingAgenticWorkflow(debug_mode=debug, *args, **kwargs)
+    return ThinkingAgenticWorkflow(redis_client=redis_client, debug_mode=debug, *args, **kwargs)

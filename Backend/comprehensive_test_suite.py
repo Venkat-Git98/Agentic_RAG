@@ -5,6 +5,8 @@ import uuid
 from rich.console import Console
 from rich.table import Table
 from rich.progress import Progress
+import redis
+from config import REDIS_URL
 
 from main import LangGraphAgenticAI
 
@@ -29,6 +31,15 @@ class ComprehensiveTestSuite:
 
     async def run(self):
         console = Console()
+        try:
+            redis_client = redis.from_url(REDIS_URL)
+            redis_client.flushall()
+            console.print("[bold yellow]Redis cache cleared for test run.[/bold yellow]")
+        except redis.exceptions.ConnectionError as e:
+            console.print(f"[bold red]CRITICAL FAILURE: Could not connect to Redis. {e}[/bold red]")
+            console.print(f"[bold red]Please ensure Redis is running at {REDIS_URL} and is accessible.[/bold red]")
+            return # Stop the test if Redis isn't available
+
         if not self.test_queries:
             console.print("[bold yellow]No test queries to run.[/bold yellow]")
             return
@@ -44,7 +55,7 @@ class ComprehensiveTestSuite:
                 progress.update(task, description=f"[cyan]Running {test_id}...[/cyan]")
 
                 try:
-                    agent_instance = LangGraphAgenticAI()
+                    agent_instance = LangGraphAgenticAI(redis_client=redis_client)
                     final_state = await agent_instance.invoke_for_test_async(query, f"session_{test_id}")
 
                     # Clean up state for cleaner logs

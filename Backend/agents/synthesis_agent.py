@@ -138,17 +138,16 @@ class SynthesisAgent(BaseLangGraphAgent):
             final_answer = synthesis_result.get(FINAL_ANSWER, "")
             confidence_score = synthesis_result.get(CONFIDENCE_SCORE, 0.0)
             
-            # 🎯 Cache Quality Criteria - only cache high-quality answers
+            # 🎯 Relaxed Cache Quality Criteria
             should_cache = (
-                len(final_answer) > 100 and  # Substantial answer
-                confidence_score >= 0.7 and  # High confidence
-                not state.get("cache_hit", False) and  # Not already from cache
-                not state.get("error_state") and  # No errors occurred
-                "[Source:" in final_answer or "Section" in final_answer  # Has citations
+                len(final_answer) > 15 and  # Answer should have some substance
+                confidence_score >= 0.5 and  # Medium confidence is acceptable for caching
+                not state.get("cache_hit", False) and
+                not state.get("error_state")
             )
             
             if not should_cache:
-                self.logger.debug(f"Answer doesn't meet caching criteria (length: {len(final_answer)}, confidence: {confidence_score})")
+                self.logger.info(f"Answer does not meet caching criteria. Length: {len(final_answer)}, Confidence: {confidence_score:.2f}")
                 return
             
             # Create cache entry

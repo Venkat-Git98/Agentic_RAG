@@ -217,18 +217,8 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             strategy = strategy_result.get('retrieval_strategy', 'vector_search')
             self.logger.info(f"Sub-query {index+1} - LLM selected retrieval strategy: {strategy}")
 
-            # Step 2: Execute retrieval with enhanced fallbacks (validation is now done internally)
-            # --- NEW: Chapter Summary Retrieval Logic ---
-            chapter_number = self.equation_detector.detect_chapter_summary_request(sub_query)
-            if chapter_number:
-                self.logger.info(f"Chapter summary request detected for Chapter {chapter_number}. Retrieving full chapter content.")
-                chapter_content_dict = self.neo4j_connector.get_chapter_content(chapter_number)
-                retrieved_context = self._format_chapter_content(chapter_content_dict)
-                strategy = "chapter_retrieval" # Override strategy for logging
-            else:
-                retrieved_context = await self._execute_retrieval_with_fallbacks(strategy, sub_query)
-            # --- END: Chapter Summary Retrieval Logic ---
-
+            # Step 2: Execute retrieval with enhanced fallbacks
+            retrieved_context = await self._execute_retrieval_with_fallbacks(strategy, sub_query)
 
             # Step 3: Validate the final retrieved context quality
             validation_result = await self._validate_context_quality(sub_query, retrieved_context)
@@ -300,22 +290,17 @@ class ResearchOrchestrator(BaseLangGraphAgent):
             }
     
     async def _determine_retrieval_strategy(self, query: str, state: AgentState) -> Dict[str, Any]:
-        """Use RetrievalStrategyAgent to determine optimal strategy with rule-based fallback."""
-        try:
-            strategy_state = {
-                "query": query,
-                "conversation_history": state.get("conversation_history", []),
-                "context": state.get("context", "")
-            }
-            result = await self.retrieval_strategy_agent.execute(strategy_state)
-            return result
-        except Exception as e:
-            self.logger.warning(f"RetrievalStrategyAgent failed: {e}. Using rule-based fallback.")
-            # Rule-based fallback strategy
-            strategy = self._rule_based_strategy_selection(query)
-            self.logger.info(f"Rule-based fallback selected: {strategy}")
-            return {"retrieval_strategy": strategy}
-    
+        """First, use rules to check for direct retrieval, then fall back to LLM."""
+        # Rule-based check for direct retrieval patterns
+        rule_based_strategy = self._rule_based_strategy_selection(query)
+        if rule_based_strategy:
+            self.logger.info(f"Rule-based strategy selected: {rule_based_strategy}")
+            return {"retrieval_strategy": rule_based_strategy}
+        
+        # If no rule matches, fall back to the LLM-based strategy agent
+        self.logger.info("No rule-based strategy matched. Consulting LLM for retrieval strategy.")
+        return await self.retrieval_strategy_agent.execute(state)
+
     def _rule_based_strategy_selection(self, query: str) -> str:
         """
         Simple rule-based strategy selection as fallback when LLM agent fails.
@@ -327,7 +312,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
         section_pattern = r'section\s+(\d+\.[\d\.]*)'
         if re.search(section_pattern, query, re.IGNORECASE):
             return "direct_retrieval"
-        
+            
         # Rule 2: Keyword search for technical terms and proper nouns
         technical_terms = [
             'asce', 'astm', 'iso', 'ansi', 'nfpa',  # Standards
@@ -342,30 +327,16 @@ class ResearchOrchestrator(BaseLangGraphAgent):
         return "vector_search"
 
     async def _execute_retrieval_with_fallbacks(self, initial_strategy: str, query: str) -> str:
-        """Execute retrieval with appropriate fallback sequence based on initial strategy."""
-        
-        if initial_strategy == "direct_retrieval":
-            # Check for chapter summary request first
-            chapter_number = self.equation_detector.detect_chapter_summary_request(query)
-            if chapter_number:
-                self.logger.info(f"Detected chapter summary request for Chapter {chapter_number}")
-                chapter_content = await self._safe_tool_call(self.neo4j_connector.get_chapter_content, chapter_number)
-                if chapter_content:
-                    formatted_chapter_content = self._format_enhanced_context({"primary_item": {"uid": chapter_content.get("chapter_uid"), "title": chapter_content.get("chapter_title"), "number": chapter_content.get("chapter_number"), "type": "Chapter"}, "supplemental_context": chapter_content})
-                    self.logger.info(f"Successfully retrieved and formatted content for Chapter {chapter_number}")
-                    return formatted_chapter_content
-                else:
-                    self.logger.warning(f"Failed to retrieve content for Chapter {chapter_number}. Falling back to standard direct retrieval.")
+        """Execute retrieval with fallbacks based on the chosen strategy."""
+        if initial_strategy == 'direct_retrieval':
             return await self._try_direct_then_placeholder(query)
-        elif initial_strategy == "vector_search":
-            # Use the NEW complete fallback hierarchy
-            return await self._try_vector_then_keyword_then_direct_then_web(query)
-        elif initial_strategy == "keyword_search":
-            # Use the NEW complete fallback hierarchy (skipping vector since keyword was chosen first)
-            return await self._try_keyword_then_direct_then_web(query)
+        elif initial_strategy == 'vector_search':
+            return await self._try_vector_then_keyword_then_placeholder(query)
+        elif initial_strategy == 'keyword_search':
+            return await self._try_keyword_then_placeholder(query)
         else:
-            # Default fallback with complete hierarchy
-            return await self._try_vector_then_keyword_then_direct_then_web(query)
+            self.logger.warning(f"Unknown initial strategy '{initial_strategy}'. Defaulting to vector search.")
+            return await self._try_vector_then_keyword_then_placeholder(query)
 
     async def _try_direct_then_placeholder(self, query: str) -> str:
         """Enhanced direct retrieval with mathematical content detection and fallback."""
