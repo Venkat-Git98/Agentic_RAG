@@ -31,4 +31,8 @@ dist/
 .idea/
 .vscode/
 # Ignore OS-specific files
-Thumbs.db 
+# Ignore OS-specific files
+Thumbs.db
+
+# Ignore data directory
+data/ 
