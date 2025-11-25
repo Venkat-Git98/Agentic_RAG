@@ -791,18 +791,6 @@ class Neo4jConnector:
         OPTIONAL MATCH (n)-[r]-(m)
         WHERE m IN nodes
         WITH nodes, COLLECT(DISTINCT r) AS relationships
-        RETURN nodes, relationships
-        """
-        parameters = {"query": query}
-        records = Neo4jConnector.execute_query(cypher_query, parameters)
-
-        if not records:
-            return {"nodes": [], "edges": []}
-
-        record = records[0]
-        db_nodes = record.get("nodes", [])
-        db_relationships = record.get("relationships", [])
-
         nodes = []
         edges = []
         node_ids = set()
@@ -1207,5 +1195,21 @@ class Neo4jConnector:
         
         logging.warning(f"Failure: No content found for section '{section_number}' or its fallbacks.")
         return None
+
+    @staticmethod
+    def keep_alive():
+        """
+        Executes a simple query to keep the Neo4j database active.
+        This is intended to be run periodically (e.g., daily) to prevent
+        auto-pausing or deletion of the database instance.
+        """
+        try:
+            logging.info("Executing Neo4j keep-alive query...")
+            # Simple query that doesn't really do anything but touches the DB
+            query = "MATCH (n) RETURN count(n) LIMIT 1"
+            Neo4jConnector.execute_query(query)
+            logging.info("Neo4j keep-alive query executed successfully.")
+        except Exception as e:
+            logging.error(f"Error executing Neo4j keep-alive query: {e}")
 
 atexit.register(Neo4jConnector.close_driver)

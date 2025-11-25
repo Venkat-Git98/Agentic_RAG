@@ -33,6 +33,8 @@ pandas = "*"
 aiofiles = "*"
 python-multipart = "*"
 langsmith = "*"
+apscheduler = "*"
+
 
 [build-system]
 requires = ["poetry-core"]

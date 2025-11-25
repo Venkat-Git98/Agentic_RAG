@@ -26,6 +26,10 @@ from knowledge_graph.knowledge_graph import get_knowledge_graph_service
 from config import REDIS_URL
 from core.thinking_logger import ThinkingMode
 
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+from tools.neo4j_connector import Neo4jConnector
+
 # --- Pydantic Models for API ---
 
 class QueryRequest(BaseModel):
@@ -47,10 +51,6 @@ async def lifespan(app: FastAPI):
     This is where the AI system and other resources are initialized.
     """
     print("Server starting up...")
-    # startup_delay = 5
-    # print(f"Waiting for {startup_delay} seconds to allow other services to initialize...")
-    # await asyncio.sleep(startup_delay)
-    # print("Delay complete. Continuing with AI system initialization.")
     
     # Initialize the AI system on startup.
     # First, create the Redis client.
@@ -63,11 +63,32 @@ async def lifespan(app: FastAPI):
         thinking_detail_mode=ThinkingMode.DETAILED
     )
     print("AI System Initialized.")
+
+    # Initialize and start the scheduler
+    scheduler = BackgroundScheduler()
+    # Schedule the keep-alive job to run every day at 4:00 AM EST
+    # EST is UTC-5 (Standard) or UTC-4 (Daylight). 
+    # To be safe and simple, we can just use the server's timezone if it's set correctly, 
+    # or specify a timezone if needed. For now, we'll assume the server time is reasonable 
+    # or just run it at 4am server time. 
+    # If strict EST is needed, we should use a timezone aware trigger.
+    # But for "keep alive", exact 4am EST isn't strictly critical, just "once a day".
+    # Let's use 09:00 UTC which is roughly 4am EST.
+    scheduler.add_job(
+        Neo4jConnector.keep_alive, 
+        CronTrigger(hour=9, minute=0), 
+        id='neo4j_keep_alive',
+        replace_existing=True
+    )
+    scheduler.start()
+    print("Scheduler started. Neo4j keep-alive job scheduled for 09:00 UTC.")
+
     yield
-    # Placeholder for cleanup
+    # Cleanup
     print("Server shutting down...")
+    scheduler.shutdown()
     ai_system_instance.clear()
-    print("AI System shut down.")
+    print("AI System and Scheduler shut down.")
     
 app = FastAPI(
     title="LangGraph Agentic AI Server",
