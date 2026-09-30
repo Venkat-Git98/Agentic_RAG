@@ -733,7 +733,7 @@ export default function App() {
     const [graphError, setGraphError] = useState(null);
     const initialQueryFired = useRef(false);
 
-    const onNodeClick = (event, node) => {
+    const onNodeClick = useCallback((event, node) => {
         if (node) {
             const simplifiedNode = {
                 id: node.id,
@@ -743,7 +743,7 @@ export default function App() {
             setSelectedNode(simplifiedNode);
             setIsPanelOpen(true);
         }
-    };
+    }, []);
 
     const handleSearchGraph = useCallback(async (query) => {
         if (!query || !activeSessionId) return;
@@ -796,11 +796,13 @@ export default function App() {
     };
 
     useEffect(() => {
-        if (activeTab === 'graph' && !initialQueryFired.current && graphNodes.length === 0) {
+        // Wait for the session id: handleSearchGraph returns early without one, and
+        // marking the query as fired before that left the graph blank on first open.
+        if (activeTab === 'graph' && activeSessionId && !initialQueryFired.current && graphNodes.length === 0) {
             initialQueryFired.current = true;
             handleSearchGraph('1607');
         }
-    }, [activeTab, handleSearchGraph, graphNodes.length]);
+    }, [activeTab, activeSessionId, handleSearchGraph, graphNodes.length]);
 
 
     const TabButton = ({ id, label, icon: Icon }) => (

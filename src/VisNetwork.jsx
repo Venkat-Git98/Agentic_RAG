@@ -7,6 +7,13 @@ import { clusterData } from './UserFlowData';
 const VisNetwork = ({ nodes, edges, onNodeClick, isHierarchical = false, isHorizontalLayout = false, isUserFlow = false }) => {
     const visJsRef = useRef(null);
 
+    // Keep the latest click handler in a ref so a parent re-render (e.g. setting the
+    // selected node on click) doesn't destroy and re-lay-out the whole network.
+    const onNodeClickRef = useRef(onNodeClick);
+    useEffect(() => {
+        onNodeClickRef.current = onNodeClick;
+    }, [onNodeClick]);
+
     useEffect(() => {
         if (!visJsRef.current) return;
 
@@ -160,8 +167,8 @@ const VisNetwork = ({ nodes, edges, onNodeClick, isHierarchical = false, isHoriz
                 if (event.nodes.length > 0) {
                     const nodeId = event.nodes[0];
                 const nodeData = nodes.find(n => n.id === String(nodeId));
-                if (onNodeClick && nodeData && !nodeData.isCluster) {
-                    onNodeClick(event, nodeData);
+                if (onNodeClickRef.current && nodeData && !nodeData.isCluster) {
+                    onNodeClickRef.current(event, nodeData);
                 }
                 }
             });
@@ -171,7 +178,7 @@ const VisNetwork = ({ nodes, edges, onNodeClick, isHierarchical = false, isHoriz
             network.destroy();
             }
         };
-    }, [nodes, edges, onNodeClick, isHierarchical, isHorizontalLayout, isUserFlow]);
+    }, [nodes, edges, isHierarchical, isHorizontalLayout, isUserFlow]);
 
     return <div ref={visJsRef} className="h-full w-full" />;
 };
