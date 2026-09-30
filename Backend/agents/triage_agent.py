@@ -287,7 +287,11 @@ class TriageAgent(BaseLangGraphAgent):
         
         if classification == "simple_response":
             updated_state[WORKFLOW_STATUS] = "completed"
-            updated_state[FINAL_ANSWER] = output_data.get("direct_response", "I'm sorry, I couldn't process that request.")
+            # execute() always sets the key, so fall back on a missing *or* null reply
+            updated_state[FINAL_ANSWER] = output_data.get("direct_response") or (
+                "Hello! I can help you with questions about the Virginia Construction Code. "
+                "What would you like to know?"
+            )
         elif classification == "contextual_clarification":
             updated_state[CURRENT_STEP] = "contextual_answering"
         else:  # direct_retrieval, complex_research, clarify_and_rewrite

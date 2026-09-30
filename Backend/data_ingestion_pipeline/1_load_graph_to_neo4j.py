@@ -39,20 +39,20 @@ def load_data_to_neo4j(driver):
     Clears the database and loads nodes and edges from the pipeline output.
     """
     # 1. Clear the entire database (as requested in the reference script)
-    with driver.session(database="neo4j") as session:
+    with driver.session(database=os.getenv("NEO4J_DATABASE") or None) as session:
         logging.info("Clearing existing database...")
         session.run("MATCH (n) DETACH DELETE n")
         logging.info("Database cleared.")
 
     # 2. Create uniqueness constraints for all node labels for performance and data integrity
-    with driver.session(database="neo4j") as session:
+    with driver.session(database=os.getenv("NEO4J_DATABASE") or None) as session:
         logging.info("Creating uniqueness constraints...")
         for label in ALL_NODE_LABELS:
             session.run(f"CREATE CONSTRAINT IF NOT EXISTS FOR (n:{label}) REQUIRE n.uid IS UNIQUE;")
         logging.info("Constraints created successfully.")
 
     # 3. Load Nodes
-    with driver.session(database="neo4j") as session:
+    with driver.session(database=os.getenv("NEO4J_DATABASE") or None) as session:
         logging.info(f"Loading nodes from '{NODES_FILE}'...")
         with open(NODES_FILE, 'r', encoding='utf-8') as f:
             nodes_data = [json.loads(line) for line in f]
@@ -76,7 +76,7 @@ def load_data_to_neo4j(driver):
         logging.info(f"Node loading complete. Processed {result.single()['created_nodes']} nodes.")
 
     # 4. Load Edges
-    with driver.session(database="neo4j") as session:
+    with driver.session(database=os.getenv("NEO4J_DATABASE") or None) as session:
         logging.info(f"Loading relationships from '{EDGES_FILE}'...")
         with open(EDGES_FILE, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)

@@ -19,6 +19,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 # Local imports
+from config import TIER_1_MODEL_NAME
 from .state import AgentState, create_initial_state
 from agents import (
     TriageAgent, ContextualAnsweringAgent, PlanningAgent, HydeAgent,
@@ -44,7 +45,7 @@ class ThinkingAgenticWorkflow:
         self.logger = logging.getLogger("ThinkingAgenticWorkflow")
         self.cognitive_flow_logger = cognitive_flow_logger
         self.redis_client = redis_client
-        self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest", temperature=0)
+        self.llm = ChatGoogleGenerativeAI(model=TIER_1_MODEL_NAME, temperature=0)
 
         self.workflow = self._build_workflow_graph()
         self.app = self._compile_workflow()

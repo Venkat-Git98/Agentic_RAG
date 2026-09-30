@@ -27,7 +27,7 @@ from config import REDIS_URL
 from core.thinking_logger import ThinkingMode
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 from tools.neo4j_connector import Neo4jConnector
 
 # --- Pydantic Models for API ---
@@ -66,22 +66,17 @@ async def lifespan(app: FastAPI):
 
     # Initialize and start the scheduler
     scheduler = BackgroundScheduler()
-    # Schedule the keep-alive job to run every day at 4:00 AM EST
-    # EST is UTC-5 (Standard) or UTC-4 (Daylight). 
-    # To be safe and simple, we can just use the server's timezone if it's set correctly, 
-    # or specify a timezone if needed. For now, we'll assume the server time is reasonable 
-    # or just run it at 4am server time. 
-    # If strict EST is needed, we should use a timezone aware trigger.
-    # But for "keep alive", exact 4am EST isn't strictly critical, just "once a day".
-    # Let's use 09:00 UTC which is roughly 4am EST.
+    # Aura Free pauses after 72h without a write (then deletes 30 days later),
+    # so write a heartbeat on startup and every 12 hours after that.
     scheduler.add_job(
-        Neo4jConnector.keep_alive, 
-        CronTrigger(hour=9, minute=0), 
+        Neo4jConnector.keep_alive,
+        IntervalTrigger(hours=12),
         id='neo4j_keep_alive',
-        replace_existing=True
+        replace_existing=True,
+        next_run_time=datetime.now()
     )
     scheduler.start()
-    print("Scheduler started. Neo4j keep-alive job scheduled for 09:00 UTC.")
+    print("Scheduler started. Neo4j keep-alive write runs now and every 12 hours.")
 
     yield
     # Cleanup

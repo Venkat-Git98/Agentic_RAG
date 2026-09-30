@@ -34,7 +34,7 @@ def verify_embeddings(driver, labels: List[str]):
     Checks the total count of nodes vs. the count of nodes with embeddings for given labels.
     """
     logging.info("--- Starting Embedding Verification ---")
-    with driver.session(database="neo4j") as session:
+    with driver.session(database=os.getenv("NEO4J_DATABASE") or None) as session:
         for label in labels:
             logging.info(f"\nVerifying label: :{label}")
             

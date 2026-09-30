@@ -11,7 +11,7 @@ import time
 
 import google.generativeai as genai
 from react_agent.base_tool import BaseTool
-from config import EMBEDDING_MODEL, TIER_2_MODEL_NAME, TIER_1_MODEL_NAME
+from config import EMBEDDING_MODEL, EMBEDDING_DIMENSIONS, TIER_2_MODEL_NAME, TIER_1_MODEL_NAME
 from tools.neo4j_connector import Neo4jConnector
 from tools.reranker import Reranker
 from core.state import RetrievedContext
@@ -141,7 +141,8 @@ class ParallelResearchTool(BaseTool):
     def _get_embedding(self, text: str) -> List[float]:
         """Generates an embedding for a given text."""
         response = genai.embed_content(
-            model=EMBEDDING_MODEL, content=text, task_type="RETRIEVAL_DOCUMENT"
+            model=EMBEDDING_MODEL, content=text, task_type="RETRIEVAL_DOCUMENT",
+            output_dimensionality=EMBEDDING_DIMENSIONS
         )
         return response['embedding']
 

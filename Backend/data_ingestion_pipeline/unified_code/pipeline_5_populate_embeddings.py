@@ -1,4 +1,5 @@
 import os
+import time
 import google.generativeai as genai
 from neo4j import GraphDatabase
 import logging
@@ -12,6 +13,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 NEO4J_URI = config.NEO4J_URI
 NEO4J_USERNAME = config.NEO4J_USERNAME
 NEO4J_PASSWORD = config.NEO4J_PASSWORD
+NEO4J_DATABASE = config.NEO4J_DATABASE
 GOOGLE_API_KEY = config.GOOGLE_API_KEY
 
 def get_credentials_from_env(env_path='.env'):
@@ -39,14 +41,19 @@ def get_credentials_from_env(env_path='.env'):
 # --- Configuration ---
 # Define which node labels should have embeddings. We focus on the most granular, text-rich nodes.
 LABELS_TO_EMBED = ["Passage", "Table", "Diagram"]
-# Define the embedding model to use
-EMBEDDING_MODEL = 'models/embedding-001'
-# Number of nodes to process in each batch
+# Define the embedding model to use (must match the backend's query-time model)
+EMBEDDING_MODEL = config.EMBEDDING_MODEL
+EMBEDDING_DIMENSIONS = config.EMBEDDING_DIMENSIONS
+# Number of nodes to process in each batch (the API accepts up to 100 per request)
 BATCH_SIZE = 50
+# gemini-embedding-001 accepts ~2048 tokens per input; keep inputs well under that
+MAX_EMBED_CHARS = 6000
+# Retries per batch for transient/rate-limit errors, with exponential backoff
+MAX_RETRIES = 6
 
 def create_vector_indexes(driver):
     """Creates a vector index for each specified node label if it doesn't already exist."""
-    with driver.session(database="neo4j") as session:
+    with driver.session(database=NEO4J_DATABASE) as session:
         logging.info("Creating vector indexes...")
         for label in LABELS_TO_EMBED:
             try:
@@ -56,7 +63,7 @@ def create_vector_indexes(driver):
                 CREATE VECTOR INDEX `{index_name}` IF NOT EXISTS
                 FOR (n:{label}) ON (n.embedding)
                 OPTIONS {{ indexConfig: {{
-                    `vector.dimensions`: 768,
+                    `vector.dimensions`: {EMBEDDING_DIMENSIONS},
                     `vector.similarity_function`: 'cosine'
                 }}}}
                 """)
@@ -102,11 +109,36 @@ def prepare_text_for_embedding(node: Dict[str, Any]) -> str:
     else: # For Passage nodes
         return properties.get('text', '')
 
+def embed_with_retry(texts: List[str]) -> List[List[float]]:
+    """Embeds a batch of texts, retrying transient and rate-limit errors with backoff."""
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            response = genai.embed_content(
+                model=EMBEDDING_MODEL,
+                content=[t[:MAX_EMBED_CHARS] for t in texts],
+                task_type="RETRIEVAL_DOCUMENT",
+                output_dimensionality=EMBEDDING_DIMENSIONS,
+            )
+            embeddings = response['embedding']
+            if len(embeddings) != len(texts) or any(len(e) != EMBEDDING_DIMENSIONS for e in embeddings):
+                raise ValueError(f"Unexpected embedding shape: {len(embeddings)} vectors for {len(texts)} texts")
+            return embeddings
+        except Exception as e:
+            if attempt == MAX_RETRIES:
+                raise
+            wait = min(2 ** attempt * 5, 120)
+            logging.warning(f"   - Embedding attempt {attempt}/{MAX_RETRIES} failed ({e}). Retrying in {wait}s...")
+            time.sleep(wait)
+
 def populate_embeddings(driver):
-    """Finds nodes missing embeddings, generates them, and writes them back to Neo4j."""
-    
+    """
+    Finds nodes missing embeddings, generates them, and writes them back to Neo4j.
+    Returns the list of uids that could not be embedded (empty on full success).
+    """
+    failed_uids: List[str] = []
+
     # --- Pre-computation Logging ---
-    with driver.session(database="neo4j") as session:
+    with driver.session(database=NEO4J_DATABASE) as session:
         logging.info("--- Analyzing nodes before starting embedding process ---")
         total_nodes_to_embed = 0
         for label in LABELS_TO_EMBED:
@@ -122,63 +154,78 @@ def populate_embeddings(driver):
         
         if total_nodes_to_embed == 0:
             logging.info("--- All eligible nodes already have embeddings. Nothing to do. ---")
-            return
+            return failed_uids
         else:
             logging.info(f"--- Total nodes to process: {total_nodes_to_embed} ---")
 
     batch_num = 0
     while True:
         batch_num += 1
-        # 1. Fetch a batch of nodes that need embeddings
-        with driver.session(database="neo4j") as session:
+        # 1. Fetch a batch of nodes that need embeddings. Nodes that already failed
+        #    are excluded, otherwise a bad batch would be re-fetched forever.
+        with driver.session(database=NEO4J_DATABASE) as session:
             result = session.run(f"""
                 MATCH (n)
                 WHERE (n:{' OR n:'.join(LABELS_TO_EMBED)})
                   AND n.embedding IS NULL AND (n.text IS NOT NULL OR n.description IS NOT NULL OR n.rows IS NOT NULL)
+                  AND NOT n.uid IN $skip
                 RETURN n.uid AS uid, labels(n)[0] AS label, properties(n) as properties
                 LIMIT $batch_size
-            """, batch_size=BATCH_SIZE)
+            """, batch_size=BATCH_SIZE, skip=failed_uids)
             nodes_to_process = [record.data() for record in result]
 
         if not nodes_to_process:
             logging.info("No more nodes to embed. Process is complete.")
             break
-            
+
         logging.info(f"--- Processing Batch {batch_num}: Found {len(nodes_to_process)} nodes to process... ---")
-        
+
         # 2. Prepare the text for each node
         texts_to_embed = [prepare_text_for_embedding(node) for node in nodes_to_process]
-        
+
         # Filter out any nodes that resulted in empty text
         valid_nodes_and_texts = [(node, text) for node, text in zip(nodes_to_process, texts_to_embed) if text and text.strip()]
+        empty = [node["uid"] for node, text in zip(nodes_to_process, texts_to_embed) if not (text and text.strip())]
+        if empty:
+            logging.warning(f"   - {len(empty)} nodes have no text to embed: {empty}")
+            failed_uids.extend(empty)
         if not valid_nodes_and_texts:
-            logging.warning("   - No valid text to embed in this batch. Skipping.")
             continue
-        
+
         # 3. Generate embeddings
         logging.info(f"   - Generating embeddings for {len(valid_nodes_and_texts)} valid items...")
         texts_only = [text for node, text in valid_nodes_and_texts]
         try:
-            response = genai.embed_content(model=EMBEDDING_MODEL, content=texts_only, task_type="RETRIEVAL_DOCUMENT")
-            embeddings = response['embedding']
+            embeddings = embed_with_retry(texts_only)
         except Exception as e:
-            logging.error(f"   - ERROR: Failed to generate embeddings. Skipping batch. Details: {e}")
+            batch_uids = [node["uid"] for node, _ in valid_nodes_and_texts]
+            logging.error(f"   - ERROR: Failed to embed batch after {MAX_RETRIES} attempts; skipping {len(batch_uids)} nodes. Details: {e}")
+            failed_uids.extend(batch_uids)
             continue
 
         # 4. Write embeddings back to Neo4j
         rows_to_update = [
-            {"uid": node["uid"], "embedding": emb} 
+            {"uid": node["uid"], "embedding": emb}
             for (node, text), emb in zip(valid_nodes_and_texts, embeddings)
         ]
 
         logging.info("   ...writing embeddings back to Neo4j.")
-        with driver.session(database="neo4j") as session:
-            session.run("""
-            UNWIND $rows AS row
-            MATCH (n {uid: row.uid})
-            SET n.embedding = row.embedding
-            """, rows=rows_to_update)
+        with driver.session(database=NEO4J_DATABASE) as session:
+            label_groups = {}
+            for (node, _), row in zip(valid_nodes_and_texts, rows_to_update):
+                label_groups.setdefault(node["label"], []).append(row)
+            for label, rows in label_groups.items():
+                # Label-qualified MATCH uses the uid uniqueness constraint's index
+                session.run(f"""
+                UNWIND $rows AS row
+                MATCH (n:{label} {{uid: row.uid}})
+                CALL db.create.setNodeVectorProperty(n, 'embedding', row.embedding)
+                """, rows=rows)
         logging.info(f"   - Batch {batch_num}: {len(rows_to_update)} embeddings written successfully to Neo4j.")
+
+    if failed_uids:
+        logging.error(f"--- {len(failed_uids)} nodes could not be embedded: {failed_uids[:20]}{'...' if len(failed_uids) > 20 else ''} ---")
+    return failed_uids
 
 def main():
     uri, user, password, api_key = get_credentials_from_env()

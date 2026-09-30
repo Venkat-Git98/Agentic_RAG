@@ -60,9 +60,10 @@ if not GOOGLE_API_KEY:
     raise ValueError("FATAL: GOOGLE_API_KEY not found in environment variables.")
 
 # --- Cohere API Key ---
+# Only required when the reranker is enabled (USE_RERANKER=true).
 COHERE_API_KEY = os.environ.get("COHERE_API_KEY") or os.environ.get("COHERE_API")
-if not COHERE_API_KEY:
-    raise ValueError("FATAL: COHERE_API_KEY or COHERE_API not found in environment variables.")
+if not COHERE_API_KEY and os.environ.get("USE_RERANKER", "False").lower() == "true":
+    raise ValueError("FATAL: USE_RERANKER is true but COHERE_API_KEY or COHERE_API is not set.")
 
 # --- Tavily API Key ---
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY") or os.environ.get("TAVILY_API")
@@ -78,16 +79,26 @@ NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD")
 if not all([NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD]):
     raise ValueError("FATAL: Neo4j credentials (NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD) not fully set in environment variables.")
 
+# Database name. Leave unset to use the server's default database: newer Aura
+# instances name it after the instance id (e.g. "10eed58e"), older ones "neo4j".
+NEO4J_DATABASE = os.environ.get("NEO4J_DATABASE") or None
+
 # --- Model Tiering Configuration ---
 # Define which models to use for different tasks to balance cost and performance.
-# This makes it easy to upgrade or change a model in one place.
-TIER_1_MODEL_NAME = "gemini-1.5-pro-latest"#"gemini-2.5-pro"  # For final synthesis and critical validation
-TIER_2_MODEL_NAME = "gemini-1.5-flash-latest" # For decomposition, HyDE, and initial validation
-TIER_3_MODEL_NAME = "gemini-1.5-flash-latest" # For triage and simple lookups (can be same as Tier 2)
-MEMORY_ANALYSIS_MODEL = "gemini-1.5-flash-latest" # For the cost-effective memory management tasks
+# Each can be overridden with an env var of the same name, so a model retirement
+# can be handled from the Railway dashboard without a code change.
+# Tier 1 uses the "gemini-pro-latest" alias because there is no GA Gemini 3 Pro yet
+# and preview model ids are retired quickly; the alias tracks the current Pro release.
+TIER_1_MODEL_NAME = os.environ.get("TIER_1_MODEL_NAME", "gemini-pro-latest")  # For final synthesis and critical validation
+TIER_2_MODEL_NAME = os.environ.get("TIER_2_MODEL_NAME", "gemini-3.8-flash")  # For decomposition, HyDE, and initial validation
+TIER_3_MODEL_NAME = os.environ.get("TIER_3_MODEL_NAME", "gemini-3.8-flash")  # For triage and simple lookups (can be same as Tier 2)
+MEMORY_ANALYSIS_MODEL = os.environ.get("MEMORY_ANALYSIS_MODEL", "gemini-3.8-flash")  # For the cost-effective memory management tasks
 
 # --- Embedding Model Configuration ---
-EMBEDDING_MODEL = "models/embedding-001"
+# Must match the model/dimensions used to populate the Neo4j vector indexes
+# (data_ingestion_pipeline/load_and_embed.py). Changing either means re-embedding.
+EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "models/gemini-embedding-001")
+EMBEDDING_DIMENSIONS = int(os.environ.get("EMBEDDING_DIMENSIONS", "768"))
 
 # --- Research Configuration ---
 # Controls whether to use the reranker for result optimization

@@ -102,7 +102,7 @@ class KeywordRetrievalTool(BaseTool):
         # Query both indexes and combine results, prioritizing the more specific passage index
         cypher_query = """
         CALL db.index.fulltext.queryNodes('passage_content_idx', $query) YIELD node, score
-        RETURN node.content AS text, score
+        RETURN node.text AS text, score
         UNION ALL
         CALL db.index.fulltext.queryNodes('knowledge_base_text_idx', $query) YIELD node, score
         RETURN node.text AS text, score

@@ -914,7 +914,8 @@ Only return the JSON array, no other text.
 
             # Use the LLM to extract sections
             import google.generativeai as genai
-            model = genai.GenerativeModel('gemini-1.5-flash-latest')
+            from config import TIER_2_MODEL_NAME
+            model = genai.GenerativeModel(TIER_2_MODEL_NAME)
             
             response = model.generate_content(extraction_prompt)
             response_text = response.text.strip()
@@ -1116,13 +1117,14 @@ Only return the JSON array, no other text.
     def _get_embedding(self, text: str) -> List[float]:
         """Generate embedding for text using the same method as ParallelResearchTool."""
         import google.generativeai as genai
-        from config import EMBEDDING_MODEL
+        from config import EMBEDDING_MODEL, EMBEDDING_DIMENSIONS
         
         try:
             response = genai.embed_content(
                 model=EMBEDDING_MODEL, 
                 content=text, 
-                task_type="RETRIEVAL_DOCUMENT"
+                task_type="RETRIEVAL_DOCUMENT",
+                output_dimensionality=EMBEDDING_DIMENSIONS
             )
             return response['embedding']
         except Exception as e:

@@ -21,7 +21,6 @@ redis = "*"
 docker = "*"
 neo4j = "*"
 tiktoken = "*"
-sentence-transformers = "*"
 numpy = "*"
 thefuzz = {version = "*", extras = ["speedup"]}
 pydantic = "*"

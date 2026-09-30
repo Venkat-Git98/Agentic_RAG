@@ -60,6 +60,15 @@ Your goal is to ensure queries are handled with maximum efficiency and accuracy.
 **Your Analysis & Decision:**
 Based on the rules, analyze the user query and its context. Provide your reasoning and then make a final classification.
 
+**Response Format:**
+Respond with a single JSON object and nothing else:
+{{
+  "classification": "simple_response" | "contextual_clarification" | "direct_retrieval" | "complex_research",
+  "reasoning": "<one or two sentences explaining the classification>",
+  "confidence": <number between 0 and 1>,
+  "direct_response": "<ONLY for simple_response: a brief, friendly reply to the user that mentions you can answer questions about the Virginia Construction Code; otherwise null>"
+}}
+
 **Your JSON Response:**
 """
 

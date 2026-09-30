@@ -48,7 +48,7 @@ class Neo4jIndexManager:
         Creates a full-text index if it doesn't already exist.
         """
         self._ensure_connection()
-        with self._driver.session() as session:
+        with self._driver.session(database=os.environ.get("NEO4J_DATABASE") or None) as session:
             if self._index_exists(session, index_name):
                 logging.info(f"Index '{index_name}' already exists. No action taken.")
                 return
@@ -72,11 +72,11 @@ def main():
     try:
         manager = Neo4jIndexManager(NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)
 
-        # Index for Passage content
+        # Index for Passage content (Passage nodes store their text in `text`)
         manager.create_fulltext_index(
             "passage_content_idx",
             ["Passage"],
-            ["content"]
+            ["text"]
         )
 
         # Broader index for hierarchical nodes

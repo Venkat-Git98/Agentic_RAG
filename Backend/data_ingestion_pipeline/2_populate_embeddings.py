@@ -34,13 +34,14 @@ def get_credentials_from_env(env_path='.env'):
 # Define which node labels should have embeddings. We focus on the most granular, text-rich nodes.
 LABELS_TO_EMBED = ["Passage", "Table", "Diagram"]
 # Define the embedding model to use
-EMBEDDING_MODEL = 'models/embedding-001'
+EMBEDDING_MODEL = 'models/gemini-embedding-001'  # must match the backend's config.EMBEDDING_MODEL
+EMBEDDING_DIMENSIONS = 768
 # Number of nodes to process in each batch
 BATCH_SIZE = 50
 
 def create_vector_indexes(driver):
     """Creates a vector index for each specified node label if it doesn't already exist."""
-    with driver.session(database="neo4j") as session:
+    with driver.session(database=os.getenv("NEO4J_DATABASE") or None) as session:
         logging.info("Creating vector indexes...")
         for label in LABELS_TO_EMBED:
             try:
@@ -100,7 +101,7 @@ def populate_embeddings(driver):
     """Finds nodes missing embeddings, generates them, and writes them back to Neo4j."""
     while True:
         # 1. Fetch a batch of nodes that need embeddings
-        with driver.session(database="neo4j") as session:
+        with driver.session(database=os.getenv("NEO4J_DATABASE") or None) as session:
             result = session.run(f"""
                 MATCH (n)
                 WHERE (n:{' OR n:'.join(LABELS_TO_EMBED)})
@@ -129,7 +130,7 @@ def populate_embeddings(driver):
         logging.info(f"   ...generating embeddings for {len(valid_nodes_and_texts)} valid items...")
         texts_only = [text for node, text in valid_nodes_and_texts]
         try:
-            response = genai.embed_content(model=EMBEDDING_MODEL, content=texts_only, task_type="RETRIEVAL_DOCUMENT")
+            response = genai.embed_content(model=EMBEDDING_MODEL, content=texts_only, task_type="RETRIEVAL_DOCUMENT", output_dimensionality=EMBEDDING_DIMENSIONS)
             embeddings = response['embedding']
         except Exception as e:
             logging.error(f"   - ERROR: Failed to generate embeddings. Skipping batch. Details: {e}")
@@ -142,7 +143,7 @@ def populate_embeddings(driver):
         ]
 
         logging.info("   ...writing embeddings back to Neo4j.")
-        with driver.session(database="neo4j") as session:
+        with driver.session(database=os.getenv("NEO4J_DATABASE") or None) as session:
             session.run("""
             UNWIND $rows AS row
             MATCH (n {uid: row.uid})

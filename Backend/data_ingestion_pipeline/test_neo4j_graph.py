@@ -52,7 +52,7 @@ def fetch_section_graph(driver, section_prefix: str, output_file: str, max_depth
     RETURN nodes, relationships
     """
     
-    with driver.session(database="neo4j") as session:
+    with driver.session(database=os.getenv("NEO4J_DATABASE") or None) as session:
         logging.info(f"Executing query for section prefix: '{section_prefix}' with max depth: {max_depth}")
         result = session.run(cypher_query, section_prefix=section_prefix, max_depth=max_depth)
         data = result.single()

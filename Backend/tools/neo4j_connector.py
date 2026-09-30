@@ -10,7 +10,7 @@ import json
 from neo4j import GraphDatabase
 from neo4j.graph import Node
 from config import (
-    NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD,
+    NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, NEO4J_DATABASE,
     EMBEDDING_MODEL, TIER_1_MODEL_NAME
 )
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -75,7 +75,7 @@ class Neo4jConnector:
             A list of records from the query result.
         """
         driver = Neo4jConnector.get_driver()
-        records, summary, keys = driver.execute_query(query, parameters or {}, database_="neo4j")
+        records, summary, keys = driver.execute_query(query, parameters or {}, database_=NEO4J_DATABASE)
         return records
 
     @staticmethod
@@ -105,7 +105,7 @@ class Neo4jConnector:
         """
         parameters = {"embedding": embedding}
         driver = Neo4jConnector.get_driver()
-        records, _, _ = driver.execute_query(query, parameters, database_="neo4j")
+        records, _, _ = driver.execute_query(query, parameters, database_=NEO4J_DATABASE)
 
         if not records:
             return []
@@ -155,7 +155,7 @@ class Neo4jConnector:
         parameters = {"parent_uid": parent_uid}
         driver = Neo4jConnector.get_driver()
         try:
-            records, _, _ = driver.execute_query(query, parameters, database_="neo4j")
+            records, _, _ = driver.execute_query(query, parameters, database_=NEO4J_DATABASE)
             return [record.data() for record in records]
         except Exception as e:
             logging.error(f"Failed to get related nodes for parent_uid '{parent_uid}': {e}")
@@ -180,7 +180,7 @@ class Neo4jConnector:
         parameters = {"uid": uid}
         driver = Neo4jConnector.get_driver()
         try:
-            records, _, _ = driver.execute_query(query, parameters, database_="neo4j")
+            records, _, _ = driver.execute_query(query, parameters, database_=NEO4J_DATABASE)
             return [record.data() for record in records]
         except Exception as e:
             logging.error(f"Failed to inspect neighborhood for node '{uid}': {e}")
@@ -211,7 +211,7 @@ class Neo4jConnector:
         parameters = {"parent_uid": parent_uid}
         driver = Neo4jConnector.get_driver()
         try:
-            records, _, _ = driver.execute_query(query, parameters, database_="neo4j")
+            records, _, _ = driver.execute_query(query, parameters, database_=NEO4J_DATABASE)
             return records[0].data() if records else {}
         except Exception as e:
             logging.error(f"Failed to get metadata for parent '{parent_uid}': {e}")
@@ -235,7 +235,7 @@ class Neo4jConnector:
         parameters = {"uid": uid}
         driver = Neo4jConnector.get_driver()
         try:
-            records, _, _ = driver.execute_query(query, parameters, database_="neo4j")
+            records, _, _ = driver.execute_query(query, parameters, database_=NEO4J_DATABASE)
             if not records:
                 return {"error": f"Node with uid '{uid}' not found."}
 
@@ -310,7 +310,7 @@ class Neo4jConnector:
         RETURN final_parent as parent, COLLECT(DISTINCT node) AS child_nodes
         """
         # Execute the query
-        with Neo4jConnector.get_driver().session(database="neo4j") as session:
+        with Neo4jConnector.get_driver().session(database=NEO4J_DATABASE) as session:
             result = session.run(gold_standard_query, uid=uid)
             record = result.single()
 
@@ -415,7 +415,7 @@ class Neo4jConnector:
         """
         
         try:
-            with Neo4jConnector.get_driver().session(database="neo4j") as session:
+            with Neo4jConnector.get_driver().session(database=NEO4J_DATABASE) as session:
                 result = session.run(query, uid=uid)
                 record = result.single()
                 
@@ -511,7 +511,7 @@ class Neo4jConnector:
         """
         
         try:
-            with Neo4jConnector.get_driver().session(database="neo4j") as session:
+            with Neo4jConnector.get_driver().session(database=NEO4J_DATABASE) as session:
                 result = session.run(query, uid=uid)
                 record = result.single()
 
@@ -623,7 +623,7 @@ class Neo4jConnector:
             return {"error": f"Unknown entity type for direct lookup: {entity_type}"}
 
         try:
-            with Neo4jConnector.get_driver().session(database="neo4j") as session:
+            with Neo4jConnector.get_driver().session(database=NEO4J_DATABASE) as session:
                 result = session.run(query, uid=entity_id)
                 record = result.single()
 
@@ -651,7 +651,7 @@ class Neo4jConnector:
             # The result_transformer is used to convert the records directly into a list of dicts
             indexes, _, _ = driver.execute_query(
                 "SHOW VECTOR INDEXES",
-                database_="neo4j"
+                database_=NEO4J_DATABASE
             )
             return [idx.data() for idx in indexes]
         except Exception as e:
@@ -669,7 +669,7 @@ class Neo4jConnector:
         try:
             # This query will list all vector indexes. We can check if ours is in the list.
             indexes = driver.execute_query(
-                "SHOW VECTOR INDEXES", database_="neo4j", result_transformer_=lambda r: r.data()
+                "SHOW VECTOR INDEXES", database_=NEO4J_DATABASE, result_transformer_=lambda r: r.data()
             )
             index_exists = any(idx['name'] == 'passage_embeddings' for idx in indexes)
 
@@ -692,7 +692,7 @@ class Neo4jConnector:
                 `vector.similarity_function`: 'cosine'
             }}
             """
-            driver.execute_query(index_query, database_="neo4j")
+            driver.execute_query(index_query, database_=NEO4J_DATABASE)
             logging.info("Vector index 'passage_embeddings' created successfully.")
 
         except Exception as e:
@@ -749,7 +749,7 @@ class Neo4jConnector:
         """
         params = {"top_k": top_k, "embedding": embedding}
         driver = Neo4jConnector.get_driver()
-        records, _, _ = driver.execute_query(query, params, database_="neo4j")
+        records, _, _ = driver.execute_query(query, params, database_=NEO4J_DATABASE)
         return [r.data() for r in records]
 
     def keyword_search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
@@ -791,6 +791,18 @@ class Neo4jConnector:
         OPTIONAL MATCH (n)-[r]-(m)
         WHERE m IN nodes
         WITH nodes, COLLECT(DISTINCT r) AS relationships
+        RETURN nodes, relationships
+        """
+        parameters = {"query": query}
+        records = Neo4jConnector.execute_query(cypher_query, parameters)
+
+        if not records:
+            return {"nodes": [], "edges": []}
+
+        record = records[0]
+        db_nodes = record.get("nodes", [])
+        db_relationships = record.get("relationships", [])
+
         nodes = []
         edges = []
         node_ids = set()
@@ -831,7 +843,7 @@ class Neo4jConnector:
         This provides comprehensive context for mathematical content analysis.
         """
         try:
-            with Neo4jConnector.get_driver().session(database="neo4j") as session:
+            with Neo4jConnector.get_driver().session(database=NEO4J_DATABASE) as session:
                 result = session.run(GET_ENHANCED_SUBSECTION_CONTEXT, uid=uid)
                 record = result.single()
 
@@ -909,7 +921,7 @@ class Neo4jConnector:
             Dictionary with chapter information and list of sections
         """
         try:
-            with Neo4jConnector.get_driver().session(database="neo4j") as session:
+            with Neo4jConnector.get_driver().session(database=NEO4J_DATABASE) as session:
                 result = session.run(GET_CHAPTER_OVERVIEW_BY_ID, uid=chapter_id)
                 record = result.single()
 
@@ -1029,7 +1041,7 @@ class Neo4jConnector:
         Get a section and all its content by section number.
         """
         try:
-            with Neo4jConnector.get_driver().session(database="neo4j") as session:
+            with Neo4jConnector.get_driver().session(database=NEO4J_DATABASE) as session:
                 result = session.run(GET_SECTION_WITH_CONTENT, section_number=section_number)
                 record = result.single()
 
@@ -1118,7 +1130,7 @@ class Neo4jConnector:
         """
         
         try:
-            with Neo4jConnector.get_driver().session(database="neo4j") as session:
+            with Neo4jConnector.get_driver().session(database=NEO4J_DATABASE) as session:
                 result = session.run(query, chapter_number=chapter_number)
                 record = result.single()
 
@@ -1199,17 +1211,26 @@ class Neo4jConnector:
     @staticmethod
     def keep_alive():
         """
-        Executes a simple query to keep the Neo4j database active.
+        Writes a heartbeat to keep the Neo4j database active.
         This is intended to be run periodically (e.g., daily) to prevent
         auto-pausing or deletion of the database instance.
+
+        Aura Free pauses an instance after 72 hours without *write* activity
+        (reads don't count) and deletes it 30 days after that, so this must
+        be a write. The KeepAlive node has no uid/text, so no retrieval query
+        can pick it up.
         """
         try:
-            logging.info("Executing Neo4j keep-alive query...")
-            # Simple query that doesn't really do anything but touches the DB
-            query = "MATCH (n) RETURN count(n) LIMIT 1"
-            Neo4jConnector.execute_query(query)
-            logging.info("Neo4j keep-alive query executed successfully.")
+            logging.info("Executing Neo4j keep-alive write...")
+            query = """
+            MERGE (k:KeepAlive {id: 'heartbeat'})
+            SET k.last_ping = datetime(), k.ping_count = coalesce(k.ping_count, 0) + 1
+            RETURN k.ping_count AS ping_count
+            """
+            driver = Neo4jConnector.get_driver()
+            records, _, _ = driver.execute_query(query, database_=NEO4J_DATABASE)
+            logging.info(f"Neo4j keep-alive write succeeded (ping #{records[0]['ping_count']}).")
         except Exception as e:
-            logging.error(f"Error executing Neo4j keep-alive query: {e}")
+            logging.error(f"Error executing Neo4j keep-alive write: {e}")
 
 atexit.register(Neo4jConnector.close_driver)

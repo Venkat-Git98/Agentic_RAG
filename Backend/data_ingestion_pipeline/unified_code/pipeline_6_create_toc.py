@@ -42,7 +42,7 @@ def create_table_of_contents(driver):
     ORDER BY c.title // Sort chapters alphabetically by title
     """
     
-    with driver.session(database="neo4j") as session:
+    with driver.session(database=os.getenv("NEO4J_DATABASE") or None) as session:
         logging.info("Querying the graph to build the Table of Contents...")
         results = session.run(cypher_query)
         
