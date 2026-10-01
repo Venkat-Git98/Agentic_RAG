@@ -56,7 +56,7 @@ function Detail({ event }: { event: TraceEvent }) {
         {d.searches.map((s, i) => (
           <li key={i} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <span
-              className={`inline-flex items-center gap-1 rounded-sm border px-1.5 font-mono text-[0.7rem] ${
+              className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[0.7rem] ${
                 s.method === "web search" ? "border-amber text-amber" : "border-primary text-primary"
               }`}
             >
@@ -112,12 +112,12 @@ export function RunTrace({ events, meta, live }: { events: TraceEvent[]; meta?: 
               </div>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="font-display text-base font-semibold uppercase tracking-wide">{agent.name}</span>
+                  <span className="text-sm font-semibold">{agent.name}</span>
                   <span className="text-xs text-muted-foreground">{agent.does}</span>
                 </div>
                 <div className="mt-1 flex flex-col gap-1">{working ? null : <Detail event={event} />}</div>
                 {!working && event.ms ? (
-                  <div className="mt-2 h-1 bg-primary/70" style={{ width: `${Math.max(2, (event.ms / total) * 100)}%` }} />
+                  <div className="mt-2 h-1 rounded-full bg-primary/60" style={{ width: `${Math.max(2, (event.ms / total) * 100)}%` }} />
                 ) : null}
               </div>
               <span className="font-mono text-xs tabular-nums text-muted-foreground">{working ? "working" : seconds(event.ms)}</span>

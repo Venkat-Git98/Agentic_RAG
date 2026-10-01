@@ -4,12 +4,11 @@ import type { ReactNode } from "react";
 import flowchart from "@/assets/architectural-diagram.jpg";
 
 function Box({ title, tag, children, tone = "default" }: { title: string; tag?: string; children?: ReactNode; tone?: "default" | "store" | "io" }) {
-  const toneClass =
-    tone === "store" ? "border-amber" : tone === "io" ? "border-foreground bg-secondary" : "border-primary";
+  const toneClass = tone === "store" ? "border-amber/50" : tone === "io" ? "border-primary/40 !bg-secondary" : "";
   return (
-    <div className={`flex min-w-0 flex-col gap-1 border-2 bg-card p-3 ${toneClass}`}>
+    <div className={`panel flex min-w-0 flex-col gap-1 p-4 ${toneClass}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-2">
-        <h3 className="text-lg font-semibold uppercase leading-tight">{title}</h3>
+        <h3 className="text-base font-semibold leading-tight">{title}</h3>
         {tag ? <span className="font-mono text-[0.7rem] text-muted-foreground">{tag}</span> : null}
       </div>
       {children ? <div className="text-sm text-muted-foreground">{children}</div> : null}
@@ -54,7 +53,7 @@ export function HowItWorksView() {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 pb-12">
       <header className="flex flex-col gap-2 pt-2">
         <div className="label-caps">Architecture</div>
-        <h1 className="text-balance text-4xl font-semibold uppercase leading-[1.05]">How a question becomes a cited answer</h1>
+        <h1 className="text-balance text-4xl font-bold leading-[1.1]">How a question becomes a cited answer</h1>
         <p className="max-w-2xl text-muted-foreground">
           This is the workflow that runs for every question. The run trace on each answer shows these same steps with real
           timings.
@@ -85,7 +84,7 @@ export function HowItWorksView() {
               {SEARCH_ORDER.map((name, i) => (
                 <li key={name} className="flex items-center gap-1.5">
                   <span
-                    className={`inline-flex items-center gap-1 border px-1.5 font-mono text-xs ${
+                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-xs ${
                       name === "Web search" ? "border-amber text-amber" : "border-primary text-primary"
                     }`}
                   >
@@ -157,7 +156,7 @@ export function HowItWorksView() {
           The detailed decision flowchart drawn while designing the research and retry logic. Open it full size to read the
           labels.
         </p>
-        <a href={flowchart} target="_blank" rel="noreferrer" className="block border border-border bg-white p-2">
+        <a href={flowchart} target="_blank" rel="noreferrer" className="panel block overflow-hidden !bg-white p-3">
           <img src={flowchart} alt="Detailed flowchart of the triage, research orchestrator and synthesis decision logic" className="mx-auto max-h-[36rem] w-auto max-w-full" />
         </a>
       </section>

@@ -7,9 +7,9 @@
 
 @theme inline {
     --font-heading: var(--font-display);
-    --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
-    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
-    --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    --font-sans: 'Manrope', system-ui, sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, monospace;
+    --font-display: 'Manrope', system-ui, sans-serif;
     --color-redline: var(--redline);
     --color-ok: var(--ok);
     --color-amber: var(--amber);
@@ -53,48 +53,59 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Drafting-sheet identity: cool paper + blueprint blue in light, a blueprint in dark. */
+/* Daylight: bright, soft and roomy. White cards on a cool grey ground, one clear blue. */
 :root {
-    --background: #eef1f6; --foreground: #14223a;
-    --card: #ffffff; --card-foreground: #14223a;
-    --popover: #ffffff; --popover-foreground: #14223a;
-    --primary: #1d4fa3; --primary-foreground: #ffffff;
-    --secondary: #e3ecfa; --secondary-foreground: #14223a;
-    --muted: #e4e9f1; --muted-foreground: #4d5d78;
-    --accent: #e3ecfa; --accent-foreground: #14223a;
-    --destructive: #c2331f;
-    --border: #c6d0e0; --input: #c6d0e0; --ring: #1d4fa3;
-    --redline: #c2331f; --ok: #1c7a4b; --amber: #9a6412;
-    --chart-1: #1d4fa3; --chart-2: #1c7a4b; --chart-3: #9a6412; --chart-4: #c2331f; --chart-5: #4d5d78;
-    --sidebar: #ffffff; --sidebar-foreground: #14223a; --sidebar-primary: #1d4fa3; --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #e3ecfa; --sidebar-accent-foreground: #14223a; --sidebar-border: #c6d0e0; --sidebar-ring: #1d4fa3;
-    --radius: 0.25rem;
+    --background: #f6f7f9; --foreground: #1b1d23;
+    --card: #ffffff; --card-foreground: #1b1d23;
+    --popover: #ffffff; --popover-foreground: #1b1d23;
+    --primary: #2f6bff; --primary-foreground: #ffffff;
+    --secondary: #eaf0ff; --secondary-foreground: #1b1d23;
+    --muted: #eef0f4; --muted-foreground: #6a7080;
+    --accent: #eaf0ff; --accent-foreground: #1b1d23;
+    --destructive: #d43c2f;
+    --border: #e5e8ee; --input: #e5e8ee; --ring: #2f6bff;
+    --redline: #d43c2f; --ok: #128a5c; --amber: #a86a08;
+    --cite-fg: #2457d6; --cite-line: #cfdcff;
+    --shadow-soft: 0 1px 2px rgba(20, 30, 60, 0.05), 0 8px 24px rgba(20, 30, 60, 0.06);
+    --chart-1: #2f6bff; --chart-2: #128a5c; --chart-3: #a86a08; --chart-4: #d43c2f; --chart-5: #6a7080;
+    --sidebar: #ffffff; --sidebar-foreground: #1b1d23; --sidebar-primary: #2f6bff; --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #eaf0ff; --sidebar-accent-foreground: #1b1d23; --sidebar-border: #e5e8ee; --sidebar-ring: #2f6bff;
+    --radius: 0.875rem;
 }
 
 .dark {
-    --background: #0c1f3d; --foreground: #e9effa;
-    --card: #12294d; --card-foreground: #e9effa;
-    --popover: #12294d; --popover-foreground: #e9effa;
-    --primary: #9cc4ff; --primary-foreground: #0c1f3d;
-    --secondary: #1d3a69; --secondary-foreground: #e9effa;
-    --muted: #17325c; --muted-foreground: #a9bad8;
-    --accent: #1d3a69; --accent-foreground: #e9effa;
-    --destructive: #ff9580;
-    --border: #2e4a7c; --input: #2e4a7c; --ring: #9cc4ff;
-    --redline: #ff9580; --ok: #7fd8a8; --amber: #f0c070;
-    --chart-1: #9cc4ff; --chart-2: #7fd8a8; --chart-3: #f0c070; --chart-4: #ff9580; --chart-5: #a9bad8;
-    --sidebar: #12294d; --sidebar-foreground: #e9effa; --sidebar-primary: #9cc4ff; --sidebar-primary-foreground: #0c1f3d;
-    --sidebar-accent: #1d3a69; --sidebar-accent-foreground: #e9effa; --sidebar-border: #2e4a7c; --sidebar-ring: #9cc4ff;
+    --background: #101217; --foreground: #eceef3;
+    --card: #181b22; --card-foreground: #eceef3;
+    --popover: #181b22; --popover-foreground: #eceef3;
+    --primary: #6f9bff; --primary-foreground: #0b1020;
+    --secondary: #1e2a48; --secondary-foreground: #eceef3;
+    --muted: #1e222b; --muted-foreground: #9aa1b2;
+    --accent: #1e2a48; --accent-foreground: #eceef3;
+    --destructive: #ff8a7a;
+    --border: #2a2f3a; --input: #2a2f3a; --ring: #6f9bff;
+    --redline: #ff8a7a; --ok: #6ed4a6; --amber: #f0c070;
+    --cite-fg: #a9c3ff; --cite-line: #33477a;
+    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    --chart-1: #6f9bff; --chart-2: #6ed4a6; --chart-3: #f0c070; --chart-4: #ff8a7a; --chart-5: #9aa1b2;
+    --sidebar: #181b22; --sidebar-foreground: #eceef3; --sidebar-primary: #6f9bff; --sidebar-primary-foreground: #0b1020;
+    --sidebar-accent: #1e2a48; --sidebar-accent-foreground: #eceef3; --sidebar-border: #2a2f3a; --sidebar-ring: #6f9bff;
 }
 
 @layer base {
     * { @apply border-border outline-ring/50; }
     html, body, #root { height: 100%; }
     body { @apply bg-background text-foreground font-sans antialiased; }
-    h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.01em; }
+    h1, h2, h3 { letter-spacing: -0.02em; }
 }
 
-.label-caps { font-family: var(--font-display); font-weight: 600; font-size: 0.74rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted-foreground); }
-.cite-chip { font-family: var(--font-mono); font-size: 0.78em; border: 1px solid var(--primary); color: var(--primary); background: var(--secondary); padding: 0 0.4em; border-radius: 3px; white-space: nowrap; cursor: pointer; text-decoration: none; }
-.cite-chip:hover, .cite-chip[data-active="true"] { background: var(--primary); color: var(--primary-foreground); }
-.code-text { white-space: pre-wrap; line-height: 1.7; }
+/* In the components layer so Tailwind utilities (hidden, md:inline-flex, !bg-*) can override them. */
+@layer components {
+    .label-caps { font-weight: 600; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cite-fg); }
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: 1rem; box-shadow: var(--shadow-soft); }
+    .cite-chip { font-family: var(--font-mono); font-size: 0.76em; font-weight: 500; border: 1px solid var(--cite-line); color: var(--cite-fg); background: var(--secondary); padding: 0.05em 0.5em; border-radius: 0.4rem; white-space: nowrap; cursor: pointer; text-decoration: none; }
+    .cite-chip:hover, .cite-chip[data-active="true"] { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground); }
+    .code-text { white-space: pre-wrap; line-height: 1.75; }
+    .seg { display: inline-flex; gap: 0.25rem; padding: 0.2rem; border-radius: 0.75rem; background: var(--muted); }
+    .seg > button { padding: 0.3rem 0.8rem; border-radius: 0.55rem; font-size: 0.82rem; font-weight: 500; color: var(--muted-foreground); display: inline-flex; align-items: center; gap: 0.4rem; }
+    .seg > button[aria-selected="true"], .seg > button[aria-current="page"] { background: var(--card); color: var(--foreground); box-shadow: 0 1px 2px rgba(20, 30, 60, 0.12); }
+}

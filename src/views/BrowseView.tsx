@@ -66,10 +66,10 @@ function Tree({
     });
 
   return (
-    <nav aria-label="Code contents" className="font-mono text-xs leading-7">
+    <nav aria-label="Code contents" className="text-[0.82rem] leading-7">
       {toc.map((chapter) => (
         <div key={chapter.number}>
-          <button type="button" onClick={() => toggle(chapter.number)} className="flex w-full items-center gap-1 truncate text-left hover:text-primary">
+          <button type="button" onClick={() => toggle(chapter.number)} className="flex w-full items-center gap-1 truncate text-left font-medium hover:text-primary">
             {open.has(chapter.number) ? <ChevronDown className="size-3 shrink-0" /> : <ChevronRight className="size-3 shrink-0" />}
             <span className="truncate">
               {chapter.number} {chapter.title}
@@ -82,14 +82,14 @@ function Tree({
                   <button
                     type="button"
                     onClick={() => onNavigate(section.number)}
-                    className={`block w-full truncate border-l-2 pl-4 text-left hover:text-primary ${
-                      section.number === current ? "border-primary bg-secondary" : "border-transparent"
+                    className={`block w-full truncate rounded-md pl-5 pr-2 text-left text-muted-foreground hover:text-primary ${
+                      section.number === current ? "bg-secondary font-medium text-foreground" : ""
                     }`}
                   >
                     {section.number} {section.title}
                   </button>
                   {section.number === currentSection && page && current !== section.number ? (
-                    <div className="truncate border-l-2 border-primary bg-secondary pl-8">
+                    <div className="truncate rounded-md bg-secondary pl-9 pr-2 font-medium">
                       {page.number} {page.title}
                     </div>
                   ) : null}
@@ -146,7 +146,7 @@ function GraphPanel({ number, onNavigate }: { number: string; onNavigate: (numbe
         Everything in the graph under {number}. Large dots are sections, small grey dots are text passages, green are tables.
         Click a section to open it.
       </p>
-      <div className="min-h-0 flex-1 border border-border bg-background">
+      <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-background">
         <Suspense fallback={<p className="p-3 text-sm text-muted-foreground">Loading graph…</p>}>
           <GraphCanvas nodes={data.nodes} edges={data.edges} onNodeClick={handleClick} />
         </Suspense>
@@ -212,11 +212,11 @@ export function BrowseView({
 
   return (
     <div className="mx-auto grid h-full min-h-0 w-full max-w-7xl grid-cols-[minmax(0,1fr)] gap-4 px-4 pb-3 lg:grid-cols-[15rem_minmax(0,1fr)_17rem]">
-      <aside className={`min-h-0 overflow-y-auto border border-border bg-card p-3 ${contentsOpen ? "block max-h-[50dvh]" : "hidden"} lg:block lg:max-h-none`}>
+      <aside className={`panel min-h-0 overflow-y-auto p-3 ${contentsOpen ? "block max-h-[50dvh]" : "hidden"} lg:block lg:max-h-none`}>
         <Tree toc={toc} current={number} page={page} onNavigate={navigate} />
       </aside>
 
-      <main className="flex min-h-0 flex-col gap-3 overflow-y-auto border border-border bg-card p-4">
+      <main className="panel flex min-h-0 flex-col gap-3 overflow-y-auto p-5">
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" className="lg:hidden" onClick={() => setContentsOpen((v) => !v)}>
             <List /> Contents
@@ -226,12 +226,12 @@ export function BrowseView({
               <CornerLeftUp /> §{page.parent}
             </Button>
           ) : null}
-          <div className="ml-auto flex gap-1 text-xs">
+          <div className="seg ml-auto">
             {(["text", "graph"] as const).map((name) => (
               <button
                 key={name}
                 onClick={() => setMode(name)}
-                className={`border px-2.5 py-1 font-medium ${mode === name ? "border-foreground bg-secondary" : "border-transparent text-muted-foreground"}`}
+                aria-selected={mode === name}
               >
                 {name === "text" ? "Code text" : "Graph"}
               </button>
@@ -248,8 +248,8 @@ export function BrowseView({
         ) : (
           <>
             <div>
-              <div className="font-mono text-xs text-muted-foreground">{page.breadcrumb}</div>
-              <h2 className="text-2xl font-semibold uppercase">
+              <div className="text-xs text-muted-foreground">{page.breadcrumb}</div>
+              <h2 className="text-2xl font-bold">
                 §{page.number} · {page.title}
               </h2>
             </div>
@@ -259,7 +259,7 @@ export function BrowseView({
               <p className="text-sm text-muted-foreground">This heading has no text of its own. Open one of its parts below.</p>
             )}
             {page.equations.length ? (
-              <div className="flex flex-col gap-1 border border-border bg-background p-3">
+              <div className="flex flex-col gap-1 rounded-xl bg-muted p-3">
                 <div className="label-caps">Equations in this section</div>
                 {page.equations.map((equation, i) => (
                   <code key={i} className="overflow-x-auto font-mono text-sm">
@@ -300,7 +300,7 @@ export function BrowseView({
         )}
       </main>
 
-      <aside className="hidden min-h-0 flex-col gap-4 overflow-y-auto border border-border bg-card p-4 text-sm lg:flex">
+      <aside className="panel hidden min-h-0 flex-col gap-4 overflow-y-auto p-5 text-sm lg:flex">
         <div className="flex flex-col gap-1.5">
           <div className="label-caps">This section cites</div>
           {page?.cites.length ? (

@@ -40,7 +40,7 @@ function useTheme() {
     } catch {
       /* ignore */
     }
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    return false; // Daylight is the default look; dark is opt-in.
   });
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -99,19 +99,17 @@ export default function App() {
     <TooltipProvider>
       <div className="flex h-dvh flex-col">
         <header className="flex items-center gap-2 border-b border-border bg-card px-4 py-2 sm:gap-4">
-          <a href="#/ask" className="flex items-baseline gap-1 font-display text-xl font-bold uppercase tracking-wider">
-            VA <span className="text-primary">§</span> <span className="hidden min-[380px]:inline">Code Assistant</span>
+          <a href="#/ask" className="flex items-center gap-2 text-base font-semibold">
+            <span className="grid size-7 place-items-center rounded-lg bg-primary font-serif text-primary-foreground">§</span>
+            <span className="hidden min-[380px]:inline">Code Assistant</span>
           </a>
 
-          <nav className="ml-auto hidden gap-1 md:flex" aria-label="Sections">
+          <nav className="seg ml-auto hidden md:inline-flex" aria-label="Sections">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => go(tab.id, section)}
                 aria-current={view === tab.id ? "page" : undefined}
-                className={`flex items-center gap-1.5 border px-3 py-1.5 text-sm font-medium ${
-                  view === tab.id ? "border-foreground bg-secondary" : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
               >
                 <tab.icon className="size-4" /> {tab.label}
               </button>

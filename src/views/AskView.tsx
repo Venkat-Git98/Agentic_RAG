@@ -67,14 +67,14 @@ function Hero({ onAsk }: { onAsk: (q: string) => void }) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 py-6 sm:py-12">
       <div className="label-caps">2021 Virginia Construction Code · graph-grounded answers</div>
-      <h1 className="text-balance text-4xl font-semibold uppercase leading-[1.05] sm:text-5xl">
+      <h1 className="text-balance text-4xl font-bold leading-[1.1] sm:text-5xl">
         Ask the building code a question. See exactly where the answer came from.
       </h1>
       <p className="max-w-2xl text-muted-foreground">
         A team of AI agents plans the research, searches a knowledge graph of the code, and links every section and table
         the answer names to its actual text.
       </p>
-      <div className="grid grid-cols-3 border border-border bg-card">
+      <div className="panel grid grid-cols-3 overflow-hidden">
         {STATS.map((stat) => (
           <div key={stat.label} className="border-l border-border px-3 py-2 first:border-l-0">
             <div className="font-mono text-xl tabular-nums">{stat.value}</div>
@@ -90,7 +90,7 @@ function Hero({ onAsk }: { onAsk: (q: string) => void }) {
               key={example}
               suggestion={example}
               onClick={onAsk}
-              className="h-auto justify-start whitespace-normal rounded-sm px-3 py-2 text-left"
+              className="h-auto justify-start whitespace-normal rounded-xl bg-card px-4 py-3 text-left shadow-xs"
             />
           ))}
         </div>
@@ -157,7 +157,7 @@ function Answer({
     // Still working: show the live trace instead of a blank bubble.
     return (
       <Message from="assistant">
-        <MessageContent className="w-full">
+        <MessageContent className="panel w-full p-4">
           <ChainOfThought defaultOpen>
             <ChainOfThoughtHeader>
               <Shimmer>{streaming ? "Working on it" : "Run trace"}</Shimmer>
@@ -173,18 +173,15 @@ function Answer({
 
   return (
     <Message from="assistant">
-      <MessageContent className="w-full min-w-0 gap-3">
+      <MessageContent className="panel w-full min-w-0 gap-3 p-4">
         {events.length ? (
-          <div className="flex gap-1 text-xs" role="tablist">
+          <div className="seg self-start" role="tablist">
             {(["answer", "trace"] as const).map((name) => (
               <button
                 key={name}
                 role="tab"
                 aria-selected={tab === name}
                 onClick={() => setTab(name)}
-                className={`border px-2.5 py-1 font-medium ${
-                  tab === name ? "border-foreground bg-secondary" : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
               >
                 {name === "trace" ? `Run trace${meta?.seconds ? ` · ${meta.seconds} s` : ""}` : "Answer"}
               </button>
@@ -346,7 +343,7 @@ export function AskView({
         </Conversation>
 
         <div className="mx-auto w-full max-w-3xl pt-2">
-          <PromptInput onSubmit={(message) => ask(message.text ?? "")}>
+          <PromptInput onSubmit={(message) => ask(message.text ?? "")} className="rounded-2xl bg-card shadow-[var(--shadow-soft)] [&_[data-slot=input-group]]:rounded-2xl [&_[data-slot=input-group]]:bg-card">
             <PromptInputBody>
               <PromptInputTextarea placeholder="Ask about loads, egress, fire ratings, a section number…" />
             </PromptInputBody>
@@ -361,7 +358,7 @@ export function AskView({
       </div>
 
       {wide ? (
-        <aside className="hidden min-h-0 border border-border bg-card p-4 lg:block">
+        <aside className="panel hidden min-h-0 p-5 lg:block">
           {sourcePanel ?? (
             <div className="flex h-full flex-col justify-center gap-2 text-sm text-muted-foreground">
               <div className="label-caps">Source</div>

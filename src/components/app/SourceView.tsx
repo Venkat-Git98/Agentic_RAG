@@ -10,7 +10,7 @@ export function CodeTable({ headers, rows }: { headers: string[]; rows: string[]
         <thead>
           <tr>
             {headers.map((h, i) => (
-              <th key={i} className="border border-border bg-muted px-2 py-1 text-left font-medium">
+              <th key={i} className="border-b border-border px-2 py-1.5 text-left font-medium text-muted-foreground">
                 {h}
               </th>
             ))}
@@ -20,7 +20,7 @@ export function CodeTable({ headers, rows }: { headers: string[]; rows: string[]
           {rows.map((row, r) => (
             <tr key={r}>
               {row.map((cell, c) => (
-                <td key={c} className="border border-border px-2 py-1 align-top tabular-nums">
+                <td key={c} className="border-b border-border px-2 py-1.5 align-top tabular-nums">
                   {cell}
                 </td>
               ))}
@@ -48,11 +48,11 @@ export function SourceView({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="label-caps">Source · from the code graph</div>
-          <h3 className="text-xl font-semibold uppercase leading-tight">
+          <h3 className="text-lg font-semibold leading-tight">
             {source.label}
-            {source.title ? <span className="font-medium normal-case"> · {source.title}</span> : null}
+            {source.title ? <span className="font-medium"> · {source.title}</span> : null}
           </h3>
-          <div className="font-mono text-xs text-muted-foreground">{source.breadcrumb}</div>
+          <div className="text-xs text-muted-foreground">{source.breadcrumb}</div>
         </div>
         {onClose ? (
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close source">
