@@ -1,33 +1,100 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@source "../node_modules/streamdown/dist/*.js";
 
-body {
-  background-color: #081118; /* Aqua Borealis Dark Base */
-  font-family: 'Inter', sans-serif;
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-display);
+    --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    --color-redline: var(--redline);
+    --color-ok: var(--ok);
+    --color-amber: var(--amber);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-.bg-dots-dark {
-    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0);
-    background-size: 20px 20px;
+/* Drafting-sheet identity: cool paper + blueprint blue in light, a blueprint in dark. */
+:root {
+    --background: #eef1f6; --foreground: #14223a;
+    --card: #ffffff; --card-foreground: #14223a;
+    --popover: #ffffff; --popover-foreground: #14223a;
+    --primary: #1d4fa3; --primary-foreground: #ffffff;
+    --secondary: #e3ecfa; --secondary-foreground: #14223a;
+    --muted: #e4e9f1; --muted-foreground: #4d5d78;
+    --accent: #e3ecfa; --accent-foreground: #14223a;
+    --destructive: #c2331f;
+    --border: #c6d0e0; --input: #c6d0e0; --ring: #1d4fa3;
+    --redline: #c2331f; --ok: #1c7a4b; --amber: #9a6412;
+    --chart-1: #1d4fa3; --chart-2: #1c7a4b; --chart-3: #9a6412; --chart-4: #c2331f; --chart-5: #4d5d78;
+    --sidebar: #ffffff; --sidebar-foreground: #14223a; --sidebar-primary: #1d4fa3; --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #e3ecfa; --sidebar-accent-foreground: #14223a; --sidebar-border: #c6d0e0; --sidebar-ring: #1d4fa3;
+    --radius: 0.25rem;
 }
 
-/* --- React Flow Edge Fix --- */
-.react-flow__edge-path {
-  stroke: #06b6d4 !important;
-  stroke-width: 2 !important;
+.dark {
+    --background: #0c1f3d; --foreground: #e9effa;
+    --card: #12294d; --card-foreground: #e9effa;
+    --popover: #12294d; --popover-foreground: #e9effa;
+    --primary: #9cc4ff; --primary-foreground: #0c1f3d;
+    --secondary: #1d3a69; --secondary-foreground: #e9effa;
+    --muted: #17325c; --muted-foreground: #a9bad8;
+    --accent: #1d3a69; --accent-foreground: #e9effa;
+    --destructive: #ff9580;
+    --border: #2e4a7c; --input: #2e4a7c; --ring: #9cc4ff;
+    --redline: #ff9580; --ok: #7fd8a8; --amber: #f0c070;
+    --chart-1: #9cc4ff; --chart-2: #7fd8a8; --chart-3: #f0c070; --chart-4: #ff9580; --chart-5: #a9bad8;
+    --sidebar: #12294d; --sidebar-foreground: #e9effa; --sidebar-primary: #9cc4ff; --sidebar-primary-foreground: #0c1f3d;
+    --sidebar-accent: #1d3a69; --sidebar-accent-foreground: #e9effa; --sidebar-border: #2e4a7c; --sidebar-ring: #9cc4ff;
 }
 
-.react-flow__edge.animated > path {
-    stroke-dasharray: 5;
-    animation: dashdraw 0.5s linear infinite;
+@layer base {
+    * { @apply border-border outline-ring/50; }
+    html, body, #root { height: 100%; }
+    body { @apply bg-background text-foreground font-sans antialiased; }
+    h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.01em; }
 }
 
-@keyframes dashdraw {
-  from {
-    stroke-dashoffset: 10;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-} 
+.label-caps { font-family: var(--font-display); font-weight: 600; font-size: 0.74rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted-foreground); }
+.cite-chip { font-family: var(--font-mono); font-size: 0.78em; border: 1px solid var(--primary); color: var(--primary); background: var(--secondary); padding: 0 0.4em; border-radius: 3px; white-space: nowrap; cursor: pointer; text-decoration: none; }
+.cite-chip:hover, .cite-chip[data-active="true"] { background: var(--primary); color: var(--primary-foreground); }
+.code-text { white-space: pre-wrap; line-height: 1.7; }

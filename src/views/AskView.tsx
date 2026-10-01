@@ -1,0 +1,381 @@
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, type UIMessage } from "ai";
+import { useCallback, useEffect, useImperativeHandle, useMemo, useState, type Ref } from "react";
+import { Check, Copy, Globe } from "lucide-react";
+
+import { ChainOfThought, ChainOfThoughtContent, ChainOfThoughtHeader } from "@/components/ai-elements/chain-of-thought";
+import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
+import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
+import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputTools,
+} from "@/components/ai-elements/prompt-input";
+import { Shimmer } from "@/components/ai-elements/shimmer";
+import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
+import { RunTrace } from "@/components/app/RunTrace";
+import { SourceView } from "@/components/app/SourceView";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { API, fetchHistory, fetchReferences, type AnswerMeta, type Source, type TraceEvent } from "@/lib/api";
+import { idFromCiteHref, linkCitations } from "@/lib/citations";
+import { cjk } from "@streamdown/cjk";
+import { code } from "@streamdown/code";
+import { createMathPlugin } from "@streamdown/math";
+
+// Answers write inline math as $K_{LL}$, so single-dollar math has to be enabled.
+const markdownPlugins = { cjk, code, math: createMathPlugin({ singleDollarTextMath: true }) };
+
+const EXAMPLES = [
+  "What minimum live load applies to office floors and to corridors above the first floor?",
+  "Where is an automatic sprinkler system required in Group A-2 occupancies?",
+  "What does Section 1607.12 say about reducing live loads?",
+  "Calculate the flat roof snow load for pg = 30 psf with Ce, Ct and Is all 1.0.",
+];
+
+const STATS = [
+  { value: "33", label: "chapters indexed" },
+  { value: "5,961", label: "graph nodes" },
+  { value: "8,421", label: "relationships" },
+];
+
+type Selected = { messageId: string; source: Source } | null;
+export type AskHandle = { ask: (question: string) => void };
+
+const textOf = (message: UIMessage) =>
+  message.parts.map((part) => (part.type === "text" ? part.text : "")).join("");
+
+function dataOf<T>(message: UIMessage, type: string): T[] {
+  return message.parts.filter((part) => part.type === type).map((part) => (part as unknown as { data: T }).data);
+}
+
+function useIsWide() {
+  const query = "(min-width: 1024px)";
+  const [wide, setWide] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const update = () => setWide(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  return wide;
+}
+
+function Hero({ onAsk }: { onAsk: (q: string) => void }) {
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 py-6 sm:py-12">
+      <div className="label-caps">2021 Virginia Construction Code · graph-grounded answers</div>
+      <h1 className="text-balance text-4xl font-semibold uppercase leading-[1.05] sm:text-5xl">
+        Ask the building code a question. See exactly where the answer came from.
+      </h1>
+      <p className="max-w-2xl text-muted-foreground">
+        A team of AI agents plans the research, searches a knowledge graph of the code, and links every section and table
+        the answer names to its actual text.
+      </p>
+      <div className="grid grid-cols-3 border border-border bg-card">
+        {STATS.map((stat) => (
+          <div key={stat.label} className="border-l border-border px-3 py-2 first:border-l-0">
+            <div className="font-mono text-xl tabular-nums">{stat.value}</div>
+            <div className="text-xs text-muted-foreground">{stat.label}</div>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-col gap-2">
+        <div className="label-caps">Try one</div>
+        <Suggestions className="flex-wrap">
+          {EXAMPLES.map((example) => (
+            <Suggestion key={example} suggestion={example} onClick={onAsk} className="h-auto whitespace-normal py-2 text-left" />
+          ))}
+        </Suggestions>
+      </div>
+    </div>
+  );
+}
+
+function Answer({
+  message,
+  streaming,
+  historySources,
+  selected,
+  onSelect,
+}: {
+  message: UIMessage;
+  streaming: boolean;
+  historySources?: Source[];
+  selected: Selected;
+  onSelect: (selected: Selected) => void;
+}) {
+  const [tab, setTab] = useState<"answer" | "trace">("answer");
+  const [copied, setCopied] = useState(false);
+  const text = textOf(message);
+  const events = dataOf<TraceEvent>(message, "data-trace");
+  const meta = dataOf<AnswerMeta>(message, "data-meta")[0];
+  const sources = dataOf<{ sources: Source[] }>(message, "data-sources")[0]?.sources ?? historySources ?? [];
+  const linked = useMemo(() => linkCitations(text, sources), [text, sources]);
+
+  const components = useMemo(
+    () => ({
+      a: ({ href, children }: { href?: string; children?: React.ReactNode }) => {
+        const id = idFromCiteHref(href);
+        const source = id ? sources.find((s) => s.id === id) : undefined;
+        if (!source) {
+          return (
+            <a href={href} target="_blank" rel="noreferrer" className="text-primary underline">
+              {children}
+            </a>
+          );
+        }
+        const active = selected?.messageId === message.id && selected.source.id === source.id;
+        return (
+          <button type="button" className="cite-chip" data-active={active} onClick={() => onSelect({ messageId: message.id, source })}>
+            {children}
+          </button>
+        );
+      },
+    }),
+    [sources, selected, message.id, onSelect],
+  );
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
+  };
+
+  if (!text) {
+    // Still working: show the live trace instead of a blank bubble.
+    return (
+      <Message from="assistant">
+        <MessageContent className="w-full">
+          <ChainOfThought defaultOpen>
+            <ChainOfThoughtHeader>
+              <Shimmer>{streaming ? "Working on it" : "Run trace"}</Shimmer>
+            </ChainOfThoughtHeader>
+            <ChainOfThoughtContent>
+              <RunTrace events={events} live={streaming} />
+            </ChainOfThoughtContent>
+          </ChainOfThought>
+        </MessageContent>
+      </Message>
+    );
+  }
+
+  return (
+    <Message from="assistant">
+      <MessageContent className="w-full min-w-0 gap-3">
+        {events.length ? (
+          <div className="flex gap-1 text-xs" role="tablist">
+            {(["answer", "trace"] as const).map((name) => (
+              <button
+                key={name}
+                role="tab"
+                aria-selected={tab === name}
+                onClick={() => setTab(name)}
+                className={`border px-2.5 py-1 font-medium ${
+                  tab === name ? "border-foreground bg-secondary" : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {name === "trace" ? `Run trace${meta?.seconds ? ` · ${meta.seconds} s` : ""}` : "Answer"}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {tab === "trace" ? (
+          <RunTrace events={events} meta={meta} />
+        ) : (
+          <>
+            <MessageResponse components={components} plugins={markdownPlugins} className="min-w-0 [&_.katex-display]:overflow-x-auto [&_pre]:overflow-x-auto">
+              {linked}
+            </MessageResponse>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2 text-xs text-muted-foreground">
+              {sources.length ? (
+                <span className="flex flex-wrap items-center gap-1.5">
+                  <span>
+                    {sources.length} source{sources.length === 1 ? "" : "s"} in the code graph:
+                  </span>
+                  {sources.map((source) => (
+                    <button
+                      key={source.id}
+                      type="button"
+                      className="cite-chip"
+                      data-active={selected?.messageId === message.id && selected.source.id === source.id}
+                      onClick={() => onSelect({ messageId: message.id, source })}
+                    >
+                      {source.label}
+                    </button>
+                  ))}
+                </span>
+              ) : (
+                <span>No code sections are cited in this answer.</span>
+              )}
+              {meta?.web_used ? (
+                <span className="inline-flex items-center gap-1 text-amber">
+                  <Globe className="size-3" /> Part of this answer came from web search, not the code graph.
+                </span>
+              ) : null}
+            </div>
+          </>
+        )}
+      </MessageContent>
+      <div>
+        <Button variant="ghost" size="sm" onClick={copy} className="text-muted-foreground">
+          {copied ? <Check /> : <Copy />} {copied ? "Copied" : "Copy answer"}
+        </Button>
+      </div>
+    </Message>
+  );
+}
+
+export function AskView({
+  sessionId,
+  onOpenInBrowser,
+  ref,
+}: {
+  sessionId: string;
+  onOpenInBrowser: (number: string) => void;
+  ref?: Ref<AskHandle>;
+}) {
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: `${API}/api/chat`,
+        // The server keeps the conversation; only the newest message needs to travel.
+        prepareSendMessagesRequest: ({ id, messages }) => ({ body: { id, messages: messages.slice(-1) } }),
+      }),
+    [],
+  );
+  const { messages, sendMessage, setMessages, status, stop, error } = useChat({ id: sessionId, transport });
+  const [selected, setSelected] = useState<Selected>(null);
+  const [historySources, setHistorySources] = useState<Record<string, Source[]>>({});
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const wide = useIsWide();
+  const busy = status === "submitted" || status === "streaming";
+
+  // Load the stored conversation for this session, then look up citations for past answers.
+  useEffect(() => {
+    let cancelled = false;
+    setSelected(null);
+    setLoadingHistory(true);
+    fetchHistory(sessionId)
+      .then((history) => {
+        if (cancelled) return;
+        const restored: UIMessage[] = history
+          .filter((m) => (m.role === "user" || m.role === "assistant") && m.content)
+          .map((m, i) => ({ id: `history-${i}`, role: m.role, parts: [{ type: "text", text: m.content }] }));
+        setMessages(restored);
+        restored
+          .filter((m) => m.role === "assistant")
+          .slice(-6)
+          .forEach((m) => {
+            fetchReferences(textOf(m))
+              .then((sources) => !cancelled && setHistorySources((prev) => ({ ...prev, [m.id]: sources })))
+              .catch(() => undefined);
+          });
+      })
+      .catch(() => !cancelled && setMessages([]))
+      .finally(() => !cancelled && setLoadingHistory(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, setMessages]);
+
+  const ask = useCallback(
+    (question: string) => {
+      const text = question.trim();
+      if (text && !busy) void sendMessage({ text });
+    },
+    [busy, sendMessage],
+  );
+  useImperativeHandle(ref, () => ({ ask }), [ask]);
+
+  const last = messages[messages.length - 1];
+  const waitingForFirstEvent = busy && last?.role === "user";
+
+  const sourcePanel = selected ? (
+    <SourceView source={selected.source} onClose={() => setSelected(null)} onOpenInBrowser={onOpenInBrowser} />
+  ) : null;
+
+  return (
+    <div className="mx-auto grid h-full min-h-0 w-full max-w-7xl grid-cols-[minmax(0,1fr)] gap-4 px-4 pb-3 lg:grid-cols-[minmax(0,1fr)_24rem]">
+      <div className="flex min-h-0 min-w-0 flex-col">
+        <Conversation className="min-h-0 flex-1">
+          <ConversationContent className="mx-auto w-full max-w-3xl px-0">
+            {messages.length === 0 && !loadingHistory ? <Hero onAsk={ask} /> : null}
+            {messages.map((message, index) =>
+              message.role === "user" ? (
+                <Message from="user" key={message.id}>
+                  <MessageContent>{textOf(message)}</MessageContent>
+                </Message>
+              ) : (
+                <Answer
+                  key={message.id}
+                  message={message}
+                  streaming={busy && index === messages.length - 1}
+                  historySources={historySources[message.id]}
+                  selected={selected}
+                  onSelect={setSelected}
+                />
+              ),
+            )}
+            {waitingForFirstEvent ? (
+              <Message from="assistant">
+                <MessageContent>
+                  <Shimmer>Sending your question to the agents</Shimmer>
+                </MessageContent>
+              </Message>
+            ) : null}
+            {error ? (
+              <p className="border-l-2 border-redline pl-3 text-sm text-redline">
+                The answer could not be completed: {error.message}. Ask again to retry.
+              </p>
+            ) : null}
+          </ConversationContent>
+          <ConversationScrollButton />
+        </Conversation>
+
+        <div className="mx-auto w-full max-w-3xl pt-2">
+          <PromptInput onSubmit={(message) => ask(message.text ?? "")}>
+            <PromptInputBody>
+              <PromptInputTextarea placeholder="Ask about loads, egress, fire ratings, a section number…" />
+            </PromptInputBody>
+            <PromptInputFooter>
+              <PromptInputTools>
+                <span className="px-1 text-xs text-muted-foreground">Guidance only. Confirm with a licensed professional.</span>
+              </PromptInputTools>
+              <PromptInputSubmit status={status} onStop={stop} />
+            </PromptInputFooter>
+          </PromptInput>
+        </div>
+      </div>
+
+      {wide ? (
+        <aside className="hidden min-h-0 border border-border bg-card p-4 lg:block">
+          {sourcePanel ?? (
+            <div className="flex h-full flex-col justify-center gap-2 text-sm text-muted-foreground">
+              <div className="label-caps">Source</div>
+              <p>
+                Click a citation such as <span className="cite-chip pointer-events-none">Table 1607.1</span> in an answer to read the code text it
+                came from.
+              </p>
+            </div>
+          )}
+        </aside>
+      ) : (
+        <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
+          <DialogContent className="flex max-h-[85dvh] flex-col">
+            <DialogTitle className="sr-only">Source</DialogTitle>
+            {selected ? <SourceView source={selected.source} onOpenInBrowser={onOpenInBrowser} /> : null}
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
