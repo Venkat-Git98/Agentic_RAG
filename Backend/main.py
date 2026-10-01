@@ -5,6 +5,7 @@ Main entry point for the LangGraph Agentic AI System.
 import sys
 import os
 import asyncio
+import time
 import argparse
 import json
 from uuid import uuid4
@@ -28,7 +29,8 @@ logger = logging.getLogger("MainApp")
 from core.conversation_manager import ConversationManager
 from core.thinking_workflow import ThinkingAgenticWorkflow, create_thinking_agentic_workflow
 from core.thinking_logger import ThinkingMode
-from core.cognitive_flow import CognitiveFlowLogger
+from core.cognitive_flow import CognitiveFlowLogger, request_queue
+from tools.code_references import resolve_references
 from core.state import create_initial_state
 
 class LangGraphAgenticAI:
@@ -83,39 +85,63 @@ class LangGraphAgenticAI:
             }
         }
 
+        # Each request gets its own queue (see core.cognitive_flow.request_queue), so
+        # concurrent users never receive each other's events.
+        queue: asyncio.Queue = asyncio.Queue()
+        request_queue.set(queue)
+        started = time.time()
+
         async def _run_workflow():
             """Task to run the agent workflow and push results to the queue."""
-            # Inject conversation manager into agents that need it
-            self._inject_conversation_manager(conversation_manager)
-            
-            # The CognitiveFlowAgentWrapper is now responsible for putting all
-            # cognitive messages (thinking and reasoning) on the queue. This
-            # loop simply needs to watch for the final answer to know when to stop.
-            async for chunk in self.app.astream(initial_state, config=config):
-                for agent_name, agent_state in chunk.items():
-                    if agent_state and (final_answer := agent_state.get("final_answer")):
-                        await self.cognitive_flow_queue.put({"final_answer": final_answer})
-                        return
-                        
-            # Signal the end of the stream
-            await self.cognitive_flow_queue.put(None)
+            try:
+                # Inject conversation manager into agents that need it
+                self._inject_conversation_manager(conversation_manager)
 
-        # Start the workflow in a background task
+                # The CognitiveFlowAgentWrapper puts cognitive messages and structured
+                # trace events on the queue. This loop only watches for the final answer.
+                async for chunk in self.app.astream(initial_state, config=config):
+                    for agent_name, agent_state in chunk.items():
+                        if agent_state and (final_answer := agent_state.get("final_answer")):
+                            await queue.put({"final_answer": final_answer})
+                            return
+            except Exception as e:
+                self.logger.error(f"Workflow failed: {e}", exc_info=True)
+                await queue.put({"error": str(e)})
+            finally:
+                # Always signal the end of the stream, so the reader can never hang.
+                await queue.put(None)
+
+        # Start the workflow in a background task (it inherits this request's queue)
         workflow_task = asyncio.create_task(_run_workflow())
 
-        # Yield messages from the queue as they arrive
-        while True:
-            message = await self.cognitive_flow_queue.get()
-            if message is None:
-                break
-            yield message
-            if "final_answer" in message:
-                # Save the final answer to the conversation history
-                conversation_manager.add_assistant_message(message["final_answer"])
-                break
-        
-        # Ensure the workflow task is complete
-        await workflow_task
+        route = None
+        web_used = False
+        try:
+            while True:
+                message = await queue.get()
+                if message is None:
+                    break
+                if trace := message.get("trace"):
+                    detail = trace.get("detail") or {}
+                    route = detail.get("route") or route
+                    if any(s.get("method") == "web search" for s in detail.get("searches", [])):
+                        web_used = True
+                if "final_answer" in message:
+                    final_answer = message["final_answer"]
+                    # Save the final answer to the conversation history
+                    conversation_manager.add_assistant_message(final_answer)
+                    # Look up every section/table the answer cites in the knowledge graph
+                    sources = await asyncio.to_thread(resolve_references, final_answer)
+                    yield {
+                        "final_answer": final_answer,
+                        "sources": sources,
+                        "meta": {"seconds": round(time.time() - started, 1), "route": route, "web_used": web_used},
+                    }
+                    break
+                yield message
+        finally:
+            if not workflow_task.done():
+                workflow_task.cancel()
 
     async def invoke_for_test_async(self, user_query: str, thread_id: str) -> Dict[str, Any]:
         """

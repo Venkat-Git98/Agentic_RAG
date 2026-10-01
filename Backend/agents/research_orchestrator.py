@@ -10,6 +10,7 @@ workflow that includes:
 - Graph expansion after successful retrieval
 """
 
+import contextvars
 import asyncio
 import json
 from typing import Dict, Any, List
@@ -34,6 +35,10 @@ from agents.retrieval_strategy_agent import RetrievalStrategyAgent
 from thinking_agents.thinking_validation_agent import ThinkingValidationAgent
 from tools.neo4j_connector import Neo4jConnector
 from tools.equation_detector import EquationDetector
+
+# Which retrieval step actually produced a sub-query's context (set where each
+# fallback step succeeds). A ContextVar keeps parallel sub-queries separate.
+_RETRIEVAL_METHOD = contextvars.ContextVar("retrieval_method", default=None)
 
 class ResearchOrchestrator(BaseLangGraphAgent):
     """
@@ -209,6 +214,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
         """
         import time
         start_time = time.time()
+        _RETRIEVAL_METHOD.set(None)
         self.logger.info(f"--- Processing sub-query {index+1}/{total}: '{sub_query[:100]}...' ---")
 
         try:
@@ -365,6 +371,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
         try:
             content = await self.neo4j_connector.hierarchical_section_retrieval(section_to_find)
             if self._is_context_sufficient(content):
+                _RETRIEVAL_METHOD.set("section lookup")
                 self.logger.info(f"Hierarchical retrieval successful for section '{section_to_find}'")
                 return content
             else:
@@ -778,6 +785,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
                 # Validate the vector search result before accepting it
                 validation_result = await self._validate_context_quality(query, formatted_context)
                 if validation_result.get('is_relevant', False):
+                    _RETRIEVAL_METHOD.set("vector search")
                     self.logger.info("✅ Vector search successful (passed validation)")
                     return formatted_context
                 else:
@@ -795,6 +803,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
                 # Validate the keyword search result before accepting it
                 validation_result = await self._validate_context_quality(query, context)
                 if validation_result.get('is_relevant', False):
+                    _RETRIEVAL_METHOD.set("keyword search")
                     self.logger.info("✅ Keyword search successful (passed validation)")
                     return context
                 else:
@@ -812,6 +821,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
                 # Validate the direct retrieval result before accepting it
                 validation_result = await self._validate_context_quality(query, context)
                 if validation_result.get('is_relevant', False):
+                    _RETRIEVAL_METHOD.set("section lookup")
                     self.logger.info("✅ Direct retrieval successful (passed validation)")
                     return context
                 else:
@@ -839,6 +849,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
                 # Validate the keyword search result before accepting it
                 validation_result = await self._validate_context_quality(query, context)
                 if validation_result.get('is_relevant', False):
+                    _RETRIEVAL_METHOD.set("keyword search")
                     self.logger.info("✅ Keyword search successful (passed validation)")
                     return context
                 else:
@@ -856,6 +867,7 @@ class ResearchOrchestrator(BaseLangGraphAgent):
                 # Validate the direct retrieval result before accepting it
                 validation_result = await self._validate_context_quality(query, context)
                 if validation_result.get('is_relevant', False):
+                    _RETRIEVAL_METHOD.set("section lookup")
                     self.logger.info("✅ Direct retrieval successful (passed validation)")
                     return context
                 else:
@@ -986,6 +998,7 @@ Only return the JSON array, no other text.
                 if context and self._is_context_sufficient(str(context)):
                     # Format the enhanced context
                     formatted_context = self._format_enhanced_context(context, equation_analysis)
+                    _RETRIEVAL_METHOD.set("section lookup")
                     self.logger.info("✅ Direct retrieval - Enhanced direct subsection lookup successful")
                     return formatted_context
                 else:
@@ -1057,6 +1070,7 @@ Only return the JSON array, no other text.
                                 
                             if context and self._is_context_sufficient(str(context)):
                                 formatted_context = self._format_enhanced_context(context, equation_analysis)
+                                _RETRIEVAL_METHOD.set("section lookup")
                                 self.logger.info(f"✅ Direct retrieval - LLM-guided lookup successful for section {section}")
                                 
                                 # Validate the context quality
@@ -1085,6 +1099,7 @@ Only return the JSON array, no other text.
                     
                     # If we didn't find a great match but have some content, use it
                     if best_context:
+                        _RETRIEVAL_METHOD.set("section lookup")
                         self.logger.info("✅ Direct retrieval - Using best available context")
                         return best_context
                 
@@ -1096,6 +1111,7 @@ Only return the JSON array, no other text.
                 self.logger.info("Direct retrieval - No direct section found, but detected equation references - trying equation-specific retrieval")
                 combined_context = await self._retrieve_mathematical_context(equation_analysis)
                 if self._is_context_sufficient(combined_context):
+                    _RETRIEVAL_METHOD.set("section lookup")
                     self.logger.info("✅ Direct retrieval - Mathematical context retrieval successful")
                     return combined_context
             
@@ -1104,6 +1120,7 @@ Only return the JSON array, no other text.
                 self.logger.info("Direct retrieval - Trying contextual sections for equation lookup")
                 combined_context = await self._retrieve_mathematical_context(equation_analysis)
                 if self._is_context_sufficient(combined_context):
+                    _RETRIEVAL_METHOD.set("section lookup")
                     self.logger.info("✅ Direct retrieval - Contextual section retrieval successful")
                     return combined_context
             
@@ -1180,6 +1197,7 @@ Only return the JSON array, no other text.
     async def _try_web_search_fallback(self, query: str) -> str:
         """Web search as final fallback option."""
         try:
+            _RETRIEVAL_METHOD.set("web search")
             self.logger.info(f"Attempting web search fallback for: '{query}'")
             result = await self._safe_tool_call(self.web_search_tool, query)
             # TavilySearchTool returns a dict with 'answer' key
@@ -1257,6 +1275,7 @@ Only return the JSON array, no other text.
             "answer": context,
             "sources_used": ["Research Context"],
             "retrieval_strategy": strategy,
+            "retrieval_method": _RETRIEVAL_METHOD.get() or strategy,
             "validation_score": validation_result.get("confidence_score", 0.0),
             "is_relevant": validation_result.get("is_relevant", False),
             "reasoning": validation_result.get("validation_reasoning", "No reasoning provided")

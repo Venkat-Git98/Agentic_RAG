@@ -9,9 +9,11 @@ import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
-from typing import Dict, Any, AsyncGenerator
+from typing import Dict, Any, AsyncGenerator, List, Optional
 from datetime import datetime
+from uuid import uuid4
 import json
+import re
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,6 +31,10 @@ from core.thinking_logger import ThinkingMode
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from tools.neo4j_connector import Neo4jConnector
+from tools.code_references import resolve_references, table_of_contents, section_page
+
+# Small in-process cache for data that only changes when the graph is reloaded.
+_browser_cache: Dict[str, Any] = {}
 
 # --- Pydantic Models for API ---
 
@@ -110,6 +116,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
+    expose_headers=["x-vercel-ai-ui-message-stream"],
 )
 
 # --- Streaming Logic ---
@@ -138,8 +145,13 @@ async def stream_logs_and_query(user_query: str, thread_id: str) -> AsyncGenerat
                     "timestamp": datetime.now().isoformat()
                 }
                 yield f"event: log\ndata: {json.dumps(log_msg)}\n\n"
+            elif "trace" in event:
+                yield f"event: trace\ndata: {json.dumps(event['trace'])}\n\n"
+            elif "error" in event:
+                error_message = {"level": "ERROR", "message": event["error"], "timestamp": datetime.now().isoformat()}
+                yield f"event: log\ndata: {json.dumps(error_message)}\n\n"
             elif "final_answer" in event:
-                result_data = {"result": event["final_answer"]}
+                result_data = {"result": event["final_answer"], "sources": event.get("sources", []), "meta": event.get("meta", {})}
                 yield f"event: result\ndata: {json.dumps(result_data)}\n\n"
                 
     except Exception as e:
@@ -186,6 +198,130 @@ async def chat_endpoint(request: ChatRequest):
         stream_logs_and_query(request.message, request.thread_id),
         media_type="text/event-stream"
     )
+
+# --- AI SDK UI message stream (used by the frontend's useChat hook) ---
+
+def _sse(part: Dict[str, Any]) -> str:
+    return f"data: {json.dumps(part)}\n\n"
+
+
+def _last_user_text(messages: List[Dict[str, Any]]) -> str:
+    """Extracts the text of the latest user message from AI SDK UIMessages."""
+    for message in reversed(messages or []):
+        if message.get("role") != "user":
+            continue
+        parts = message.get("parts") or []
+        text = " ".join(p.get("text", "") for p in parts if p.get("type") == "text").strip()
+        return text or str(message.get("content") or "").strip()
+    return ""
+
+
+async def stream_ui_message(user_query: str, thread_id: str) -> AsyncGenerator[str, None]:
+    """
+    Runs the query and streams it in the AI SDK "UI message stream" protocol:
+    the run trace and cited sources as data parts, then the answer text.
+    Sends a comment line while agents are working so proxies keep the connection open.
+    """
+    message_id = f"msg_{uuid4().hex}"
+    text_id = f"txt_{uuid4().hex}"
+    yield _sse({"type": "start", "messageId": message_id})
+
+    ai_system = ai_system_instance.get("instance")
+    if not ai_system or not user_query:
+        yield _sse({"type": "error", "errorText": "The AI system is not ready." if not ai_system else "Empty question."})
+        yield "data: [DONE]\n\n"
+        return
+
+    answered = False
+    step = 0
+    stream = ai_system.get_response_stream(user_query, thread_id).__aiter__()
+    pending = asyncio.ensure_future(stream.__anext__())
+    try:
+        while True:
+            done, _ = await asyncio.wait({pending}, timeout=10)
+            if not done:
+                yield ": keep-alive\n\n"
+                continue
+            try:
+                event = pending.result()
+            except StopAsyncIteration:
+                break
+            pending = asyncio.ensure_future(stream.__anext__())
+
+            if "trace" in event:
+                trace = event["trace"]
+                if trace.get("status") == "start":
+                    step += 1
+                # The same id for start/done lets the client update the step in place.
+                yield _sse({"type": "data-trace", "id": f"trace-{step}-{trace.get('agent')}", "data": trace})
+            elif "error" in event:
+                yield _sse({"type": "error", "errorText": event["error"]})
+            elif "final_answer" in event:
+                answered = True
+                yield _sse({"type": "data-sources", "id": "sources", "data": {"sources": event.get("sources", [])}})
+                yield _sse({"type": "data-meta", "id": "meta", "data": event.get("meta", {})})
+                yield _sse({"type": "text-start", "id": text_id})
+                # The answer is produced in one piece; send it paragraph by paragraph.
+                for chunk in re.split(r"(?<=\n\n)", event["final_answer"]):
+                    if chunk:
+                        yield _sse({"type": "text-delta", "id": text_id, "delta": chunk})
+                yield _sse({"type": "text-end", "id": text_id})
+        if not answered:
+            yield _sse({"type": "error", "errorText": "No answer was produced for this question. Please try again."})
+    except Exception as e:
+        logging.error(f"Error while streaming chat response: {e}", exc_info=True)
+        yield _sse({"type": "error", "errorText": f"An unexpected error occurred: {e}"})
+    finally:
+        if not pending.done():
+            pending.cancel()
+    yield _sse({"type": "finish"})
+    yield "data: [DONE]\n\n"
+
+
+class UIChatRequest(BaseModel):
+    """Request body sent by the AI SDK useChat hook."""
+    id: Optional[str] = None
+    messages: List[Dict[str, Any]] = []
+    thread_id: Optional[str] = None
+
+
+@app.post("/api/chat", summary="Chat endpoint speaking the AI SDK UI message stream protocol")
+async def ui_chat_endpoint(request: UIChatRequest):
+    thread_id = request.thread_id or request.id or f"session-{uuid4().hex}"
+    return StreamingResponse(
+        stream_ui_message(_last_user_text(request.messages), thread_id),
+        media_type="text/event-stream",
+        headers={"x-vercel-ai-ui-message-stream": "v1", "Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+# --- Code browser + citations ---
+
+class ReferencesRequest(BaseModel):
+    text: str
+
+
+@app.post("/api/references", summary="Resolve the code sections and tables mentioned in a text")
+def references_endpoint(request: ReferencesRequest):
+    return {"sources": resolve_references(request.text[:20000])}
+
+
+@app.get("/api/toc", summary="Table of contents: chapters and their sections")
+def toc_endpoint():
+    if "toc" not in _browser_cache:
+        _browser_cache["toc"] = table_of_contents()
+    return {"chapters": _browser_cache["toc"]}
+
+
+@app.get("/api/section/{number}", summary="A section or subsection with its text, tables and connections")
+def section_endpoint(number: str):
+    if not re.fullmatch(r"\d{3,4}(\.\d+)*", number):
+        raise HTTPException(status_code=400, detail="Section numbers look like 1607 or 1607.12.1.")
+    page = section_page(number)
+    if page is None:
+        raise HTTPException(status_code=404, detail=f"Section {number} is not in the knowledge graph.")
+    return page
+
 
 @app.get("/api/knowledge-graph", summary="Get knowledge graph data")
 async def get_knowledge_graph_endpoint(query: str):

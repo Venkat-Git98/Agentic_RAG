@@ -817,7 +817,7 @@ class Neo4jConnector:
                     "position": {"x": 0, "y": 0},
                     "data": {
                         "label": node_obj.get("title", uid),
-                        "properties": dict(node_obj)
+                        "properties": {k: v for k, v in dict(node_obj).items() if k != "embedding"}
                     }
                 })
 
