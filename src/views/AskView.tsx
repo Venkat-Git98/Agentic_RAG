@@ -15,7 +15,7 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
-import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
+import { Suggestion } from "@/components/ai-elements/suggestion";
 import { RunTrace } from "@/components/app/RunTrace";
 import { SourceView } from "@/components/app/SourceView";
 import { Button } from "@/components/ui/button";
@@ -85,11 +85,16 @@ function Hero({ onAsk }: { onAsk: (q: string) => void }) {
       </div>
       <div className="flex flex-col gap-2">
         <div className="label-caps">Try one</div>
-        <Suggestions className="flex-wrap">
+        <div className="grid gap-2 sm:grid-cols-2">
           {EXAMPLES.map((example) => (
-            <Suggestion key={example} suggestion={example} onClick={onAsk} className="h-auto whitespace-normal py-2 text-left" />
+            <Suggestion
+              key={example}
+              suggestion={example}
+              onClick={onAsk}
+              className="h-auto justify-start whitespace-normal rounded-sm px-3 py-2 text-left"
+            />
           ))}
-        </Suggestions>
+        </div>
       </div>
     </div>
   );
