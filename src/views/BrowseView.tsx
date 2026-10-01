@@ -1,12 +1,15 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronRight, CornerLeftUp, List, MessageSquareText, Share2 } from "lucide-react";
 
-import { GraphCanvas, type GraphEdge, type GraphNode } from "@/components/app/GraphCanvas";
+import type { GraphEdge, GraphNode } from "@/components/app/GraphCanvas";
 import { CodeTable, SourceView } from "@/components/app/SourceView";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { fetchGraph, fetchReferences, fetchSection, fetchToc, type SectionPage, type Source, type TocChapter } from "@/lib/api";
 import { idFromCiteHref, linkCitations } from "@/lib/citations";
+
+// The graph library is large, so it loads only when the graph view is opened.
+const GraphCanvas = lazy(() => import("@/components/app/GraphCanvas").then((m) => ({ default: m.GraphCanvas })));
 
 const chapterOf = (number: string) => {
   const head = number.split(".")[0];
@@ -144,7 +147,9 @@ function GraphPanel({ number, onNavigate }: { number: string; onNavigate: (numbe
         Click a section to open it.
       </p>
       <div className="min-h-0 flex-1 border border-border bg-background">
-        <GraphCanvas nodes={data.nodes} edges={data.edges} onNodeClick={handleClick} />
+        <Suspense fallback={<p className="p-3 text-sm text-muted-foreground">Loading graph…</p>}>
+          <GraphCanvas nodes={data.nodes} edges={data.edges} onNodeClick={handleClick} />
+        </Suspense>
       </div>
     </div>
   );

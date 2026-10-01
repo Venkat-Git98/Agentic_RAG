@@ -23,11 +23,10 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { API, fetchHistory, fetchReferences, type AnswerMeta, type Source, type TraceEvent } from "@/lib/api";
 import { idFromCiteHref, linkCitations } from "@/lib/citations";
 import { cjk } from "@streamdown/cjk";
-import { code } from "@streamdown/code";
 import { createMathPlugin } from "@streamdown/math";
 
 // Answers write inline math as $K_{LL}$, so single-dollar math has to be enabled.
-const markdownPlugins = { cjk, code, math: createMathPlugin({ singleDollarTextMath: true }) };
+const markdownPlugins = { cjk, math: createMathPlugin({ singleDollarTextMath: true }) };
 
 const EXAMPLES = [
   "What minimum live load applies to office floors and to corridors above the first floor?",

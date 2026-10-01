@@ -9,6 +9,7 @@ const AGENTS: Record<string, { name: string; does: string }> = {
   ResearchOrchestrator: { name: "Research", does: "Searches the code graph for each step" },
   SynthesisAgent: { name: "Writer", does: "Writes the answer from what was found" },
   EnhancedSynthesisAgent: { name: "Writer", does: "Writes the answer from what was found" },
+  AnswerCache: { name: "Answer cache", does: "This exact question was answered before" },
   MemoryAgent: { name: "Memory", does: "Saves the exchange" },
   ErrorHandler: { name: "Recovery", does: "Handles a failed step" },
 };
@@ -33,6 +34,9 @@ function Detail({ event }: { event: TraceEvent }) {
         {d.reason ? <p className="text-muted-foreground">{d.reason}</p> : null}
       </>
     );
+  }
+  if (event.agent === "AnswerCache") {
+    return <p className="text-muted-foreground">The saved answer was returned, so no research ran this time.</p>;
   }
   if (event.agent === "PlanningAgent" && d.sub_questions?.length) {
     return (
@@ -123,7 +127,12 @@ export function RunTrace({ events, meta, live }: { events: TraceEvent[]; meta?: 
       </ol>
       {meta?.seconds != null ? (
         <p className="border-t border-border pt-2 font-mono text-xs text-muted-foreground">
-          Total {meta.seconds} s{meta.web_used ? " · web search used for part of this answer" : " · answered from the code graph"}
+          Total {meta.seconds} s
+          {events.some((e) => e.agent === "AnswerCache")
+            ? " · served from the answer cache"
+            : meta.web_used
+              ? " · web search used for part of this answer"
+              : " · answered from the code graph"}
         </p>
       ) : null}
     </div>

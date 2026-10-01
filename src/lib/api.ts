@@ -29,6 +29,7 @@ export type TraceEvent = {
     searches?: TraceSearch[];
     answered_from_conversation?: boolean;
     answer_chars?: number;
+    cache_hit?: boolean;
     error?: string;
   };
 };
