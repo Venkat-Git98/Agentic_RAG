@@ -1,7 +1,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useCallback, useEffect, useImperativeHandle, useMemo, useState, type Ref } from "react";
-import { Check, Copy, Globe } from "lucide-react";
+import { Check, Copy, Globe, Plus, Trash2 } from "lucide-react";
 
 import { ChainOfThought, ChainOfThoughtContent, ChainOfThoughtHeader } from "@/components/ai-elements/chain-of-thought";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { API, fetchHistory, fetchReferences, type AnswerMeta, type Source, type TraceEvent } from "@/lib/api";
 import { idFromCiteHref, linkCitations } from "@/lib/citations";
+import type { Session } from "@/lib/sessions";
 import { cjk } from "@streamdown/cjk";
 import { createMathPlugin } from "@streamdown/math";
 
@@ -39,6 +40,12 @@ const STATS = [
   { value: "33", label: "chapters indexed" },
   { value: "5,961", label: "graph nodes" },
   { value: "8,421", label: "relationships" },
+];
+
+const FEATURES = [
+  { title: "Cited answers", body: "Each section and table an answer names links to its real text in the code." },
+  { title: "Live run trace", body: "Watch the agents triage, plan, search and write, with timings for every step." },
+  { title: "Browse the code", body: "Read any section, see what it cites and what cites it, and explore the graph." },
 ];
 
 type Selected = { messageId: string; source: Source } | null;
@@ -65,9 +72,9 @@ function useIsWide() {
 
 function Hero({ onAsk }: { onAsk: (q: string) => void }) {
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 py-6 sm:py-12">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 py-6 sm:py-12">
       <div className="label-caps">2021 Virginia Construction Code · graph-grounded answers</div>
-      <h1 className="text-balance text-4xl font-bold leading-[1.1] sm:text-5xl">
+      <h1 className="text-balance text-4xl font-bold leading-[1.1] sm:text-5xl min-[125rem]:text-6xl">
         Ask the building code a question. See exactly where the answer came from.
       </h1>
       <p className="max-w-2xl text-muted-foreground">
@@ -84,7 +91,7 @@ function Hero({ onAsk }: { onAsk: (q: string) => void }) {
       </div>
       <div className="flex flex-col gap-2">
         <div className="label-caps">Try one</div>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {EXAMPLES.map((example) => (
             <Suggestion
               key={example}
@@ -95,7 +102,72 @@ function Hero({ onAsk }: { onAsk: (q: string) => void }) {
           ))}
         </div>
       </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        {FEATURES.map((feature) => (
+          <div key={feature.title} className="panel flex flex-col gap-1 p-4">
+            <div className="font-semibold">{feature.title}</div>
+            <p className="text-sm text-muted-foreground">{feature.body}</p>
+          </div>
+        ))}
+      </div>
     </div>
+  );
+}
+
+/** Left rail on wide screens: conversations and example questions. */
+function Rail({
+  sessions,
+  activeId,
+  onNew,
+  onSelect,
+  onDelete,
+  onAsk,
+}: {
+  sessions: Session[];
+  activeId: string;
+  onNew: () => void;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+  onAsk: (question: string) => void;
+}) {
+  return (
+    <aside className="panel hidden min-h-0 flex-col gap-4 overflow-y-auto p-3 2xl:flex">
+      <Button onClick={onNew} className="justify-start">
+        <Plus /> New conversation
+      </Button>
+      <div className="flex flex-col gap-1">
+        <div className="label-caps px-2">Conversations</div>
+        {sessions.map((session) => (
+          <div
+            key={session.id}
+            className={`group flex items-center rounded-lg text-sm ${session.id === activeId ? "bg-secondary font-medium" : "text-muted-foreground hover:bg-muted"}`}
+          >
+            <button className="min-w-0 flex-1 truncate px-2 py-1.5 text-left" onClick={() => onSelect(session.id)}>
+              {session.name}
+            </button>
+            <button
+              aria-label={`Delete ${session.name}`}
+              className="px-2 text-muted-foreground opacity-0 hover:text-redline focus-visible:opacity-100 group-hover:opacity-100"
+              onClick={() => onDelete(session.id)}
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="mt-auto flex flex-col gap-1">
+        <div className="label-caps px-2">Try asking</div>
+        {EXAMPLES.map((example) => (
+          <button
+            key={example}
+            onClick={() => onAsk(example)}
+            className="rounded-lg px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            {example}
+          </button>
+        ))}
+      </div>
+    </aside>
   );
 }
 
@@ -237,10 +309,18 @@ function Answer({
 
 export function AskView({
   sessionId,
+  sessions,
+  onNewSession,
+  onSelectSession,
+  onDeleteSession,
   onOpenInBrowser,
   ref,
 }: {
   sessionId: string;
+  sessions: Session[];
+  onNewSession: () => void;
+  onSelectSession: (id: string) => void;
+  onDeleteSession: (id: string) => void;
   onOpenInBrowser: (number: string) => void;
   ref?: Ref<AskHandle>;
 }) {
@@ -299,17 +379,32 @@ export function AskView({
 
   const last = messages[messages.length - 1];
   const waitingForFirstEvent = busy && last?.role === "user";
+  const empty = messages.length === 0 && !loadingHistory;
+
+  // The answer whose run trace the side panel shows: the one a citation was opened from, else the latest.
+  const assistantMessages = messages.filter((m) => m.role === "assistant");
+  const focus = assistantMessages.find((m) => m.id === selected?.messageId) ?? assistantMessages[assistantMessages.length - 1];
+  const focusEvents = focus ? dataOf<TraceEvent>(focus, "data-trace") : [];
+  const focusMeta = focus ? dataOf<AnswerMeta>(focus, "data-meta")[0] : undefined;
 
   const sourcePanel = selected ? (
     <SourceView source={selected.source} onClose={() => setSelected(null)} onOpenInBrowser={onOpenInBrowser} />
   ) : null;
 
   return (
-    <div className="mx-auto grid h-full min-h-0 w-full max-w-7xl grid-cols-[minmax(0,1fr)] gap-4 px-4 pb-3 lg:grid-cols-[minmax(0,1fr)_24rem]">
-      <div className="flex min-h-0 min-w-0 flex-col">
+    <div className="grid h-full min-h-0 w-full grid-cols-[minmax(0,1fr)] gap-4 px-4 pb-3 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)] 2xl:grid-cols-[17rem_minmax(0,1.3fr)_minmax(26rem,1fr)] min-[125rem]:grid-cols-[18rem_minmax(0,1fr)_minmax(0,1.2fr)]">
+      <Rail
+        sessions={sessions}
+        activeId={sessionId}
+        onNew={onNewSession}
+        onSelect={onSelectSession}
+        onDelete={onDeleteSession}
+        onAsk={ask}
+      />
+      <div className={`flex min-h-0 min-w-0 flex-col ${empty ? "lg:col-span-2" : ""}`}>
         <Conversation className="min-h-0 flex-1">
-          <ConversationContent className="mx-auto w-full max-w-3xl px-0">
-            {messages.length === 0 && !loadingHistory ? <Hero onAsk={ask} /> : null}
+          <ConversationContent className={`mx-auto w-full px-0 ${empty ? "max-w-5xl" : "max-w-4xl"}`}>
+            {empty ? <Hero onAsk={ask} /> : null}
             {messages.map((message, index) =>
               message.role === "user" ? (
                 <Message from="user" key={message.id}>
@@ -342,7 +437,7 @@ export function AskView({
           <ConversationScrollButton />
         </Conversation>
 
-        <div className="mx-auto w-full max-w-3xl pt-2">
+        <div className={`mx-auto w-full pt-2 ${empty ? "max-w-5xl" : "max-w-4xl"}`}>
           <PromptInput onSubmit={(message) => ask(message.text ?? "")} className="rounded-2xl bg-card shadow-[var(--shadow-soft)] [&_[data-slot=input-group]]:rounded-2xl [&_[data-slot=input-group]]:bg-card">
             <PromptInputBody>
               <PromptInputTextarea placeholder="Ask about loads, egress, fire ratings, a section number…" />
@@ -358,17 +453,26 @@ export function AskView({
       </div>
 
       {wide ? (
-        <aside className="panel hidden min-h-0 p-5 lg:block">
-          {sourcePanel ?? (
-            <div className="flex h-full flex-col justify-center gap-2 text-sm text-muted-foreground">
-              <div className="label-caps">Source</div>
-              <p>
-                Click a citation such as <span className="cite-chip pointer-events-none">Table 1607.1</span> in an answer to read the code text it
-                came from.
-              </p>
-            </div>
-          )}
-        </aside>
+        empty ? null : (
+          <div className="hidden min-h-0 gap-4 lg:grid min-[125rem]:grid-cols-2">
+            <aside className="panel min-h-0 p-5">
+              {sourcePanel ?? (
+                <div className="flex h-full flex-col justify-center gap-2 text-sm text-muted-foreground">
+                  <div className="label-caps">Source</div>
+                  <p>
+                    Click a citation such as <span className="cite-chip pointer-events-none">Table 1607.1</span> in an answer to read the
+                    code text it came from.
+                  </p>
+                </div>
+              )}
+            </aside>
+            {/* On very wide screens the run trace sits beside the source instead of behind a tab. */}
+            <aside className="panel hidden min-h-0 flex-col gap-3 overflow-y-auto p-5 min-[125rem]:flex">
+              <div className="label-caps">Run trace</div>
+              <RunTrace events={focusEvents} meta={focusMeta} live={busy} />
+            </aside>
+          </div>
+        )
       ) : (
         <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
           <DialogContent className="flex max-h-[85dvh] flex-col">

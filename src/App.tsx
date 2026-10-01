@@ -23,6 +23,7 @@ const TABS: { id: View; label: string; icon: typeof BookOpen }[] = [
   { id: "how", label: "How it works", icon: Workflow },
 ];
 
+const APP_NAME = "VA Building Code Chat";
 const DEFAULT_SECTION = "1607";
 
 function parseHash(): { view: View; section: string } {
@@ -101,7 +102,7 @@ export default function App() {
         <header className="flex items-center gap-2 border-b border-border bg-card px-4 py-2 sm:gap-4">
           <a href="#/ask" className="flex items-center gap-2 text-base font-semibold">
             <span className="grid size-7 place-items-center rounded-lg bg-primary font-serif text-primary-foreground">§</span>
-            <span className="hidden min-[380px]:inline">Code Assistant</span>
+            <span className="hidden min-[380px]:inline">{APP_NAME}</span>
           </a>
 
           <nav className="seg ml-auto hidden md:inline-flex" aria-label="Sections">
@@ -118,7 +119,7 @@ export default function App() {
 
           <div className="ml-auto flex items-center gap-1 md:ml-2">
             <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="max-w-40" />}>
+              <DropdownMenuTrigger render={<Button variant="outline" size="sm" className={`max-w-40 ${view === "ask" ? "2xl:hidden" : ""}`} />}>
                 <span className="truncate">{active?.name ?? "Conversation"}</span>
                 <ChevronDown />
               </DropdownMenuTrigger>
@@ -169,7 +170,16 @@ export default function App() {
         <div className="min-h-0 flex-1 pt-3">
           {/* Ask stays mounted so an answer keeps streaming while you look at another tab. */}
           <div className={view === "ask" ? "h-full" : "hidden"}>
-            <AskView key={activeId} ref={askRef} sessionId={activeId} onOpenInBrowser={openInBrowser} />
+            <AskView
+              key={activeId}
+              ref={askRef}
+              sessionId={activeId}
+              sessions={sessions}
+              onNewSession={create}
+              onSelectSession={select}
+              onDeleteSession={remove}
+              onOpenInBrowser={openInBrowser}
+            />
           </div>
           {view === "browse" ? (
             <BrowseView number={section} onNavigate={(number) => go("browse", number)} onAsk={askFromBrowser} />

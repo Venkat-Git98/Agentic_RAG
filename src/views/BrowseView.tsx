@@ -40,7 +40,7 @@ function LinkedText({ text, cites, onCite }: { text: string; cites: SectionPage[
     out.push(linked.slice(cursor));
     return out;
   }, [text, cites, onCite]);
-  return <p className="code-text max-w-[70ch]">{nodes}</p>;
+  return <p className="code-text max-w-[85ch]">{nodes}</p>;
 }
 
 function Tree({
@@ -170,6 +170,14 @@ export function BrowseView({
   const [mode, setMode] = useState<"text" | "graph">("text");
   const [contentsOpen, setContentsOpen] = useState(false);
   const [tableSource, setTableSource] = useState<Source | null>(null);
+  // Only load the side-by-side graph when the window is wide enough to show it.
+  const [sideGraph, setSideGraph] = useState(() => window.matchMedia("(min-width: 119rem)").matches);
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 119rem)");
+    const update = () => setSideGraph(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     fetchToc().then(setToc).catch(() => setToc([]));
@@ -211,7 +219,7 @@ export function BrowseView({
   };
 
   return (
-    <div className="mx-auto grid h-full min-h-0 w-full max-w-7xl grid-cols-[minmax(0,1fr)] gap-4 px-4 pb-3 lg:grid-cols-[15rem_minmax(0,1fr)_17rem]">
+    <div className="grid h-full min-h-0 w-full grid-cols-[minmax(0,1fr)] gap-4 px-4 pb-3 lg:grid-cols-[16rem_minmax(0,1fr)_18rem] 2xl:grid-cols-[19rem_minmax(0,1fr)_20rem] min-[119rem]:grid-cols-[20rem_minmax(0,1fr)_minmax(0,1fr)_22rem]">
       <aside className={`panel min-h-0 overflow-y-auto p-3 ${contentsOpen ? "block max-h-[50dvh]" : "hidden"} lg:block lg:max-h-none`}>
         <Tree toc={toc} current={number} page={page} onNavigate={navigate} />
       </aside>
@@ -226,7 +234,7 @@ export function BrowseView({
               <CornerLeftUp /> §{page.parent}
             </Button>
           ) : null}
-          <div className="seg ml-auto">
+          <div className="seg ml-auto min-[119rem]:hidden">
             {(["text", "graph"] as const).map((name) => (
               <button
                 key={name}
@@ -292,13 +300,18 @@ export function BrowseView({
               <Button size="sm" onClick={() => onAsk(`What does Section ${page.number} require?`)}>
                 <MessageSquareText /> Ask about this section
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setMode("graph")}>
+              <Button variant="outline" size="sm" className="min-[119rem]:hidden" onClick={() => setMode("graph")}>
                 <Share2 /> Show in graph
               </Button>
             </div>
           </>
         )}
       </main>
+
+      {/* On very wide screens the graph sits beside the text instead of behind a toggle. */}
+      <section className="panel hidden min-h-0 flex-col p-5 min-[119rem]:flex" aria-label="Graph">
+        {page && sideGraph && mode !== "graph" ? <GraphPanel number={number} onNavigate={onNavigate} /> : null}
+      </section>
 
       <aside className="panel hidden min-h-0 flex-col gap-4 overflow-y-auto p-5 text-sm lg:flex">
         <div className="flex flex-col gap-1.5">

@@ -50,8 +50,8 @@ const STACK = [
 
 export function HowItWorksView() {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 pb-12">
-      <header className="flex flex-col gap-2 pt-2">
+    <div className="mx-auto grid w-full max-w-5xl gap-10 px-4 pb-12 min-[106rem]:max-w-[140rem] min-[106rem]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] min-[106rem]:items-start">
+      <header className="flex flex-col gap-2 pt-2 min-[106rem]:col-span-2">
         <div className="label-caps">Architecture</div>
         <h1 className="text-balance text-4xl font-bold leading-[1.1]">How a question becomes a cited answer</h1>
         <p className="max-w-2xl text-muted-foreground">
@@ -122,6 +122,7 @@ export function HowItWorksView() {
         <Box title="Answer, sources and run trace" tone="io">Streamed to this interface in the AI SDK message format.</Box>
       </section>
 
+      <div className="flex min-w-0 flex-col gap-10">
       <section className="grid gap-8 md:grid-cols-2">
         <div className="flex flex-col gap-2">
           <div className="label-caps">What is in the graph</div>
@@ -160,6 +161,7 @@ export function HowItWorksView() {
           <img src={flowchart} alt="Detailed flowchart of the triage, research orchestrator and synthesis decision logic" className="mx-auto max-h-[36rem] w-auto max-w-full" />
         </a>
       </section>
+      </div>
     </div>
   );
 }
