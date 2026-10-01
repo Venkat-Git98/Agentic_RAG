@@ -49,13 +49,6 @@ const STACK = [
   ["Hosting", "Railway (API and Redis), Netlify (this site)"],
 ];
 
-const LIMITS = [
-  "Chapter 10 (Means of Egress) and Chapter 20 are missing: the source PDFs only contained their first page. Questions on them fall back to web search.",
-  "The planner’s draft passages are written but retrieval does not use them yet.",
-  "Answers are written in one piece, so the text appears all at once after the trace.",
-  "Citations link the sections an answer names. They do not yet prove which passage each sentence came from.",
-];
-
 export function HowItWorksView() {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 pb-12">
@@ -156,15 +149,6 @@ export function HowItWorksView() {
             ))}
           </dl>
         </div>
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <div className="label-caps">Known limits</div>
-        <ul className="flex max-w-3xl list-disc flex-col gap-1.5 pl-5 text-sm text-muted-foreground">
-          {LIMITS.map((limit) => (
-            <li key={limit}>{limit}</li>
-          ))}
-        </ul>
       </section>
 
       <section className="flex flex-col gap-2">
