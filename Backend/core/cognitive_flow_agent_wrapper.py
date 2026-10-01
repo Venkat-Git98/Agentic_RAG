@@ -5,6 +5,7 @@ This module provides a wrapper class that adds Cognitive Flow logging
 to any agent that it wraps, with human-like "thinking" messages.
 """
 
+import asyncio
 import random
 import time
 from typing import Optional, Dict, Any
@@ -80,6 +81,9 @@ class CognitiveFlowAgentWrapper:
         started = time.time()
         if self.cognitive_flow_logger:
             await self.cognitive_flow_logger.emit({"trace": {"agent": self.agent_name, "status": "start"}})
+            # Several agents make blocking model calls. Yield briefly so the "start"
+            # event reaches the client before the event loop is held up.
+            await asyncio.sleep(0.05)
 
         try:
             result = await self.agent(state)
