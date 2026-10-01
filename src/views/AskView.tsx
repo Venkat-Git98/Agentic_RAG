@@ -16,7 +16,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Suggestion } from "@/components/ai-elements/suggestion";
-import { RunTrace } from "@/components/app/RunTrace";
+import { currentStep, RunTrace } from "@/components/app/RunTrace";
 import { SourceView } from "@/components/app/SourceView";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -58,15 +58,14 @@ function dataOf<T>(message: UIMessage, type: string): T[] {
   return message.parts.filter((part) => part.type === type).map((part) => (part as unknown as { data: T }).data);
 }
 
-function useIsWide() {
-  const query = "(min-width: 1024px)";
+function useMediaQuery(query: string) {
   const [wide, setWide] = useState(() => window.matchMedia(query).matches);
   useEffect(() => {
     const media = window.matchMedia(query);
     const update = () => setWide(media.matches);
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
-  }, []);
+  }, [query]);
   return wide;
 }
 
@@ -174,12 +173,14 @@ function Rail({
 function Answer({
   message,
   streaming,
+  traceInPanel,
   historySources,
   selected,
   onSelect,
 }: {
   message: UIMessage;
   streaming: boolean;
+  traceInPanel: boolean;
   historySources?: Source[];
   selected: Selected;
   onSelect: (selected: Selected) => void;
@@ -225,6 +226,17 @@ function Answer({
     }
   };
 
+  if (!text && traceInPanel) {
+    // The live trace is in the side panel; here just say what is happening.
+    return (
+      <Message from="assistant">
+        <MessageContent className="panel p-4">
+          <Shimmer>{streaming ? currentStep(events) : "No answer was produced"}</Shimmer>
+        </MessageContent>
+      </Message>
+    );
+  }
+
   if (!text) {
     // Still working: show the live trace instead of a blank bubble.
     return (
@@ -246,7 +258,7 @@ function Answer({
   return (
     <Message from="assistant">
       <MessageContent className="panel w-full min-w-0 gap-3 p-4">
-        {events.length ? (
+        {events.length && !traceInPanel ? (
           <div className="seg self-start" role="tablist">
             {(["answer", "trace"] as const).map((name) => (
               <button
@@ -261,7 +273,7 @@ function Answer({
           </div>
         ) : null}
 
-        {tab === "trace" ? (
+        {tab === "trace" && !traceInPanel ? (
           <RunTrace events={events} meta={meta} />
         ) : (
           <>
@@ -337,7 +349,9 @@ export function AskView({
   const [selected, setSelected] = useState<Selected>(null);
   const [historySources, setHistorySources] = useState<Record<string, Source[]>>({});
   const [loadingHistory, setLoadingHistory] = useState(true);
-  const wide = useIsWide();
+  const wide = useMediaQuery("(min-width: 1024px)");
+  // At this width the run trace has its own panel, so answers don't repeat it.
+  const traceInPanel = useMediaQuery("(min-width: 125rem)");
   const busy = status === "submitted" || status === "streaming";
 
   // Load the stored conversation for this session, then look up citations for past answers.
@@ -415,6 +429,7 @@ export function AskView({
                   key={message.id}
                   message={message}
                   streaming={busy && index === messages.length - 1}
+                  traceInPanel={traceInPanel}
                   historySources={historySources[message.id]}
                   selected={selected}
                   onSelect={setSelected}

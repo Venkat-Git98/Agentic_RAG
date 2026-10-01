@@ -14,6 +14,13 @@ const AGENTS: Record<string, { name: string; does: string }> = {
   ErrorHandler: { name: "Recovery", does: "Handles a failed step" },
 };
 
+/** A short status for the step currently running, e.g. "Planner is working". */
+export function currentStep(events: TraceEvent[]): string {
+  const running = [...events].reverse().find((e) => e.status === "start");
+  if (running) return `${AGENTS[running.agent]?.name ?? running.agent} is working`;
+  return events.length ? "Working on it" : "Starting";
+}
+
 const ROUTES: Record<string, string> = {
   simple_response: "Greeting or small talk: reply directly",
   contextual_clarification: "Follow-up: answer from the conversation",
