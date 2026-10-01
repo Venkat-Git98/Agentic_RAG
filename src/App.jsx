@@ -637,6 +637,20 @@ const useForceLayout = (nodes, edges) => {
     return layoutedNodes;
 };
 
+// vis-network renders string titles as plain text, so build the tooltip as a DOM
+// element (textContent keeps node text from being interpreted as HTML).
+const buildNodeTooltip = (label, type, id) => {
+    const el = document.createElement('div');
+    const heading = document.createElement('b');
+    heading.textContent = label || id;
+    el.appendChild(heading);
+    [`Type: ${type}`, `ID: ${id}`].forEach(line => {
+        el.appendChild(document.createElement('br'));
+        el.appendChild(document.createTextNode(line));
+    });
+    return el;
+};
+
 const KnowledgeGraphTab = ({ nodes, edges, onNodeClick, handleSearch, isLoading, error, isPanelOpen, setIsPanelOpen }) => {
     return (
         <div className="h-full flex bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-700/50 m-4 p-4 gap-4">
@@ -764,7 +778,7 @@ export default function App() {
                 return {
                     id: String(apiNode.id),
                     label: `${apiNode.type}: ${apiNode.id}`,
-                    title: `<b>${restOfData.label}</b><br>Type: ${apiNode.type}<br>ID: ${apiNode.id}`,
+                    title: buildNodeTooltip(restOfData.label, apiNode.type, apiNode.id),
                     group: apiNode.type,
                     ...restOfData
                 }
