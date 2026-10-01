@@ -73,6 +73,12 @@ class ThinkingAgenticWorkflow:
             # Here, we can add validation logic if needed. For now, we'll use the cached answer directly.
             state["final_answer"] = cached_answer.get("answer")
             state["triage_classification"] = "simple_response" # Force finish
+            if self.cognitive_flow_logger:
+                # Tell the client this answer was not researched just now.
+                await self.cognitive_flow_logger.emit({"trace": {
+                    "agent": "AnswerCache", "status": "done", "ms": 0,
+                    "detail": {"cache_hit": True, "cached_at": cached_answer.get("cached_at")},
+                }})
         else:
             self.logger.info("Cache miss after rewrite. Proceeding with research.")
             
