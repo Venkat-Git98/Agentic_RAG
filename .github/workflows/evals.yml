@@ -1,0 +1,90 @@
+name: Evals
+
+# Retrieval eval on every backend change (a regression fails the run), and a
+# nightly check of the deployed app: end-to-end answers plus the live metrics.
+on:
+  push:
+    branches: [main]
+    paths: ["Backend/**", ".github/workflows/evals.yml"]
+  schedule:
+    - cron: "43 7 * * *"   # nightly, 07:43 UTC
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+env:
+  APP_URL: https://agenticrag-production.up.railway.app
+  NEO4J_URI: ${{ secrets.NEO4J_URI }}
+  NEO4J_USERNAME: ${{ secrets.NEO4J_USERNAME }}
+  NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
+  NEO4J_DATABASE: ${{ secrets.NEO4J_DATABASE }}
+  GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+  TAVILY_API_KEY: not-used-by-evals
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  retrieval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash   # bash with pipefail, so a failing eval fails the step even through `tee`
+        working-directory: Backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Only what the retriever needs, not the whole app.
+      - run: pip install --quiet "neo4j>=5.20,<6" google-generativeai python-dotenv redis requests
+      - name: Golden dataset still matches the graph
+        run: python -m evals.check_dataset
+      - name: Retrieval eval (fails below the bar)
+        run: python -m evals.retrieval_eval --variant app --min-hit3 0.95 --min-mrr 0.90 | tee retrieval.txt
+      - name: Summary
+        if: always()
+        run: |
+          { echo '### Retrieval eval'; echo '```'; cat retrieval.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: retrieval-results
+          path: Backend/evals/results/
+
+  deployed-app:
+    # The deployed app answers slowly and costs model calls, so this runs nightly, not per push.
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash   # bash with pipefail, so a failing eval fails the step even through `tee`
+        working-directory: Backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet requests
+      - name: End-to-end eval on a sample of questions
+        run: python -m evals.e2e_eval --base-url "$APP_URL" --sample 8 --min-citation-hit 0.75 | tee e2e.txt
+      - name: Live metrics, last 7 days
+        if: always()
+        run: curl -fsS "$APP_URL/api/metrics?days=7" | python -m json.tool | tee metrics.json
+      - name: Summary
+        if: always()
+        run: |
+          { echo '### End-to-end eval'; echo '```'; cat e2e.txt; echo '```';
+            echo '### Live metrics (7 days)'; echo '```json'; cat metrics.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-results
+          path: Backend/evals/results/
+      - name: Keep this schedule enabled
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/evals.yml/enable"

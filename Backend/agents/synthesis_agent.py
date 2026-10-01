@@ -8,6 +8,7 @@ Enhanced with cross-user query caching storage.
 import logging
 import hashlib
 import json
+from core.answer_cache import cache_disabled, cache_key as answer_cache_key
 from datetime import datetime
 from typing import Dict, Any, List
 
@@ -131,7 +132,7 @@ class SynthesisAgent(BaseLangGraphAgent):
             synthesis_result: Successful synthesis result  
             state: Current workflow state
         """
-        if not redis_client or not user_query.strip():
+        if not redis_client or not user_query.strip() or cache_disabled.get():
             return
             
         try:
@@ -151,8 +152,7 @@ class SynthesisAgent(BaseLangGraphAgent):
                 return
             
             # Create cache entry
-            query_hash = hashlib.sha256(user_query.lower().strip().encode()).hexdigest()
-            cache_key = f"query_cache:{query_hash}"
+            cache_key = answer_cache_key(user_query)
             
             cache_data = {
                 "query": user_query.strip(),

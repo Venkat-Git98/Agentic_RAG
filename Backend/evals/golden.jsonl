@@ -1,0 +1,51 @@
+{"id": "live-load-restaurant", "type": "table", "question": "What uniform live load applies to dining rooms and restaurants?", "expected": ["table:1607.1", "1607.1", "1607"], "facts": ["100"]}
+{"id": "live-load-catwalk", "type": "table", "question": "What live loads apply to catwalks for maintenance access?", "expected": ["table:1607.1", "1607.1", "1607"], "facts": ["40", "300"]}
+{"id": "sprinkler-a2", "type": "factual", "question": "Where is an automatic sprinkler system required in Group A-2 occupancies?", "expected": ["903"], "facts": ["5,000 square feet"]}
+{"id": "kll-interior-column", "type": "table", "question": "What is the live load element factor KLL for interior columns?", "expected": ["table:1607.12.1", "1607.12.1", "1607.12"], "facts": ["4"]}
+{"id": "live-load-reduction", "type": "factual", "question": "When can uniform live loads be reduced?", "expected": ["1607.12", "1607.12.1"], "facts": []}
+{"id": "ground-snow", "type": "factual", "question": "How is the ground snow load determined for a building site?", "expected": ["1608.2", "1608"], "facts": []}
+{"id": "court-width", "type": "factual", "question": "What is the minimum width of a court?", "expected": ["1205.3"], "facts": ["3 feet"]}
+{"id": "sound-class", "type": "factual", "question": "What sound transmission class is required for walls between dwelling units?", "expected": ["1206.2"], "facts": ["50"]}
+{"id": "accessible-entrances", "type": "factual", "question": "What percentage of public entrances must be accessible?", "expected": ["1105.1"], "facts": ["60 percent"]}
+{"id": "rehab-parking", "type": "factual", "question": "How many parking spaces must be accessible at outpatient physical therapy facilities?", "expected": ["1106.5"], "facts": ["20 percent"]}
+{"id": "accessible-seating", "type": "factual", "question": "How much of the seating at fixed tables and counters has to be accessible?", "expected": ["1110.12"], "facts": ["5 percent"]}
+{"id": "roof-cricket", "type": "factual", "question": "When is a cricket or saddle required behind a chimney on a roof?", "expected": ["1503.5"], "facts": ["30 inches"]}
+{"id": "wall-flashing", "type": "factual", "question": "How must flashing be installed on exterior walls?", "expected": ["1404.4"], "facts": []}
+{"id": "hydrostatic-uplift", "type": "factual", "question": "How should basement floors and slabs be designed for hydrostatic uplift?", "expected": ["1610.2"], "facts": []}
+{"id": "flood-hazard", "type": "factual", "question": "What does the code require for new construction in flood hazard areas?", "expected": ["1612.1", "1612"], "facts": []}
+{"id": "geotech-required", "type": "factual", "question": "When is a geotechnical investigation required?", "expected": ["1803.1", "1803.2", "1803"], "facts": []}
+{"id": "shallow-foundation-soil", "type": "factual", "question": "What kind of soil must shallow foundations be built on?", "expected": ["1809.2"], "facts": ["undisturbed soil"]}
+{"id": "foundation-backfill", "type": "factual", "question": "How must the excavation outside a foundation be backfilled?", "expected": ["1804.3"], "facts": []}
+{"id": "concrete-standard", "type": "factual", "question": "Which standard governs the design of structural concrete?", "expected": ["1901.2"], "facts": ["ACI 318"]}
+{"id": "plain-footing-thickness", "type": "factual", "question": "How thick must plain concrete footings be for Group R-3 occupancies?", "expected": ["1906.1"], "facts": ["6 inches"]}
+{"id": "fireplace-lintel", "type": "factual", "question": "What bearing length is required at each end of a masonry fireplace lintel?", "expected": ["2111.8"], "facts": ["4 inches"]}
+{"id": "fireplace-hearth", "type": "factual", "question": "What must masonry fireplace hearths and hearth extensions be made of?", "expected": ["2111.10"], "facts": []}
+{"id": "steel-painting", "type": "factual", "question": "Which standard covers painting of structural steel elements?", "expected": ["2203.1"], "facts": ["AISC 360"]}
+{"id": "wind-special-inspections", "type": "factual", "question": "When are special inspections for wind resistance required?", "expected": ["1705.12"], "facts": []}
+{"id": "deep-foundation-inspections", "type": "factual", "question": "What special inspections apply to cast-in-place deep foundations?", "expected": ["1705.8"], "facts": []}
+{"id": "mcm-height", "type": "factual", "question": "What applies to metal composite material on buildings of Type I, II, III and IV construction?", "expected": ["1406.10"], "facts": ["40 feet"]}
+{"id": "roof-edge-systems", "type": "factual", "question": "How must metal edge systems on low-slope roofs be designed?", "expected": ["1504.6"], "facts": []}
+{"id": "ventilation", "type": "factual", "question": "Do buildings need natural or mechanical ventilation?", "expected": ["1202.1"], "facts": []}
+{"id": "anchoring-concrete", "type": "factual", "question": "What governs anchoring to concrete?", "expected": ["1901.3"], "facts": ["ACI 318"]}
+{"id": "design-methods", "type": "factual", "question": "Which structural design methods does the code permit?", "expected": ["1604.1"], "facts": []}
+{"id": "roof-coating-standard", "type": "table", "question": "Which standard applies to acrylic roof coating materials?", "expected": ["1509.2"], "facts": ["ASTM D6083"]}
+{"id": "fire-wall", "type": "factual", "question": "What is a fire wall and what fire-resistance rating does it need?", "expected": ["706"], "facts": []}
+{"id": "wind-speed", "type": "factual", "question": "How is the basic design wind speed determined?", "expected": ["1609"], "facts": []}
+{"id": "plumbing-fixtures", "type": "factual", "question": "What is the minimum number of required plumbing fixtures?", "expected": ["2902"], "facts": []}
+{"id": "safety-glazing", "type": "factual", "question": "Where is safety glazing required in hazardous locations?", "expected": ["2406"], "facts": []}
+{"id": "roof-fire-class", "type": "factual", "question": "What fire classification is required for roof coverings?", "expected": ["1505"], "facts": []}
+{"id": "interior-finish", "type": "factual", "question": "How are interior wall and ceiling finishes classified for flame spread?", "expected": ["803"], "facts": []}
+{"id": "incidental-uses", "type": "factual", "question": "What separation is required for incidental use rooms?", "expected": ["509"], "facts": []}
+{"id": "mixed-occupancy", "type": "factual", "question": "How are separated mixed occupancies handled?", "expected": ["508"], "facts": []}
+{"id": "group-r2", "type": "factual", "question": "What is classified as a Group R-2 residential occupancy?", "expected": ["310"], "facts": []}
+{"id": "stretcher-elevator", "type": "factual", "question": "What elevator car size is needed to fit an ambulance stretcher?", "expected": ["3002"], "facts": []}
+{"id": "construction-extinguishers", "type": "factual", "question": "Are portable fire extinguishers required during construction?", "expected": ["3309"], "facts": []}
+{"id": "allowable-stories", "type": "factual", "question": "How many stories is a building allowed based on its construction type?", "expected": ["504"], "facts": []}
+{"id": "exterior-wall-rating", "type": "factual", "question": "What fire-resistance rating do exterior walls need based on fire separation distance?", "expected": ["705"], "facts": []}
+{"id": "direct-1607-12", "type": "direct", "question": "What does Section 1607.12 say?", "expected": ["1607.12"], "facts": []}
+{"id": "direct-1205-3", "type": "direct", "question": "Show me Section 1205.3", "expected": ["1205.3"], "facts": ["3 feet"]}
+{"id": "direct-903", "type": "direct", "question": "What does Section 903 cover?", "expected": ["903"], "facts": []}
+{"id": "direct-table-1607-1", "type": "direct", "question": "Show me Table 1607.1", "expected": ["table:1607.1", "1607.1", "1607"], "facts": []}
+{"id": "direct-1803-1", "type": "direct", "question": "Explain Section 1803.1", "expected": ["1803.1"], "facts": []}
+{"id": "gap-travel-distance", "type": "not_in_graph", "question": "What is the maximum exit access travel distance for a sprinklered Group B occupancy?", "expected": [], "facts": []}
+{"id": "gap-guard-height", "type": "not_in_graph", "question": "What is the minimum height of a guard on a stair landing?", "expected": [], "facts": []}

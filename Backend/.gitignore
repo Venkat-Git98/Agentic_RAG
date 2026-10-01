@@ -6,3 +6,4 @@ data_ingestion_pipeline/output/
 data_ingestion_pipeline/logs/
 logs/
 .venv/
+data/session-*.json

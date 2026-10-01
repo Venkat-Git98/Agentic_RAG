@@ -99,6 +99,8 @@ MEMORY_ANALYSIS_MODEL = os.environ.get("MEMORY_ANALYSIS_MODEL", "gemini-3.8-flas
 # (data_ingestion_pipeline/load_and_embed.py). Changing either means re-embedding.
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "models/gemini-embedding-001")
 EMBEDDING_DIMENSIONS = int(os.environ.get("EMBEDDING_DIMENSIONS", "768"))
+# Which stored embeddings vector search uses: "plain" or "context" (see tools/retriever.py)
+VECTOR_INDEX_SET = os.environ.get("VECTOR_INDEX_SET", "context")
 
 # --- Research Configuration ---
 # Controls whether to use the reranker for result optimization

@@ -53,15 +53,15 @@ class TavilySearchTool(BaseTool):
             answer = data.get("answer", "No answer provided.")
             results = data.get("results", [])
             
-            formatted_results = f"Search Answer: {answer}\\n\\n"
-            formatted_results += "Search Results:\\n"
+            formatted_results = f"Search Answer: {answer}\n\n"
+            formatted_results += "Search Results:\n"
             if not results:
                 formatted_results += "No search results found."
             
             for result in results:
-                formatted_results += f"- Title: {result.get('title', 'N/A')}\\n"
-                formatted_results += f"  URL: {result.get('url', 'N/A')}\\n"
-                formatted_results += f"  Content: {result.get('content', 'N/A')}\\n\\n"
+                formatted_results += f"- Title: {result.get('title', 'N/A')}\n"
+                formatted_results += f"  URL: {result.get('url', 'N/A')}\n"
+                formatted_results += f"  Content: {(result.get('content') or 'N/A')[:1500]}\n\n"
 
             return {"answer": formatted_results, "retrieval_method": "web_search"}
 

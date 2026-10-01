@@ -30,6 +30,7 @@ from core.conversation_manager import ConversationManager
 from core.thinking_workflow import ThinkingAgenticWorkflow, create_thinking_agentic_workflow
 from core.thinking_logger import ThinkingMode
 from core.cognitive_flow import CognitiveFlowLogger, request_queue
+from core.answer_cache import cache_disabled
 from tools.code_references import resolve_references
 from core.state import create_initial_state
 
@@ -54,7 +55,7 @@ class LangGraphAgenticAI:
         )
         self.app = self.workflow.app
 
-    async def get_response_stream(self, user_query: str, thread_id: str) -> AsyncGenerator[Dict[str, Any], None]:
+    async def get_response_stream(self, user_query: str, thread_id: str, use_cache: bool = True) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Get a streaming response from the agentic AI.
         Args:
@@ -89,6 +90,7 @@ class LangGraphAgenticAI:
         # concurrent users never receive each other's events.
         queue: asyncio.Queue = asyncio.Queue()
         request_queue.set(queue)
+        cache_disabled.set(not use_cache)
         started = time.time()
 
         async def _run_workflow():
@@ -116,6 +118,7 @@ class LangGraphAgenticAI:
 
         route = None
         web_used = False
+        cached = False
         try:
             while True:
                 message = await queue.get()
@@ -123,6 +126,7 @@ class LangGraphAgenticAI:
                     break
                 if trace := message.get("trace"):
                     detail = trace.get("detail") or {}
+                    cached = cached or trace.get("agent") == "AnswerCache"
                     route = detail.get("route") or route
                     if any(s.get("method") == "web search" for s in detail.get("searches", [])):
                         web_used = True
@@ -135,7 +139,8 @@ class LangGraphAgenticAI:
                     yield {
                         "final_answer": final_answer,
                         "sources": sources,
-                        "meta": {"seconds": round(time.time() - started, 1), "route": route, "web_used": web_used},
+                        "meta": {"seconds": round(time.time() - started, 1), "route": route,
+                                 "web_used": web_used, "cached": cached},
                     }
                     break
                 yield message

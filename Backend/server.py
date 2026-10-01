@@ -31,6 +31,7 @@ from core.thinking_logger import ThinkingMode
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from tools.neo4j_connector import Neo4jConnector
+from tools import metrics as request_metrics
 from tools.code_references import resolve_references, table_of_contents, section_page
 
 # Small in-process cache for data that only changes when the graph is reloaded.
@@ -216,7 +217,8 @@ def _last_user_text(messages: List[Dict[str, Any]]) -> str:
     return ""
 
 
-async def stream_ui_message(user_query: str, thread_id: str) -> AsyncGenerator[str, None]:
+async def stream_ui_message(user_query: str, thread_id: str, use_cache: bool = True,
+                            source: str = "app") -> AsyncGenerator[str, None]:
     """
     Runs the query and streams it in the AI SDK "UI message stream" protocol:
     the run trace and cited sources as data parts, then the answer text.
@@ -234,7 +236,7 @@ async def stream_ui_message(user_query: str, thread_id: str) -> AsyncGenerator[s
 
     answered = False
     step = 0
-    stream = ai_system.get_response_stream(user_query, thread_id).__aiter__()
+    stream = ai_system.get_response_stream(user_query, thread_id, use_cache=use_cache).__aiter__()
     pending = asyncio.ensure_future(stream.__anext__())
     try:
         while True:
@@ -258,6 +260,11 @@ async def stream_ui_message(user_query: str, thread_id: str) -> AsyncGenerator[s
                 yield _sse({"type": "error", "errorText": event["error"]})
             elif "final_answer" in event:
                 answered = True
+                meta = event.get("meta", {})
+                request_metrics.record(
+                    ok=True, seconds=meta.get("seconds", 0.0), route=meta.get("route"),
+                    web_used=bool(meta.get("web_used")), cached=bool(meta.get("cached")),
+                    sources=len(event.get("sources", [])), source=source)
                 yield _sse({"type": "data-sources", "id": "sources", "data": {"sources": event.get("sources", [])}})
                 yield _sse({"type": "data-meta", "id": "meta", "data": event.get("meta", {})})
                 yield _sse({"type": "text-start", "id": text_id})
@@ -267,9 +274,11 @@ async def stream_ui_message(user_query: str, thread_id: str) -> AsyncGenerator[s
                         yield _sse({"type": "text-delta", "id": text_id, "delta": chunk})
                 yield _sse({"type": "text-end", "id": text_id})
         if not answered:
+            request_metrics.record(ok=False, source=source)
             yield _sse({"type": "error", "errorText": "No answer was produced for this question. Please try again."})
     except Exception as e:
         logging.error(f"Error while streaming chat response: {e}", exc_info=True)
+        request_metrics.record(ok=False, source=source)
         yield _sse({"type": "error", "errorText": f"An unexpected error occurred: {e}"})
     finally:
         if not pending.done():
@@ -283,16 +292,25 @@ class UIChatRequest(BaseModel):
     id: Optional[str] = None
     messages: List[Dict[str, Any]] = []
     thread_id: Optional[str] = None
+    # Used by the eval runner: skip the answer cache, and keep eval traffic out of the live metrics.
+    no_cache: bool = False
+    source: str = "app"
 
 
 @app.post("/api/chat", summary="Chat endpoint speaking the AI SDK UI message stream protocol")
 async def ui_chat_endpoint(request: UIChatRequest):
     thread_id = request.thread_id or request.id or f"session-{uuid4().hex}"
     return StreamingResponse(
-        stream_ui_message(_last_user_text(request.messages), thread_id),
+        stream_ui_message(_last_user_text(request.messages), thread_id,
+                          use_cache=not request.no_cache, source="eval" if request.source == "eval" else "app"),
         media_type="text/event-stream",
         headers={"x-vercel-ai-ui-message-stream": "v1", "Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@app.get("/api/metrics", summary="Live quality and latency metrics for recent requests")
+async def metrics_endpoint(days: int = 7):
+    return await asyncio.to_thread(request_metrics.summary, max(1, min(days, 90)))
 
 
 # --- Code browser + citations ---

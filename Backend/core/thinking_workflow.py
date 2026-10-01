@@ -32,6 +32,7 @@ from thinking_agents import (
 from .thinking_logger import ThinkingLogger, ThinkingMode
 from .cognitive_flow_agent_wrapper import CognitiveFlowAgentWrapper
 from .cognitive_flow import CognitiveFlowLogger
+from .answer_cache import cache_disabled, cache_key as answer_cache_key
 
 class ThinkingAgenticWorkflow:
     """
@@ -63,10 +64,11 @@ class ThinkingAgenticWorkflow:
         
         # 2. Check cache with the (potentially rewritten) query
         user_query = state.get("user_query", "")
-        query_hash = hashlib.sha256(user_query.lower().strip().encode()).hexdigest()
-        cache_key = f"query_cache:{query_hash}"
+        cache_key = answer_cache_key(user_query)
 
-        if self.redis_client and (cached_data := self.redis_client.get(cache_key)):
+        if cache_disabled.get():
+            self.logger.info("Answer cache is off for this request.")
+        elif self.redis_client and (cached_data := self.redis_client.get(cache_key)):
             self.logger.info(f"CACHE HIT after rewrite for query: '{user_query[:100]}...'")
             cached_answer = json.loads(cached_data)
             
